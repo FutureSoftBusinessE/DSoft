@@ -1,0 +1,14 @@
+repos:
+-   repo: https://github.com/ambv/black
+    rev: 24.8.0
+    hooks:
+    - id: black
+      stages: [commit]
+      args: ["--config=backend\\pyproject.toml", "."]
+
+-   repo: https://github.com/PyCQA/flake8
+    rev: 7.1.1
+    hooks:
+    - id: flake8
+      stages: [commit]
+      args: ["--config=backend\\.flake8"]

@@ -1,0 +1,8 @@
+/frontend/node_modules
+node_modules
+dist
+build
+web.config
+build*
+.vscode
+/src/components/menu

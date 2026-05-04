@@ -1,0 +1,121 @@
+{
+    "menu": [
+      {
+        "mdcodigo": "INV",
+        "nivel": 1,
+        "submenu": [
+          {
+            "opccaption": "Transacciones",
+            "nivel": 2,
+            "opciones": [
+              {
+                "opccaption": "Ingresos y Egresos",
+                "nivel":3,
+                "subopciones":[
+                    {
+                        "opccaption": "Por Compra",
+                        "nivel":4,
+                        "sub-subopciones":[]
+                    },
+                    {
+                        "opccaption": "Otros Ingresos y Egresos",
+                        "nivel":4,
+                        "sub-subopciones":[]
+                    },
+                    {
+                        "opccaption": "Transformación de productos",
+                        "nivel":4,
+                        "sub-subopciones":[]
+                    }
+                ]
+              },
+              {
+                "opccaption": "Transferencias",
+                "nivel":3,
+                "subopciones":[
+                    {
+                        "opccaption": "Misma Localidad",
+                        "nivel":4,
+                        "sub-subopciones":[]
+                    },
+                    {
+                        "opccaption": "Entre Localidades",
+                        "nivel":4,
+                        "sub-subopciones":[
+                            {
+                                "opccaption": "Creación de Solicitud",
+                                "nivel":5
+                            },
+                            {
+                                "opccaption": "Egreso por Solicitud",
+                                "nivel":5
+                            },
+                            {
+                                "opccaption": "Egreso Directo",
+                                "nivel":5
+                            },
+                            {
+                                "opccaption": "-",
+                                "nivel":5
+                            },
+                            {
+                                "opccaption": "Reversión de Egreso",
+                                "nivel":5
+                            },
+                            {
+                                "opccaption": "Ingreso de Localidades",
+                                "nivel":5
+                            },
+                            {
+                                "opccaption": "Reporte de Envio",
+                                "nivel":5
+                            }
+                            
+                        ]
+                    },
+                    {
+                        "opccaption": "A Usuarios",
+                        "nivel":4,
+                        "sub-subopciones":[]
+                    },
+                    {
+                        "opccaption": "A Compañías",
+                        "nivel":4,
+                        "sub-subopciones":[]
+                    }
+                ]
+              }
+            ]},
+            {
+                "opccaption": "Consultas",
+                "nivel": 2,
+                "opciones": [
+                  {
+                    "opccaption": "Productos",
+                    "nivel":3,
+                    "subopciones":[]
+                  },
+                  {
+                    "opccaption": "Existencias en Bodegas",
+                    "nivel":3,
+                    "subopciones":[]
+                  },
+                  {
+                    "opccaption": "Transacciones",
+                    "nivel":3,
+                    "subopciones":[
+                        {
+                            "opccaption": "Generales",
+                            "nivel":4,
+                            "sub-subopciones":[]
+                        },
+                        {
+                            "opccaption": "Prestamos de Clientes",
+                            "nivel":4,
+                            "sub-subopciones":[]
+                        }
+                    ]
+                  }
+                ]}
+      ]}
+]}

@@ -1,0 +1,265 @@
+import Login from "./login/Login"
+import LoginInner from "./loginInner/LoginInner"
+import SubMenu from "./Submenu/Submenu"
+import SimpleMenu from "./Submenu/Submenuu"
+import ProtectedRoutes from "./ProtectedRoutes/ProtectedRoutes"
+
+// Acceso a Compañias y Modulos
+import AccesoACompañiasYModulos from "./AccesoACompañiasYModulos"
+import BuscarAccesoACompañiasYModulos from "./AccesoACompañiasYModulos/Buscar"
+
+// Acceso A Opciones Por Modulos
+import AccesoAOpcionesPorModulos from "./AccesoAOpcionesPorModulos"
+import BuscarAccesoAOpcionesPorModulos from "./AccesoAOpcionesPorModulos/Buscar"
+
+// Actualiza Clave Olvidada
+import ActualizaClaveOlvidada from "./ActualizaClaveOlvidada"
+
+// Actualiza Clave Fecha Caducidad Por Lote
+import ActualizaClaveFechaCaducidadLote from "./ActualizaClaveFechaCaducidadLote"
+
+// Banco de Tareas
+import BancoDeTareas from "./BancoDeTareas"
+import CrearBancoDeTareas from "./BancoDeTareas/crear"
+import EditarBancoDeTareas from "./BancoDeTareas/editar"
+
+// Procesos de Tarea
+import ProcesosTarea from "./ProcesosTarea"
+import CrearProcesosTarea from "./ProcesosTarea/crear"
+import EditarProcesosTarea from "./ProcesosTarea/editar"
+
+// Paquetes de Proceso de Tareas
+import PaquetesDeProcesoTareas from "./PaquetesDeProcesoTareas"
+import CrearPaquetesDeProcesoTareas from "./PaquetesDeProcesoTareas/crear"
+import EditarPaquetesDeProcesoTareas from "./PaquetesDeProcesoTareas/editar"
+
+// Planificacion de tareas
+import PlanificacionDeTareas from "./PlanificacionDeTareas"
+
+// Asignacion de Horarios a Usuarios
+import AsignacionHorariosAUsuarios from "./AsignacionHorariosAUsuarios"
+import BuscarAsignacionHorariosAUsuarios from "./AsignacionHorariosAUsuarios/Buscar"
+import CrearAsignacionHorariosAUsuarios from "./AsignacionHorariosAUsuarios/Crear"
+
+// Creacion de Clientes
+import CreacionClientes from "./CreacionClientes"
+import CrearCreacionClientes from "./CreacionClientes/Crear"
+import EditarCreacionClientes from "./CreacionClientes/Editar"
+import BuscarCreacionClientes from "./CreacionClientes/Buscar"
+
+// Ejecucion de tareas
+import EjecucionTareas from "./EjecucionTareas"
+import CrearEjecucionTareas from "./EjecucionTareas/Crear"
+import BuscarEjecucionTareas from "./EjecucionTareas/Buscar"
+
+// ConsultaDeCedulaEventos
+import ConsultaDeCedulaEventos from "./ConsultaDeCedulaEventos"
+
+// Acceso a localidades
+import AccesoALocalidades from "./AccesoALocalidades"
+import AccesoALocalidadesBuscar from "./AccesoALocalidades/buscar"
+
+// Parametros Generales - Catalogos
+import Cargos from "./Cargos"
+import CrearCargo from "./Cargos/Crear"
+import EditarCargo from "./Cargos/Editar"
+
+import TipodeContraCli from "./TipodeContraCli"
+import CrearTipodeContraCli from "./TipodeContraCli/Crear"
+import EditarTipodeContraCli from "./TipodeContraCli/Editar"
+
+// Cambio de Clave
+import CambioClave from "./CambioClave"
+
+// Facturación
+import FacturaDesdeArticulos from "./FacturaDesdeArticulos"
+import BuscarFacturaDesdeArticulos from "./FacturaDesdeArticulos/Buscar"
+import CrearFacturaDesdeArticulos from "./FacturaDesdeArticulos/Crear"
+import EditarFacturaDesdeArticulos from "./FacturaDesdeArticulos/Editar"
+
+// Creacion de usuarios
+import CreacionUsuarios from "./CreacionUsuarios"
+import CrearCreacionUsuarios from "./CreacionUsuarios/Crear"
+import BuscarCreacionUsuarios from "./CreacionUsuarios/Buscar"
+import EditarCreacionUsuarios from "./CreacionUsuarios/Editar"
+
+// Beneficiarios de Gravamen
+import BeneficiariosGravamen from "./BeneficiariosGravamen"
+import CrearBeneficiariosGravamen from "./BeneficiariosGravamen/Crear"
+import EditarBeneficiariosGravamen from "./BeneficiariosGravamen/Editar"
+
+// Tipos de Certificado
+// (Eliminado: TiposCertificado, CrearTipoCertificado, EditarTipoCertificado - No están en la lista)
+
+// Carga de Trabajo
+import CargaDeTrabajo from "./CargaDeTrabajo"
+
+// Compania
+import Compania from "./Compania/CompaniaMainPage"
+import CrearCompania from "./Compania/Crear/CrearCompaniaPage"
+import EditarCompania from "./Compania/Editar/EditarCompaniaPage"
+import BuscarCompania from "./Compania/Buscar/BuscarCompaniaPage"
+
+// Localidad
+import Localidad from "./Localidad/LocalidadMainPage"
+import CrearLocalidad from "./Localidad/Crear/CrearLocalidadPage"
+import EditarLocalidad from "./Localidad/Editar/EditarLocalidadPage"
+import BuscarLocalidad from "./Localidad/Buscar/BuscarLocalidadPage"
+
+// TiposCliente
+import TiposCliente from "./TiposCliente/TiposClienteMainPage"
+import CrearTiposCliente from "./TiposCliente/Crear/CrearTiposClientePage"
+import EditarTiposCliente from "./TiposCliente/Editar/EditarTiposClientePage"
+import BuscarTiposCliente from "./TiposCliente/Buscar/BuscarTiposClientePage"
+
+// TipoDocumento
+import TipoDocumento from "./TipoDocumento"
+import CrearTipoDocumento from "./TipoDocumento/Crear"
+import EditarTipoDocumento from "./TipoDocumento/Editar"
+
+// Pais
+import Pais from "./Pais"
+import CrearPais from "./Pais/Crear"
+import EditarPais from "./Pais/Editar"
+
+// Ciudad
+import Ciudad from "./Ciudad"
+import CrearCiudad from "./Ciudad/Crear"
+import EditarCiudad from "./Ciudad/Editar"
+
+// Provincia
+import Provincia from "./Provincia"
+import CrearProvincia from "./Provincia/Crear"
+import EditarProvincia from "./Provincia/Editar"
+
+// Parroquia
+import Parroquia from "./Parroquia"
+import CrearParroquia from "./Parroquia/Crear"
+import EditarParroquia from "./Parroquia/Editar"
+
+// Sector Comercial Cliente
+import SectorComercialCliente from "./SectorComercialCliente"
+import CrearSectorComercialCliente from "./SectorComercialCliente/Crear"
+import EditarSectorComercialCliente from "./SectorComercialCliente/Editar"
+
+// Integradores Ventas
+import IntegradoresVentas from "./IntegradoresVentas"
+import CrearIntegradoresVentas from "./IntegradoresVentas/Crear"
+import EditarIntegradoresVentas from "./IntegradoresVentas/Editar"
+
+// Planes Servicios
+import PlanesServicios from "./PlanesServicios"
+import CrearPlanServicio from "./PlanesServicios/Crear"
+import EditarPlanServicio from "./PlanesServicios/Editar"
+
+// IVA
+import Iva from "./Iva"
+import CrearIva from "./Iva/Crear"
+import EditarIva from "./Iva/Editar"
+
+// Impuestos y Retenciones
+import ImpuestosRetenciones from "./ImpuestosRetenciones"
+import CrearImpuestoRetencion from "./ImpuestosRetenciones/Crear"
+import EditarImpuestoRetencion from "./ImpuestosRetenciones/Editar"
+
+// Resumen Productividad
+import ResumenProductividad from "./ResumenProductividad"
+
+export {
+  Login,
+  LoginInner,
+  SubMenu,
+  SimpleMenu,
+  ProtectedRoutes,
+  AccesoACompañiasYModulos,
+  BuscarAccesoACompañiasYModulos,
+  AccesoAOpcionesPorModulos,
+  BuscarAccesoAOpcionesPorModulos,
+  ActualizaClaveOlvidada,
+  ActualizaClaveFechaCaducidadLote,
+  BancoDeTareas,
+  CrearBancoDeTareas,
+  EditarBancoDeTareas,
+  ProcesosTarea,
+  CrearProcesosTarea,
+  EditarProcesosTarea,
+  PaquetesDeProcesoTareas,
+  CrearPaquetesDeProcesoTareas,
+  EditarPaquetesDeProcesoTareas,
+  PlanificacionDeTareas,
+  AsignacionHorariosAUsuarios,
+  BuscarAsignacionHorariosAUsuarios,
+  CrearAsignacionHorariosAUsuarios,
+  CreacionClientes,
+  CrearCreacionClientes,
+  EditarCreacionClientes,
+  BuscarCreacionClientes,
+  EjecucionTareas,
+  CrearEjecucionTareas,
+  BuscarEjecucionTareas,
+  ConsultaDeCedulaEventos,
+  AccesoALocalidades,
+  AccesoALocalidadesBuscar,
+  Cargos,
+  CrearCargo,
+  EditarCargo,
+  TipodeContraCli,
+  CrearTipodeContraCli,
+  EditarTipodeContraCli,
+  CambioClave,
+  FacturaDesdeArticulos,
+  BuscarFacturaDesdeArticulos,
+  CrearFacturaDesdeArticulos,
+  EditarFacturaDesdeArticulos,
+  CreacionUsuarios,
+  CrearCreacionUsuarios,
+  BuscarCreacionUsuarios,
+  EditarCreacionUsuarios,
+  BeneficiariosGravamen,
+  CrearBeneficiariosGravamen,
+  EditarBeneficiariosGravamen,
+  CargaDeTrabajo,
+  Compania,
+  CrearCompania,
+  EditarCompania,
+  BuscarCompania,
+  Localidad,
+  CrearLocalidad,
+  EditarLocalidad,
+  BuscarLocalidad,
+  TiposCliente,
+  CrearTiposCliente,
+  EditarTiposCliente,
+  BuscarTiposCliente,
+  TipoDocumento,
+  CrearTipoDocumento,
+  EditarTipoDocumento,
+  Pais,
+  CrearPais,
+  EditarPais,
+  Ciudad,
+  CrearCiudad,
+  EditarCiudad,
+  Provincia,
+  CrearProvincia,
+  EditarProvincia,
+  Parroquia,
+  CrearParroquia,
+  EditarParroquia,
+  SectorComercialCliente,
+  CrearSectorComercialCliente,
+  EditarSectorComercialCliente,
+  IntegradoresVentas,
+  CrearIntegradoresVentas,
+  EditarIntegradoresVentas,
+  PlanesServicios,
+  CrearPlanServicio,
+  EditarPlanServicio,
+  Iva,
+  CrearIva,
+  EditarIva,
+  ImpuestosRetenciones,
+  CrearImpuestoRetencion,
+  EditarImpuestoRetencion,
+  ResumenProductividad,
+}

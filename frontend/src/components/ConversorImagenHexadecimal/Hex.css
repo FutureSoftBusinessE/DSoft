@@ -1,0 +1,11 @@
+.hex-image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.hex-image-container img {
+  display: block;
+}

@@ -1,0 +1,4 @@
+{
+  "*.{js,jsx,ts,tsx}": ["lint-staged --config ./frontend/.lintstagedrc"],
+  "*.py": ["lint-staged --config ./backend/.lintstagedrc"]
+}

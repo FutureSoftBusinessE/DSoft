@@ -1,0 +1,14 @@
+[tool.black]
+line-length = 300
+force-exclude = '''
+/(
+    \.venv
+  | \.git
+  | \.mypy_cache
+  | \.tox
+  | \.eggs
+  | \.pytest_cache
+  | migrations
+  | services
+)/
+'''

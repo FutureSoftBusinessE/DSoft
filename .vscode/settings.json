@@ -1,0 +1,56 @@
+{
+  // "python.pythonPath": "${workspaceFolder}/.venv/bin/python",
+  // "python.linting.enabled": false,
+  // "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": false
+  },
+  "black-formatter.interpreter": ["${workspaceFolder}\\backend\\.venv\\Scripts\\python.exe"],
+  "black-formatter.path": ["${workspaceFolder}\\backend\\.venv\\Scripts\\black.exe"],
+  "black-formatter.args": [
+    "--line-length",
+    "300",
+    "--force-exclude",
+    "/(\\.venv|\\.git|\\.mypy_cache|\\.tox|\\.eggs|\\.pytest_cache|migrations|services)/"
+  ],
+  "flake8.interpreter": ["${workspaceFolder}\\backend\\.venv\\Scripts\\python.exe"],
+  "flake8.path": ["${workspaceFolder}\\backend\\.venv\\Scripts\\flake8.exe"],
+  "flake8.args": ["--max-line-length=300", "--ignore=E401,E402,F401,C901"],
+  "flake8.ignorePatterns": ["**/site-packages/**/*.py", ".vscode/*.py", "backend/.venv/*", "services/*"],
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "eslint.codeActionsOnSave.rules": null,
+  "eslint.run": "onSave",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.workingDirectories": ["./frontend"],
+  "prettier.configPath": "./frontend/.prettierrc"
+}

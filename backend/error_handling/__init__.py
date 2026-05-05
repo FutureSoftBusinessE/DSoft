@@ -349,8 +349,8 @@ def setup_error_handling(app):
     • g._request_start_time: Timestamp de inicio (para medir duración)
 
     LOGS GENERADOS:
-    • Inicio: "📥 Request started: GET /api/usuarios"
-    • Fin: "✅ Request completed: /api/usuarios - 200 - 0.123s"
+    • Inicio: "[REQUEST] Request started: GET /api/usuarios"
+    • Fin: "[OK] Request completed: /api/usuarios - 200 - 0.123s"
     • Errores: "🔥 Unhandled exception: NameError: ..."
 
     HEADERS AÑADIDOS:
@@ -379,7 +379,7 @@ def setup_error_handling(app):
         g.request_id = f"req_{int(time.time() * 1000)}"
 
         # Registrar inicio del request
-        app.logger.info(f"📥 Request started: {request.method} {request.path}", extra={"request_id": g.request_id, "endpoint": request.endpoint, "ip": request.remote_addr, "user_agent": request.user_agent.string if request.user_agent else None})
+        app.logger.info(f"[REQUEST] Request started: {request.method} {request.path}", extra={"request_id": g.request_id, "endpoint": request.endpoint, "ip": request.remote_addr, "user_agent": request.user_agent.string if request.user_agent else None})
 
     @app.after_request
     def after_request_logging(response):
@@ -399,7 +399,7 @@ def setup_error_handling(app):
             request_id = getattr(g, "request_id", "unknown")
 
             # Registrar fin del request
-            app.logger.info(f"✅ Request completed: {request.path} - {response.status_code} - {duration:.3f}s", extra={"request_id": request_id, "status_code": response.status_code, "duration_ms": round(duration * 1000, 2), "method": request.method})
+            app.logger.info(f"[OK] Request completed: {request.path} - {response.status_code} - {duration:.3f}s", extra={"request_id": request_id, "status_code": response.status_code, "duration_ms": round(duration * 1000, 2), "method": request.method})
 
             # Añadir request_id como header HTTP
             if request_id and request_id != "unknown":
@@ -445,7 +445,7 @@ def setup_error_handling(app):
     app.handle_user_exception = enhanced_handle_user_exception
 
     # Confirmar configuración
-    app.logger.info("✅ Error handling middleware configured")
+    app.logger.info("[OK] Error handling middleware configured")
 
     return app
 

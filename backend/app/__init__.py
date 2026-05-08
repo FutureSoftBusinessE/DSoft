@@ -250,6 +250,31 @@ def create_app(config_class=Config):
 
     app.register_blueprint(tipocontracli_bp, url_prefix="/tipocontracli")
 
+    from app.ConsultaDeRuc import bp as ConsultaDeRuc_bp
+
+    app.register_blueprint(ConsultaDeRuc_bp, url_prefix="/ConsultaDeRuc")
+
+    from app.SectorialesIess import bp as SectorialesIess_bp
+
+    app.register_blueprint(SectorialesIess_bp, url_prefix="/SectorialesIess")
+
+    from app.LineasINV import bp as LineasINV_bp
+
+    app.register_blueprint(LineasINV_bp, url_prefix="/LineasINV")
+
+    from app.MarcasINV import bp as MarcasINV_bp
+
+    app.register_blueprint(MarcasINV_bp, url_prefix="/MarcasINV")
+
+    from app.MedidasINV import bp as MedidasINV_bp
+
+    app.register_blueprint(MedidasINV_bp, url_prefix="/MedidasINV")
+    
+    from app.PresentacionesINV import bp as PresentacionesINV_bp
+
+    app.register_blueprint(PresentacionesINV_bp, url_prefix="/PresentacionesINV")
+    
+
     print("---------------ENDPOINTS------------------")
     for rule in app.url_map.iter_rules():
         print(str(rule))

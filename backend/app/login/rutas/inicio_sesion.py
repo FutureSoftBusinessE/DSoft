@@ -79,7 +79,7 @@ def inicio_sesion():
                 "data": {"user": usuario, "seleccion": data["seleccion"]},
             }
         except Exception as e:
-            response = {"status": "error", "message": "No se pudo registar su inicio de sesion"}
+            response = {"status": "error", "message": "No se pudo registar su inicio de sesion", "error": e}
             return response
         finally:
             db.session.close()

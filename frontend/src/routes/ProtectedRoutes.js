@@ -119,6 +119,24 @@ import { ImpuestosRetenciones, CrearImpuestoRetencion, EditarImpuestoRetencion }
 // Resumen Productividad
 import { ResumenProductividad } from "../pages"
 
+// ConsultaDeRuc
+import { ConsultaDeRuc } from "../pages"
+
+//SectorialesIess
+import { SectorialesIess, CrearSectorialesIess, EditarSectorialesIess } from "../pages"
+
+//LineasINV
+import { LineasINV, CrearLineasINV, EditarLineasINV } from "../pages"
+
+//MarcasINV
+import { MarcasINV, CrearMarcasINV, EditarMarcasINV } from "../pages"
+
+//MedidasINV
+import { MedidasINV, CrearMedidasINV, EditarMedidasINV } from "../pages"
+
+//PresentacionesINV
+import { PresentacionesINV, CrearPresentacionesINV, EditarPresentacionesINV } from "../pages"
+
 const protectedRoutes = [
   { path: "Submenu/:label/:id", element: <SubMenu /> },
   { path: "dashboard/AccesoACompañiasYModulos", element: <AccesoACompañiasYModulos /> },
@@ -212,6 +230,22 @@ const protectedRoutes = [
   { path: "dashboard/impuestosRetenciones/crear", element: <CrearImpuestoRetencion /> },
   { path: "dashboard/impuestosRetenciones/editar", element: <EditarImpuestoRetencion /> },
   { path: "dashboard/ResumenProductividad", element: <ResumenProductividad /> },
+  { path: "dashboard/ConsultaDeRuc", element: <ConsultaDeRuc /> },
+  { path: "dashboard/SectorialesIess", element: <SectorialesIess /> },
+  { path: "dashboard/SectorialesIess/crear", element: <CrearSectorialesIess /> },
+  { path: "dashboard/SectorialesIess/editar", element: <EditarSectorialesIess /> },
+  { path: "dashboard/LineasINV", element: <LineasINV /> },
+  { path: "dashboard/LineasINV/crear", element: <CrearLineasINV /> },
+  { path: "dashboard/LineasINV/editar", element: <EditarLineasINV /> },
+  { path: "dashboard/MarcasINV", element: <MarcasINV /> },
+  { path: "dashboard/MarcasINV/crear", element: <CrearMarcasINV /> },
+  { path: "dashboard/MarcasINV/editar", element: <EditarMarcasINV /> }, 
+  { path: "dashboard/MedidasINV", element: <MedidasINV /> },
+  { path: "dashboard/MedidasINV/crear", element: <CrearMedidasINV /> },
+  { path: "dashboard/MedidasINV/editar", element: <EditarMedidasINV /> },  
+  { path: "dashboard/PresentacionesINV", element: <PresentacionesINV /> },
+  { path: "dashboard/PresentacionesINV/crear", element: <CrearPresentacionesINV /> },
+  { path: "dashboard/PresentacionesINV/editar", element: <EditarPresentacionesINV /> },  
 ]
 
 export default protectedRoutes

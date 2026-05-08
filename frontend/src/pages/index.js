@@ -165,6 +165,34 @@ import EditarImpuestoRetencion from "./ImpuestosRetenciones/Editar"
 // Resumen Productividad
 import ResumenProductividad from "./ResumenProductividad"
 
+// Consulta de Ruc
+import ConsultaDeRuc from "./ConsultaDeRuc"
+
+// SectorialesIess
+import SectorialesIess from "./SectorialesIess"
+import CrearSectorialesIess from "./SectorialesIess/Crear"
+import EditarSectorialesIess from "./SectorialesIess/Editar"
+
+// LineasINV
+import LineasINV from "./LineasINV"
+import CrearLineasINV from "./LineasINV/Crear"
+import EditarLineasINV from "./LineasINV/Editar"
+
+// MarcasINV
+import MarcasINV from "./MarcasINV"
+import CrearMarcasINV from "./MarcasINV/Crear"
+import EditarMarcasINV from "./MarcasINV/Editar"
+
+// MedidasINV
+import MedidasINV from "./MedidasINV"
+import CrearMedidasINV from "./MedidasINV/Crear"
+import EditarMedidasINV from "./MedidasINV/Editar"
+
+// PresentacionesINV
+import PresentacionesINV from "./PresentacionesINV"
+import CrearPresentacionesINV from "./PresentacionesINV/Crear"
+import EditarPresentacionesINV from "./PresentacionesINV/Editar"
+
 export {
   Login,
   LoginInner,
@@ -262,4 +290,20 @@ export {
   CrearImpuestoRetencion,
   EditarImpuestoRetencion,
   ResumenProductividad,
+  ConsultaDeRuc,
+  SectorialesIess,
+  CrearSectorialesIess,
+  EditarSectorialesIess,
+  LineasINV,
+  CrearLineasINV,
+  EditarLineasINV,
+  MarcasINV,
+  CrearMarcasINV,
+  EditarMarcasINV,
+  MedidasINV,
+  CrearMedidasINV,
+  EditarMedidasINV,
+  PresentacionesINV,
+  CrearPresentacionesINV,
+  EditarPresentacionesINV,
 }

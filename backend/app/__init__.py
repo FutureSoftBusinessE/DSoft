@@ -273,7 +273,20 @@ def create_app(config_class=Config):
     from app.PresentacionesINV import bp as PresentacionesINV_bp
 
     app.register_blueprint(PresentacionesINV_bp, url_prefix="/PresentacionesINV")
-    
+
+    from app.CreacionClienteDF import bp as CreacionClienteDF_bp
+
+    app.register_blueprint(CreacionClienteDF_bp, url_prefix="/CreacionClienteDF")
+
+    from app.TransportistasDF import bp as TransportistasDF_bp
+
+    app.register_blueprint(TransportistasDF_bp, url_prefix="/TransportistasDF")
+
+    from app.VendedoresDF import bp as VendedoresDF_bp
+
+    app.register_blueprint(VendedoresDF_bp, url_prefix="/VendedoresDF")   
+
+
 
     print("---------------ENDPOINTS------------------")
     for rule in app.url_map.iter_rules():

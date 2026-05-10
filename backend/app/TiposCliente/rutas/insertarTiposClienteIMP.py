@@ -2,47 +2,33 @@ from flask import request
 from flask_cors import cross_origin
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
+from datetime import datetime
 
 from app.TiposCliente import bp
-from app.TiposCliente.rutas.common import ALL_COLUMNS, BIT_FIELDS, prepare_insert_payload, TABLE_NAME
-from app.TiposCliente.rutas.validarTiposClienteIMP import validar_tipos_cliente
-from app.db import get_session
 from app.extensions import db
+from app.db import get_session
 from error_handling import api_endpoint
 
-
-def normalize_checkbox_to_db(value):
-    if value is None or value == "":
-        return 0
-
-    if isinstance(value, bool):
-        return -1 if value else 0
-
-    if isinstance(value, (int, float)):
-        return 0 if int(value) == 0 else -1
-
-    value_str = str(value).strip().lower()
-    if value_str in {"1", "true", "t", "si", "sí", "y", "yes"}:
-        return -1
-    if value_str in {"0", "false", "f", "no", "n"}:
-        return 0
-
-    try:
-        return 0 if int(float(value_str)) == 0 else -1
-    except (ValueError, TypeError):
-        return 0
-
+# Importamos la función de validación del módulo Tipos de Cliente
+from app.TiposCliente.rutas.validarTiposClienteIMP import validar_tiposcliente
 
 @bp.route("/insertarTiposClienteIMP", methods=["POST"])
 @cross_origin()
 @jwt_required()
 @api_endpoint
 def insertarTiposClienteIMP():
+    # 1. Extracción de contexto y auditoría (Estándar SIAC)
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
+    sCodCia = claims["seleccion"]["cliciaciacodigo"]
     sUsuario = claims["user"]
+    
+    # 2. Lógica de separación de Fecha y Hora pura para SQL Server
+    now = datetime.now()
+    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
+    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
-    data = request.get_json(silent=True) or {}
+    data = request.get_json()
     columns = data.get("columns")
     required = data.get("required")
     key_columns = data.get("key_columns")
@@ -51,34 +37,64 @@ def insertarTiposClienteIMP():
     db.session = get_session(clicianonBD)
     engine = db.session.bind
 
+    # Inyectamos la compañía antes de validar para el cumplimiento Multitenancy
+    for fila in rows_csv:
+        if isinstance(fila, dict):
+            fila["ciacodigo"] = sCodCia
+
     with engine.connect() as connection:
         with connection.begin():
-            rows, summary = validar_tipos_cliente(connection, columns, required, key_columns, rows_csv)
+            # 3. Validación previa a la inserción
+            rows, summary = validar_tiposcliente(connection, columns, required, key_columns, rows_csv)
 
+            # Si existen registros inválidos, frenamos el proceso y devolvemos el feedback
             if summary["invalid_rows"] > 0:
                 return {
-                    "data": "No se insertó nada: la validación falló",
+                    "data": "No se realizó la importación: existen errores de validación",
                     "rows": rows,
                     "summary": summary,
                     "inserted": 0,
                 }
 
-            to_insert = [prepare_insert_payload(row["data"], sUsuario) for row in rows]
+            # 4. Preparación del lote para inserción masiva en la tabla cxcbtipcli
+            to_insert = []
+            for fila in rows:
+                to_insert.append(
+                    {
+                        "ciacodigo": sCodCia,
+                        "tipcodigo": str(fila.get("tipcodigo", "")).strip().upper()[:3],
+                        "tipdescri": str(fila.get("tipdescri", "")).strip().upper()[:40],
+                        "tipcobdir": int(fila.get("tipcobdir", 0)),
+                        "tipstatus": str(fila.get("tipstatus", "A")).strip().upper()[:1],
+                        "tipdefacr": float(fila.get("tipdefacr", 0)),
+                        
+                        # Auditoría de Inserción (Truncado a varchar(10) según cxcbtipcli)
+                        "tipfecisys": fecha_pura,
+                        "tiphorisys": hora_pura,
+                        "tipusuisys": sUsuario[:10],
+                        
+                        # Auditoría de Modificación
+                        "tipfecmsys": fecha_pura,
+                        "tiphormsys": hora_pura,
+                        "tipusumsys": sUsuario[:10],
+                    }
+                )
 
-            # Force company code for all imported rows
-            sCodCia = claims["seleccion"]["cliciaciacodigo"]
+            # 5. Ejecución del INSERT masivo en SQL Server
+            insert_sql = text(
+                """
+                INSERT INTO cxcbtipcli (
+                    ciacodigo, tipcodigo, tipdescri, tipcobdir, tipstatus, tipdefacr,
+                    tipfecisys, tiphorisys, tipusuisys,
+                    tipfecmsys, tiphormsys, tipusumsys
+                ) VALUES (
+                    :ciacodigo, :tipcodigo, :tipdescri, :tipcobdir, :tipstatus, :tipdefacr,
+                    :tipfecisys, :tiphorisys, :tipusuisys,
+                    :tipfecmsys, :tiphormsys, :tipusumsys
+                )
+                """
+            )
 
-            for payload in to_insert:
-                payload["ciacodigo"] = sCodCia
-                for field_name in BIT_FIELDS:
-                    payload[field_name] = normalize_checkbox_to_db(payload.get(field_name))
+            connection.execute(insert_sql, to_insert)
 
-            columns_sql = ", ".join(ALL_COLUMNS)
-            values_sql = ", ".join([f":{column}" for column in ALL_COLUMNS])
-            insert_query = text(f"INSERT INTO {TABLE_NAME} ({columns_sql}) VALUES ({values_sql})")
-            connection.execute(insert_query, to_insert)
-
-    return {
-        "data": "Registros insertados exitosamente",
-        "inserted": len(to_insert),
-    }
+    return {"data": "Tipos de Cliente importados exitosamente", "inserted": len(to_insert)}

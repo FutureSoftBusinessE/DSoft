@@ -106,11 +106,6 @@ import CrearLocalidad from "./Localidad/Crear/CrearLocalidadPage"
 import EditarLocalidad from "./Localidad/Editar/EditarLocalidadPage"
 import BuscarLocalidad from "./Localidad/Buscar/BuscarLocalidadPage"
 
-// TiposCliente
-import TiposCliente from "./TiposCliente/TiposClienteMainPage"
-import CrearTiposCliente from "./TiposCliente/Crear/CrearTiposClientePage"
-import EditarTiposCliente from "./TiposCliente/Editar/EditarTiposClientePage"
-import BuscarTiposCliente from "./TiposCliente/Buscar/BuscarTiposClientePage"
 
 // TipoDocumento
 import TipoDocumento from "./TipoDocumento"
@@ -193,6 +188,27 @@ import PresentacionesINV from "./PresentacionesINV"
 import CrearPresentacionesINV from "./PresentacionesINV/Crear"
 import EditarPresentacionesINV from "./PresentacionesINV/Editar"
 
+// TiposCliente
+import TiposCliente from "./TiposCliente"
+import CrearTiposCliente from "./TiposCliente/Crear"
+import EditarTiposCliente from "./TiposCliente/Editar"
+
+//CreacionClienteDF
+import CreacionClienteDF from "./CreacionClienteDF"
+import CrearCreacionClienteDF from "./CreacionClienteDF/Crear"
+import EditarCreacionClienteDF from "./CreacionClienteDF/Editar"
+
+//TransportistasDF
+import TransportistasDF from "./TransportistasDF"
+import CrearTransportistasDF from "./TransportistasDF/Crear"
+import EditarTransportistasDF from "./TransportistasDF/Editar"
+
+//VendedoresDF
+import VendedoresDF from "./VendedoresDF"
+import CrearVendedoresDF from "./VendedoresDF/Crear"
+import EditarVendedoresDF from "./VendedoresDF/Editar"
+
+
 export {
   Login,
   LoginInner,
@@ -258,7 +274,6 @@ export {
   TiposCliente,
   CrearTiposCliente,
   EditarTiposCliente,
-  BuscarTiposCliente,
   TipoDocumento,
   CrearTipoDocumento,
   EditarTipoDocumento,
@@ -306,4 +321,13 @@ export {
   PresentacionesINV,
   CrearPresentacionesINV,
   EditarPresentacionesINV,
+  CreacionClienteDF,
+  CrearCreacionClienteDF,
+  EditarCreacionClienteDF,
+  TransportistasDF,
+  CrearTransportistasDF,
+  EditarTransportistasDF,
+  VendedoresDF,
+  CrearVendedoresDF,
+  EditarVendedoresDF,
 }

@@ -4,16 +4,16 @@ from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
-from app.TiposCliente import bp
+from app.VendedoresDF import bp
 from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
-@bp.route("/eliminarTiposCliente", methods=["POST"])
+@bp.route("/eliminarVendedoresDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
 @api_endpoint
-def eliminarTiposCliente():
+def eliminarVendedoresDF():
     # 1. Extracción de variables de sesión y multitenancy (Estándar SIAC)
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
@@ -21,11 +21,11 @@ def eliminarTiposCliente():
 
     # 2. Obtener los parámetros de la solicitud
     data = request.get_json()
-    tipcodigo = data.get("tipcodigo") # Código del Tipo de Cliente (varchar(3))
+    vencodigo = data.get("vencodigo") # Código del Vendedor (varchar(3))
 
     # 3. Validación de campos requeridos para la Clave Primaria
-    if not tipcodigo:
-        raise ValidationError("El código del tipo de cliente es requerido para la eliminación")
+    if not vencodigo:
+        raise ValidationError("El código del vendedor es requerido para la eliminación")
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
@@ -35,22 +35,22 @@ def eliminarTiposCliente():
             # 4. Preparar parámetros para el borrado (Cia + Código)
             data_delete = {
                 "ciacodigo": sCodCia,
-                "tipcodigo": str(tipcodigo).strip().upper()
+                "vencodigo": str(vencodigo).strip().upper()
             }
 
-            # 5. Sentencia SQL de eliminación con integridad multitenancy
+            # 5. Sentencia SQL de eliminación sobre fapvendedor
             delete_query = text("""
-                DELETE FROM cxcbtipcli 
+                DELETE FROM fapvendedor 
                 WHERE ciacodigo = :ciacodigo 
-                  AND tipcodigo = :tipcodigo
+                  AND vencodigo = :vencodigo
             """)
 
             try:
-                # 6. Ejecución del borrado con captura de errores de integridad
+                # 6. Ejecución del borrado con captura de errores de integridad referencial
+                # Esto ocurre si el vendedor ya está vinculado a facturas, pedidos o proformas.
                 connection.execute(delete_query, data_delete)
             except IntegrityError:
-                # Esto ocurre si el tipo de cliente ya está vinculado a la tabla de clientes (cxcbmst)
-                raise ValidationError("No se puede eliminar el Tipo de Cliente porque existen clientes u otros registros vinculados a él.")
+                raise ValidationError("No se puede eliminar el Vendedor porque posee registros vinculados (Facturas, Pedidos o Clientes) en el sistema.")
 
-    # 7. Respuesta de éxito conforme al estándar del sistema
-    return {"data": "Tipo de Cliente eliminado exitosamente"}
+    # 7. Respuesta de éxito conforme al estándar
+    return {"data": "Vendedor eliminado exitosamente"}

@@ -3,13 +3,13 @@ from flask_cors import cross_origin
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 
-from app.TiposCliente import bp
+from app.TransportistasDF import bp
 from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
-# Helper para validar la integridad de los tipos de cliente antes de la importación
-def validar_tiposcliente(connection, columns: list, required: list, key_columns: list, rows: list):
+# Helper para validar la integridad de los transportistas antes de la importación
+def validar_transportistasdf(connection, columns: list, required: list, key_columns: list, rows: list):
     # 1. Validaciones básicas de parámetros de entrada
     if not isinstance(rows, list) or len(rows) == 0:
         raise ValidationError("rows requerido")
@@ -29,7 +29,7 @@ def validar_tiposcliente(connection, columns: list, required: list, key_columns:
 
     vistos = set()
 
-    # 2. Validación fila por fila (Campos vacíos y duplicados internos del CSV)
+    # 2. Validación fila por fila (Campos vacíos y duplicados internos del archivo)
     for i, fila in enumerate(rows):
         if not isinstance(fila, dict):
             raise ValidationError(f"Fila #{i+1} inválida: debe ser un objeto")
@@ -37,7 +37,7 @@ def validar_tiposcliente(connection, columns: list, required: list, key_columns:
         fila["ok"] = True
         fila["feedback"] = ""
 
-        # Verificar campos obligatorios vacíos (tipcodigo, tipdescri)
+        # Verificar campos obligatorios vacíos (transcodigo, transdescri, transruc)
         faltantes = []
         for campo in required:
             valor = fila.get(campo)
@@ -54,7 +54,7 @@ def validar_tiposcliente(connection, columns: list, required: list, key_columns:
             fila["feedback"] = "Campos requeridos vacíos: " + ", ".join(faltantes)
             continue
 
-        # Detectar duplicados dentro del mismo archivo basándose en tipcodigo
+        # Detectar duplicados dentro del mismo archivo basándose en transcodigo
         clave = []
         for k in key_columns:
             v = fila.get(k)
@@ -67,17 +67,17 @@ def validar_tiposcliente(connection, columns: list, required: list, key_columns:
 
         if clave in vistos:
             fila["ok"] = False
-            fila["feedback"] = f"Registro duplicado en el archivo (Tipo Cliente {clave[0]})"
+            fila["feedback"] = f"Registro duplicado en el archivo (Código {clave[0]})"
             continue
 
         vistos.add(clave)
 
-    # 3. Verificación contra Base de Datos (Multitenancy - cxcbtipcli)
+    # 3. Verificación contra Base de Datos (Multitenancy - inbtranspor)
     cols_sql = ", ".join(key_columns)
     cia_val = rows[0]["ciacodigo"]
     
-    # Consultamos los tipos de cliente ya registrados para la compañía actual
-    sql_get_all = text(f"SELECT {cols_sql} FROM cxcbtipcli WHERE ciacodigo = :ciacodigo")
+    # Consultamos los códigos de transportistas ya registrados para la compañía actual
+    sql_get_all = text(f"SELECT {cols_sql} FROM inbtranspor WHERE ciacodigo = :ciacodigo")
     rows_db = connection.execute(sql_get_all, {"ciacodigo": cia_val}).mappings().all()
 
     existentes = set()
@@ -90,7 +90,7 @@ def validar_tiposcliente(connection, columns: list, required: list, key_columns:
             clave_db.append("" if v is None else str(v).strip().lower())
         existentes.add(tuple(clave_db))
 
-    # Marcar registros que ya existen en la tabla cxcbtipcli
+    # Marcar registros que ya existen en la tabla inbtranspor
     for fila in rows:
         if not fila["ok"]:
             continue
@@ -105,7 +105,7 @@ def validar_tiposcliente(connection, columns: list, required: list, key_columns:
 
         if tuple(clave_fila) in existentes:
             fila["ok"] = False
-            fila["feedback"] = "Este Tipo de Cliente ya existe en la base de datos"
+            fila["feedback"] = "Este código de Transportista ya existe en la base de datos"
 
     valid_rows = sum(1 for fila in rows if fila["ok"])
     invalid_rows = len(rows) - valid_rows
@@ -113,11 +113,11 @@ def validar_tiposcliente(connection, columns: list, required: list, key_columns:
     return rows, {"valid_rows": valid_rows, "invalid_rows": invalid_rows}
 
 
-@bp.route("/validarTiposClienteIMP", methods=["POST"])
+@bp.route("/validarTransportistasDFIMP", methods=["POST"])
 @cross_origin()
 @jwt_required()
 @api_endpoint
-def validarTiposClienteIMP():
+def validarTransportistasDFIMP():
     # Extracción de contexto de seguridad y compañía
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
@@ -125,7 +125,7 @@ def validarTiposClienteIMP():
 
     data = request.get_json()
 
-    # Parámetros enviados por el componente de carga masiva
+    # Parámetros enviados por el componente de carga masiva de React
     columns = data.get("columns")
     required = data.get("required")
     key_columns = data.get("key_columns")
@@ -140,6 +140,7 @@ def validarTiposClienteIMP():
             fila["ciacodigo"] = sCodCia
 
     with engine.connect() as connection:
-        rows, summary = validar_tiposcliente(connection, columns, required, key_columns, rows_csv)
+        # Llamada al helper de validación
+        rows, summary = validar_transportistasdf(connection, columns, required, key_columns, rows_csv)
 
     return {"rows": rows, "summary": summary}

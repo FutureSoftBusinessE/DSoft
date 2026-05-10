@@ -73,7 +73,7 @@ const SectorComercialCliente = () => {
             fontSize: "25px",
           }}
         >
-          <b>Sectores Comerciales del Cliente</b>
+          <b>Actividad Comercial del Cliente</b>
         </div>
 
         <CustomBackdrop isLoading={isDeletingSectorComercialCliente} />
@@ -171,15 +171,15 @@ const SectorComercialCliente = () => {
                           return handleExportDataPdfSMScreen(
                             columns,
                             data,
-                            "Reporte de Sectores Comerciales del Cliente",
-                            `Reporte de Sectores Comerciales del Cliente ${new Date().toLocaleString()}`,
+                            "Reporte de Actividad Comercial del Cliente",
+                            `Reporte de Actividad Comercial del Cliente ${new Date().toLocaleString()}`,
                           )
                         }
                         handleExportDataPdfLGScreen(
                           columns,
                           table.getCoreRowModel().rows,
-                          "Reporte de Sectores Comerciales del Cliente",
-                          `Reporte de Sectores Comerciales del Cliente ${new Date().toLocaleString()}`,
+                          "Reporte de Actividad Comercial del Cliente",
+                          `Reporte de Actividad Comercial del Cliente ${new Date().toLocaleString()}`,
                         )
                       },
                     },
@@ -190,7 +190,7 @@ const SectorComercialCliente = () => {
                       onClick: ({ data }) => {
                         handleAllExportDataCSV(
                           data,
-                          `Reporte de Sectores Comerciales del Cliente ${new Date().toLocaleString()}`,
+                          `Reporte de Actividad Comercial del Cliente ${new Date().toLocaleString()}`,
                         )
                       },
                     },

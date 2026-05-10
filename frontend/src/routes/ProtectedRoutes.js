@@ -84,7 +84,7 @@ import { Compania, CrearCompania, EditarCompania, BuscarCompania } from "../page
 import { Localidad, CrearLocalidad, EditarLocalidad, BuscarLocalidad } from "../pages"
 
 // TiposCliente
-import { TiposCliente, CrearTiposCliente, EditarTiposCliente, BuscarTiposCliente } from "../pages"
+import { TiposCliente, CrearTiposCliente, EditarTiposCliente } from "../pages"
 
 // TipoDocumento
 import { TipoDocumento, CrearTipoDocumento, EditarTipoDocumento } from "../pages"
@@ -136,6 +136,15 @@ import { MedidasINV, CrearMedidasINV, EditarMedidasINV } from "../pages"
 
 //PresentacionesINV
 import { PresentacionesINV, CrearPresentacionesINV, EditarPresentacionesINV } from "../pages"
+
+//CreacionClienteDF
+import { CreacionClienteDF, CrearCreacionClienteDF, EditarCreacionClienteDF } from "../pages"
+
+//TransportistasDF
+import { TransportistasDF, CrearTransportistasDF, EditarTransportistasDF } from "../pages"
+
+//VendedoresDF
+import { VendedoresDF, CrearVendedoresDF, EditarVendedoresDF } from "../pages"
 
 const protectedRoutes = [
   { path: "Submenu/:label/:id", element: <SubMenu /> },
@@ -198,7 +207,6 @@ const protectedRoutes = [
   { path: "dashboard/TiposDeCliente", element: <TiposCliente /> },
   { path: "dashboard/TiposDeCliente/crear", element: <CrearTiposCliente /> },
   { path: "dashboard/TiposDeCliente/editar", element: <EditarTiposCliente /> },
-  { path: "dashboard/TiposDeCliente/buscar", element: <BuscarTiposCliente /> },
   { path: "dashboard/TipoDeDocumento", element: <TipoDocumento /> },
   { path: "dashboard/TipoDeDocumento/crear", element: <CrearTipoDocumento /> },
   { path: "dashboard/TipoDeDocumento/editar", element: <EditarTipoDocumento /> },
@@ -246,6 +254,15 @@ const protectedRoutes = [
   { path: "dashboard/PresentacionesINV", element: <PresentacionesINV /> },
   { path: "dashboard/PresentacionesINV/crear", element: <CrearPresentacionesINV /> },
   { path: "dashboard/PresentacionesINV/editar", element: <EditarPresentacionesINV /> },  
+  { path: "dashboard/CreacionClienteDF", element: <CreacionClienteDF /> },
+  { path: "dashboard/CreacionClienteDF/crear", element: <CrearCreacionClienteDF /> },
+  { path: "dashboard/CreacionClienteDF/editar", element: <EditarCreacionClienteDF /> }, 
+  { path: "dashboard/TransportistasDF", element: <TransportistasDF /> },
+  { path: "dashboard/TransportistasDF/crear", element: <CrearTransportistasDF /> },
+  { path: "dashboard/TransportistasDF/editar", element: <EditarTransportistasDF /> }, 
+  { path: "dashboard/VendedoresDF", element: <VendedoresDF /> },
+  { path: "dashboard/VendedoresDF/crear", element: <CrearVendedoresDF /> },
+  { path: "dashboard/VendedoresDF/editar", element: <EditarVendedoresDF /> }, 
 ]
 
 export default protectedRoutes

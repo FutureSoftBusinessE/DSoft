@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from app.TiposCliente import bp
+from app.VendedoresDF import bp
 from app.extensions import db
 from flask_cors import cross_origin
 from flask_jwt_extended import get_jwt, jwt_required
@@ -10,11 +10,11 @@ from sqlalchemy import text
 from app.utils.build_paginated_query import build_paginated_query
 from app.Clases.FILTER_VALUE_TYPE import FILTER_VALUE_TYPE
 
-@bp.route("/getAllTiposCliente", methods=["POST"])
+@bp.route("/getAllVendedoresDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
-def getAllTiposCliente():
-    # 1. Extracción de sesión y contexto multitenancy
+def getAllVendedoresDF():
+    # 1. Extracción de sesión y contexto multitenancy (Estándar SIAC)
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
@@ -30,36 +30,24 @@ def getAllTiposCliente():
 
     with engine.connect() as connection:
         with connection.begin():
-            # 3. Definir columnas permitidas para filtros dinámicos según tabla cxcbtipcli
+            # 3. Definir columnas permitidas para filtros dinámicos según requerimiento
             allowed_columns = [
-                {"tipcodigo": FILTER_VALUE_TYPE.STRING},
-                {"tipdescri": FILTER_VALUE_TYPE.STRING},
-                {"tipcobdir": FILTER_VALUE_TYPE.NUMBER},
-                {"tipstatus": FILTER_VALUE_TYPE.STRING},
-                {"tipdefacr": FILTER_VALUE_TYPE.NUMBER},
-                {"tipfecisys": FILTER_VALUE_TYPE.DATETIME},
-                {"tiphorisys": FILTER_VALUE_TYPE.DATETIME},
-                {"tipusuisys": FILTER_VALUE_TYPE.STRING},
-                {"tipfecmsys": FILTER_VALUE_TYPE.DATETIME},
-                {"tiphormsys": FILTER_VALUE_TYPE.DATETIME},
-                {"tipusumsys": FILTER_VALUE_TYPE.STRING},
+                {"vencodigo": FILTER_VALUE_TYPE.STRING},
+                {"vennombre": FILTER_VALUE_TYPE.STRING},
+                {"vendireccion": FILTER_VALUE_TYPE.STRING},
+                {"ventelefono": FILTER_VALUE_TYPE.STRING},
+                {"venstatus": FILTER_VALUE_TYPE.STRING},
             ]
 
-            # 4. Consulta Base (Filtrada estrictamente por compañía activa)
+            # 4. Consulta Base filtrada por compañía y limitada a los campos solicitados
             base_query = f"""
             SELECT
-                tipcodigo,
-                tipdescri,
-                tipcobdir,
-                tipstatus,
-                tipdefacr,
-                tipfecisys,
-                tiphorisys,
-                tipusuisys,
-                tipfecmsys,
-                tiphormsys,
-                tipusumsys
-            FROM cxcbtipcli 
+                vencodigo,
+                vennombre,
+                vendireccion,
+                ventelefono,
+                venstatus
+            FROM fapvendedor 
             WHERE ciacodigo = '{sCodCia}'
             """
 
@@ -67,7 +55,7 @@ def getAllTiposCliente():
             final_query, params = build_paginated_query(
                 base_query=base_query,
                 order_by=[
-                    "tipdescri ASC",   # Ordenamiento por defecto: Alfabético
+                    "vennombre ASC",   # Ordenamiento por defecto: Alfabético por nombre
                 ],
                 filters=filters,
                 page=page,
@@ -82,7 +70,7 @@ def getAllTiposCliente():
             total_records = result[0]["total"] if result else 0
             
             # Formatear lista excluyendo la columna virtual de conteo 'total'
-            all_tipos_result = [
+            all_vendedores_result = [
                 {**{key: value for key, value in dict(row).items() if key != "total"}} 
                 for row in result
             ]
@@ -91,7 +79,7 @@ def getAllTiposCliente():
     return (
         jsonify(
             {
-                "data": all_tipos_result,
+                "data": all_vendedores_result,
                 "total": total_records,
                 "page": page,
                 "per_page": per_page,

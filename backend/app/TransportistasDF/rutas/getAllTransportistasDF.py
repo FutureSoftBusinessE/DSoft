@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from app.TiposCliente import bp
+from app.TransportistasDF import bp
 from app.extensions import db
 from flask_cors import cross_origin
 from flask_jwt_extended import get_jwt, jwt_required
@@ -10,11 +10,11 @@ from sqlalchemy import text
 from app.utils.build_paginated_query import build_paginated_query
 from app.Clases.FILTER_VALUE_TYPE import FILTER_VALUE_TYPE
 
-@bp.route("/getAllTiposCliente", methods=["POST"])
+@bp.route("/getAllTransportistasDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
-def getAllTiposCliente():
-    # 1. Extracción de sesión y contexto multitenancy
+def getAllTransportistasDF():
+    # 1. Extracción de sesión y contexto multitenancy (Estándar SIAC)
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
@@ -30,36 +30,44 @@ def getAllTiposCliente():
 
     with engine.connect() as connection:
         with connection.begin():
-            # 3. Definir columnas permitidas para filtros dinámicos según tabla cxcbtipcli
+            # 3. Definir columnas permitidas para filtros dinámicos según tabla inbtranspor
             allowed_columns = [
-                {"tipcodigo": FILTER_VALUE_TYPE.STRING},
-                {"tipdescri": FILTER_VALUE_TYPE.STRING},
-                {"tipcobdir": FILTER_VALUE_TYPE.NUMBER},
-                {"tipstatus": FILTER_VALUE_TYPE.STRING},
-                {"tipdefacr": FILTER_VALUE_TYPE.NUMBER},
-                {"tipfecisys": FILTER_VALUE_TYPE.DATETIME},
-                {"tiphorisys": FILTER_VALUE_TYPE.DATETIME},
-                {"tipusuisys": FILTER_VALUE_TYPE.STRING},
-                {"tipfecmsys": FILTER_VALUE_TYPE.DATETIME},
-                {"tiphormsys": FILTER_VALUE_TYPE.DATETIME},
-                {"tipusumsys": FILTER_VALUE_TYPE.STRING},
+                {"transcodigo": FILTER_VALUE_TYPE.STRING},
+                {"transdescri": FILTER_VALUE_TYPE.STRING},
+                {"transruc": FILTER_VALUE_TYPE.STRING},
+                {"transdirec": FILTER_VALUE_TYPE.STRING},
+                {"transtelef1": FILTER_VALUE_TYPE.STRING},
+                {"transstatus": FILTER_VALUE_TYPE.STRING},
+                {"transtipo": FILTER_VALUE_TYPE.STRING},
+                {"transplaca": FILTER_VALUE_TYPE.STRING},
+                {"transcontactonombre": FILTER_VALUE_TYPE.STRING},
+                {"transfecisys": FILTER_VALUE_TYPE.DATETIME},
+                {"transusuisys": FILTER_VALUE_TYPE.STRING},
             ]
 
             # 4. Consulta Base (Filtrada estrictamente por compañía activa)
             base_query = f"""
             SELECT
-                tipcodigo,
-                tipdescri,
-                tipcobdir,
-                tipstatus,
-                tipdefacr,
-                tipfecisys,
-                tiphorisys,
-                tipusuisys,
-                tipfecmsys,
-                tiphormsys,
-                tipusumsys
-            FROM cxcbtipcli 
+                transcodigo,
+                transdescri,
+                transdirec,
+                transruc,
+                transtelef1,
+                transstatus,
+                transtipo,
+                transcuenta,
+                transcontactonombre,
+                transcontactodirec,
+                transcontactoemail,
+                transcontactotelef,
+                transplaca,
+                transfecisys,
+                transhorisys,
+                transusuisys,
+                transfecmsys,
+                transhormsys,
+                transusumsys
+            FROM inbtranspor 
             WHERE ciacodigo = '{sCodCia}'
             """
 
@@ -67,7 +75,7 @@ def getAllTiposCliente():
             final_query, params = build_paginated_query(
                 base_query=base_query,
                 order_by=[
-                    "tipdescri ASC",   # Ordenamiento por defecto: Alfabético
+                    "transdescri ASC",   # Ordenamiento por defecto: Alfabético por nombre/descripción
                 ],
                 filters=filters,
                 page=page,
@@ -82,7 +90,7 @@ def getAllTiposCliente():
             total_records = result[0]["total"] if result else 0
             
             # Formatear lista excluyendo la columna virtual de conteo 'total'
-            all_tipos_result = [
+            all_transportistas_result = [
                 {**{key: value for key, value in dict(row).items() if key != "total"}} 
                 for row in result
             ]
@@ -91,7 +99,7 @@ def getAllTiposCliente():
     return (
         jsonify(
             {
-                "data": all_tipos_result,
+                "data": all_transportistas_result,
                 "total": total_records,
                 "page": page,
                 "per_page": per_page,

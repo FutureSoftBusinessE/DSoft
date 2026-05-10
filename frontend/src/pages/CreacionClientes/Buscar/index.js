@@ -52,6 +52,7 @@ const opcionesIdentificacion = [
   { value: "C", label: "Cédula" },
   { value: "R", label: "RUC" },
   { value: "P", label: "Pasaporte" },
+  { value: "O", label: "Consumidor Final" },
 ]
 
 // Opciones para sexo

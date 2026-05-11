@@ -146,6 +146,13 @@ import { TransportistasDF, CrearTransportistasDF, EditarTransportistasDF } from 
 //VendedoresDF
 import { VendedoresDF, CrearVendedoresDF, EditarVendedoresDF } from "../pages"
 
+//ProveedoresDF
+import { ProveedoresDF, CrearProveedoresDF, EditarProveedoresDF } from "../pages"
+
+//FirmarPDFDF
+import { FirmarPDFDF } from "../pages"
+
+
 const protectedRoutes = [
   { path: "Submenu/:label/:id", element: <SubMenu /> },
   { path: "dashboard/AccesoACompañiasYModulos", element: <AccesoACompañiasYModulos /> },
@@ -263,6 +270,10 @@ const protectedRoutes = [
   { path: "dashboard/VendedoresDF", element: <VendedoresDF /> },
   { path: "dashboard/VendedoresDF/crear", element: <CrearVendedoresDF /> },
   { path: "dashboard/VendedoresDF/editar", element: <EditarVendedoresDF /> }, 
+  { path: "dashboard/ProveedoresDF", element: <ProveedoresDF /> },
+  { path: "dashboard/ProveedoresDF/crear", element: <CrearProveedoresDF /> },
+  { path: "dashboard/ProveedoresDF/editar", element: <EditarProveedoresDF /> }, 
+  { path: "dashboard/FirmarPDFDF", element: <FirmarPDFDF /> },
 ]
 
 export default protectedRoutes

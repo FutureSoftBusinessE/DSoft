@@ -286,6 +286,13 @@ def create_app(config_class=Config):
 
     app.register_blueprint(VendedoresDF_bp, url_prefix="/VendedoresDF")   
 
+    from app.ProveedoresDF import bp as ProveedoresDF_bp
+
+    app.register_blueprint(ProveedoresDF_bp, url_prefix="/ProveedoresDF")   
+
+    from app.FirmarPDFDF import bp as FirmarPDFDF_bp
+
+    app.register_blueprint(FirmarPDFDF_bp, url_prefix="/FirmarPDFDF")   
 
 
     print("---------------ENDPOINTS------------------")

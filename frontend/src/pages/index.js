@@ -208,6 +208,14 @@ import VendedoresDF from "./VendedoresDF"
 import CrearVendedoresDF from "./VendedoresDF/Crear"
 import EditarVendedoresDF from "./VendedoresDF/Editar"
 
+//ProveedoresDF
+import ProveedoresDF from "./ProveedoresDF"
+import CrearProveedoresDF from "./ProveedoresDF/Crear"
+import EditarProveedoresDF from "./ProveedoresDF/Editar"
+
+//FirmarPDFDF
+import FirmarPDFDF from "./FirmarPDFDF"
+
 
 export {
   Login,
@@ -330,4 +338,8 @@ export {
   VendedoresDF,
   CrearVendedoresDF,
   EditarVendedoresDF,
+  ProveedoresDF,
+  CrearProveedoresDF,
+  EditarProveedoresDF,
+  FirmarPDFDF,
 }

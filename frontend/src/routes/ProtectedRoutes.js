@@ -152,6 +152,8 @@ import { ProveedoresDF, CrearProveedoresDF, EditarProveedoresDF } from "../pages
 //FirmarPDFDF
 import { FirmarPDFDF } from "../pages"
 
+//PerfilUsuarioDF
+import { PerfilUsuarioDF } from "../pages"
 
 const protectedRoutes = [
   { path: "Submenu/:label/:id", element: <SubMenu /> },
@@ -274,6 +276,7 @@ const protectedRoutes = [
   { path: "dashboard/ProveedoresDF/crear", element: <CrearProveedoresDF /> },
   { path: "dashboard/ProveedoresDF/editar", element: <EditarProveedoresDF /> }, 
   { path: "dashboard/FirmarPDFDF", element: <FirmarPDFDF /> },
+  { path: "dashboard/PerfilUsuarioDF", element: <PerfilUsuarioDF /> },
 ]
 
 export default protectedRoutes

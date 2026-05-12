@@ -294,6 +294,11 @@ def create_app(config_class=Config):
 
     app.register_blueprint(FirmarPDFDF_bp, url_prefix="/FirmarPDFDF")   
 
+    from app.PerfilUsuarioDF import bp as PerfilUsuarioDF_bp
+
+    app.register_blueprint(PerfilUsuarioDF_bp, url_prefix="/PerfilUsuarioDF")   
+
+
 
     print("---------------ENDPOINTS------------------")
     for rule in app.url_map.iter_rules():

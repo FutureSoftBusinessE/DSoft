@@ -9,7 +9,6 @@ import base64
 from sqlalchemy import text
 from datetime import datetime
 
-
 @bp.route("/getInfoHome", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -25,7 +24,21 @@ def getInfoHome():
     db.session = get_session(clicianonBD)
     engine = db.session.bind
 
-    dataInfoHome = {"ciaselloagua": None, "cialogo": None, "lastLoginFecisys": None, "usrnombre": None, "totalLogins": None, "isFirstLoginUser": False, "passwordChangeNeeded": False, "ciaalias": None}
+    # Añadimos los nuevos campos al diccionario inicial
+    dataInfoHome = {
+        "ciaselloagua": None, 
+        "cialogo": None, 
+        "lastLoginFecisys": None, 
+        "usrnombre": None, 
+        "totalLogins": None, 
+        "isFirstLoginUser": False, 
+        "passwordChangeNeeded": False, 
+        "ciaalias": None,
+        "ciatipomenu": 0,
+        "ciacolor": "",
+        "ciatipoletra": "",
+        "ciatamanioletra": ""
+    }
 
     with engine.connect() as connection:
         with connection.begin():
@@ -33,7 +46,11 @@ def getInfoHome():
             SELECT
                 ciaselloagua,
                 cialogo,
-                ciaalias
+                ciaalias,
+                ciatipomenu,
+                ciacolor,
+                ciatipoletra,
+                ciatamanioletra
             FROM
                 siaccia
             WHERE
@@ -61,6 +78,12 @@ def getInfoHome():
                 dataInfoHome["ciaselloagua"] = [(base64.b64encode(img).decode("utf-8").replace("\n", ""))] if img else None
                 dataInfoHome["cialogo"] = [(base64.b64encode(imgLogo).decode("utf-8").replace("\n", ""))] if imgLogo else None
                 dataInfoHome["ciaalias"] = siaccia_result["ciaalias"]
+                
+                # Asignación de variables visuales (Si son nulas de base de datos, usamos fallback)
+                dataInfoHome["ciatipomenu"] = siaccia_result.get("ciatipomenu") or 0
+                dataInfoHome["ciacolor"] = siaccia_result.get("ciacolor") or ""
+                dataInfoHome["ciatipoletra"] = siaccia_result.get("ciatipoletra") or ""
+                dataInfoHome["ciatamanioletra"] = siaccia_result.get("ciatamanioletra") or ""
 
             if medauditoria_result:
                 medauditoria_result = dict(medauditoria_result)
@@ -68,58 +91,29 @@ def getInfoHome():
                 dataInfoHome["usrnombre"] = medauditoria_result["usrnombre"]
 
             total_logins_query = """
-                SELECT
-                count(*) AS totalLogins
-                from
-                    medauditoria
-                WHERE
-                    usrcodigo = :usrcodigo
+                SELECT count(*) AS totalLogins
+                from medauditoria
+                WHERE usrcodigo = :usrcodigo
             """
             total_logins_result = connection.execute(text(total_logins_query), {"usrcodigo": usrcodigo}).mappings().fetchone()
-            if total_logins_result is not None:
-                total_logins_result = dict(total_logins_result)
-                num_total_logins = total_logins_result.get("totalLogins", 0)
-            else:
-                num_total_logins = 0
+            num_total_logins = dict(total_logins_result).get("totalLogins", 0) if total_logins_result else 0
 
             dataInfoHome["totalLogins"] = num_total_logins
             dataInfoHome["isFirstLoginUser"] = num_total_logins == 0
 
-            # Logica para saber que necesita cambio de clave
-            # query_siachcusrs = """
-            # SELECT
-            #     usrcodigo,
-            #     usmonbre,
-            #     usrfcemsys,
-            #     usrhormsys,
-            #     usrusumsys,
-            #     usrfecactuclave,
-            #     usrdiascaduclave
-            # FROM siachcusrs
-            # """
-
             query_siaccusr = """
             SELECT
-                usrcodigo,
-                usrnombre,
-                usrfecmsys,
-                usrhormsys,
-                usrusumsys,
-                usrfecactuclave,
-                usrdiascaduclave
-            FROM
-                siaccusr
-            WHERE
-                usrcodigo = :usrcodigo
+                usrcodigo, usrnombre, usrfecmsys, usrhormsys,
+                usrusumsys, usrfecactuclave, usrdiascaduclave
+            FROM siaccusr
+            WHERE usrcodigo = :usrcodigo
             """
             siaccusr_result = connection.execute(text(query_siaccusr), {"usrcodigo": encriptar(usrcodigo)}).mappings().fetchone()
 
-            # Nombre de usuario igual a clave
-            if siaccusr_result.get("usrcodigo") == encriptar(passwordWeb):
+            if siaccusr_result and siaccusr_result.get("usrcodigo") == encriptar(passwordWeb):
                 dataInfoHome["passwordChangeNeeded"] = True
 
-            # Verificar vencimiento si se configuró caducidad
-            if siaccusr_result.get("usrdiascaduclave", 0) > 0:
+            if siaccusr_result and siaccusr_result.get("usrdiascaduclave", 0) > 0:
                 hoy = datetime.now().date()
                 dias_transcurridos = (hoy - siaccusr_result.get("usrfecmsys").date()).days
                 if dias_transcurridos >= siaccusr_result.get("usrdiascaduclave"):

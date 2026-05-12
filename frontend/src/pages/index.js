@@ -216,6 +216,9 @@ import EditarProveedoresDF from "./ProveedoresDF/Editar"
 //FirmarPDFDF
 import FirmarPDFDF from "./FirmarPDFDF"
 
+//PerfilUsuarioDF
+import PerfilUsuarioDF from "./PerfilUsuarioDF"
+
 
 export {
   Login,
@@ -342,4 +345,5 @@ export {
   CrearProveedoresDF,
   EditarProveedoresDF,
   FirmarPDFDF,
+  PerfilUsuarioDF,
 }

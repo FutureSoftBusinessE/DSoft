@@ -1,7 +1,6 @@
 ﻿# flake8: noqa
 from flask import Flask, jsonify, send_file, send_from_directory
 import os
-
 from config import Config
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -18,6 +17,7 @@ load_dotenv()  # Carga .env por defecto
 
 
 def create_app(config_class=Config):
+
     app = Flask(__name__, static_folder="../../frontend/build")
 
     # ************************************************************
@@ -249,6 +249,10 @@ def create_app(config_class=Config):
     from app.TipodeContraCli import bp as tipocontracli_bp
 
     app.register_blueprint(tipocontracli_bp, url_prefix="/tipocontracli")
+
+    from app.IntegracionFacturacionElectronica import bp as IntegracionFacturacionElectronica_bp
+
+    app.register_blueprint(IntegracionFacturacionElectronica_bp, url_prefix="/IntegracionFacturacionElectronica")
 
     print("---------------ENDPOINTS------------------")
     for rule in app.url_map.iter_rules():

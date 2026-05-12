@@ -28,6 +28,10 @@ const theme = createTheme({
 
 const StyledRootStyles = { width: "100%", maxWidth: "1200px", margin: "64px auto 0 auto", padding: "20px" }
 
+// TAMAÑO ESTIMADO DE LA FIRMA (en píxeles de DOM)
+const SIGNATURE_WIDTH = 150;
+const SIGNATURE_HEIGHT = 60;
+
 const FirmarPDFDF = () => {
   const [loading, setLoading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
@@ -52,16 +56,19 @@ const FirmarPDFDF = () => {
 
   const handlePdfClick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect()
-    const x = Math.round(e.clientX - rect.left)
-    const y = Math.round(rect.height - (e.clientY - rect.top))
+    const rawX = Math.round(e.clientX - rect.left)
+    const rawY = Math.round(rect.height - (e.clientY - rect.top))
+
+    const x = Math.round(rawX - (SIGNATURE_WIDTH / 2));
+    const y = Math.round(rawY - (SIGNATURE_HEIGHT / 2));
+
     setCoords({ x, y, page: currentPage - 1 })
     setOpenPreview(false)
-    showWarning(`Firma QR ubicada en Página ${currentPage} (X:${x}, Y:${y})`)
+    showWarning(`Firma ubicada en Página ${currentPage}. Tu clic fue el centro. Coordenadas de estampado (inferior izquierda): X:${x}, Y:${y}`)
   }
 
   useEffect(() => { return () => { if (previewUrl) URL.revokeObjectURL(previewUrl) } }, [previewUrl])
 
-  // OPCIÓN 1 CORREGIDA: Agregado Content-Type
   const handleFirmarVisual = async () => {
     if (!pdfPrincipal || !p12File || !password || !coords.x) return showWarning("Faltan datos: PDF, Firma, Clave o Ubicación")
     
@@ -72,18 +79,80 @@ const FirmarPDFDF = () => {
     formData.append("x", coords.x)
     formData.append("y", coords.y)
     formData.append("page", coords.page)
+    
+    if (p12Info && p12Info.sujeto_completo) {
+        formData.append("duenoFirma", p12Info.sujeto_completo);
+    }
 
     setLoading(true)
     try {
-      const res = await api.post("/FirmarPDFDF/firmarDocumentoVisualDF", formData, { 
-        headers: { "Content-Type": "multipart/form-data" }, // Solución al envío de archivos vacíos
-        responseType: 'blob' 
-      })
-      const link = document.createElement('a')
-      link.href = window.URL.createObjectURL(new Blob([res.data]))
-      link.setAttribute('download', `SIAC_FIRMADO_QR_${pdfPrincipal.name}`)
-      document.body.appendChild(link); link.click(); document.body.removeChild(link)
-    } catch (err) {}
+      let foundToken = "";
+      const storages = [localStorage, sessionStorage];
+      
+      for (let storage of storages) {
+        for (let i = 0; i < storage.length; i++) {
+          let val = storage.getItem(storage.key(i));
+          if (typeof val === 'string' && val.includes('.') && val.split('.').length === 3 && val.includes('eyJ')) {
+            foundToken = val; break;
+          }
+          try {
+            let obj = JSON.parse(val);
+            if (obj && typeof obj === 'object') {
+              for (let key in obj) {
+                if (typeof obj[key] === 'string' && obj[key].split('.').length === 3 && obj[key].includes('eyJ')) {
+                  foundToken = obj[key]; break;
+                }
+              }
+            }
+          } catch(e) {}
+          if (foundToken) break;
+        }
+        if (foundToken) break;
+      }
+
+      if (!foundToken && api.defaults?.headers?.common?.Authorization) {
+        foundToken = api.defaults.headers.common.Authorization.replace('Bearer ', '');
+      }
+
+      if (!foundToken) {
+        setLoading(false);
+        return showWarning("No se detectó sesión activa. Por favor, recargue la página.");
+      }
+
+      const authHeader = `Bearer ${foundToken.replace(/"/g, '')}`;
+      const baseUrl = (api.defaults && api.defaults.baseURL) ? api.defaults.baseURL : 'http://127.0.0.1:5000';
+
+      const response = await fetch(`${baseUrl}/FirmarPDFDF/firmarDocumentoVisualDF`, {
+        method: 'POST',
+        headers: { 'Authorization': authHeader },
+        body: formData
+      });
+
+      if (!response.ok) {
+        let errorMsg = "Error técnico al firmar el documento";
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.message || errorMsg;
+        } catch(e) {}
+        showWarning(errorMsg);
+        setLoading(false);
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `SIAC_FIRMADO_QR_${pdfPrincipal.name}`);
+      document.body.appendChild(link); 
+      link.click(); 
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      showWarning("Error de comunicación con el servidor");
+    }
     setLoading(false)
   }
 

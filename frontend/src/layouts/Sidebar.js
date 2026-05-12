@@ -54,20 +54,6 @@ class SidebarMenu extends Component {
   }
 
   calculateTotalNiveles = (menu) => {
-    //   const totalNivelesParent = (parents) => {
-    //       let totalNiveles = 1;
-    //     for (const parent of parents){
-    //         if (parent?.submenu) {
-    //           totalNiveles+=1;
-    //           totalNivelesParent(parent.submenu);
-    //         }
-
-    //     }
-
-    //   console.log(totalNiveles,"22")
-
-    //   return totalNiveles;
-    // };
 
     const newMenu = menu.map((option) => ({
       ...option,
@@ -77,47 +63,6 @@ class SidebarMenu extends Component {
     localStorage.setItem("menu", JSON.stringify({ menu: newMenu }))
   }
 
-  //   populateMenu = (m=[]) => {
-  //       console.log(m,"ssssssss")
-  //       if(m==null){
-  //           return
-  //       }
-  //       console.log(m,"!!!!!!")
-  //       const menu = m.map((m, key) => {
-  //           let sm;
-  //           if (m.submenu) {
-  //               console.log(m.submenu)
-  //               sm = m.submenu.map((sm, key) => {
-  //                   if(sm.submenu){
-  //                       return<NavLink to={`Submenu/${m.submenu[0].label}/${m.submenu[0].item_number}` }className="nav-sub-link" key={key}>{sm.label}</NavLink>
-  //                   }
-  //                   else{
-  //                       return (
-  //                           <NavLink to={sm.link} className="nav-sub-link" key={key}>{sm.label}</NavLink>
-  //                       )
-
-  //                   }
-  //               })
-  //           }
-  //           //Set routing for elem without children
-  //           return (
-  //               <li key={key} className="nav-item">
-  //                   {(!sm) ? (
-  //                       <NavLink to={m.link} className="nav-link" onClick={()=>localStorage.setItem("fullRoute",JSON.stringify({base:[],lastParam:m.label}))}><i className={m.iconImg}></i> <span>{m.label}</span></NavLink>
-  //                   ) : (
-  //                       <div onClick={this.toggleSubMenu} className="nav-link has-sub"><i className={m.iconImg}></i> <span>{m.label}</span></div>
-  //                   )}
-  //                   {m.submenu && <nav className="nav nav-sub">{sm}</nav>}
-  //               </li>
-  //           )
-  //       });
-
-  //       return (
-  //           <ul className="nav nav-sidebar">
-  //               {menu}
-  //           </ul>
-  //       );
-  //   }
 
   // Solo existiran maximo 4 niveles en el menu
   populateMenu = (menu = []) => {
@@ -242,6 +187,7 @@ class SidebarMenu extends Component {
     this.props.onUpdateSize()
   }
 
+  //aqui dibujo el menu 
   render() {
     let menuComponent = null
     if (localStorage.getItem("menu")) {
@@ -249,31 +195,7 @@ class SidebarMenu extends Component {
     }
     return (
       <React.Fragment>
-        {/* <div className="nav-group show">
-                    <div className="nav-label" onClick={this.toggleMenu}>Dashboard</div>
-                    {menuComponent}
-
-                </div> */}
-
         {menuComponent}
-        {/* <div className="nav-group show">
-          <div className="nav-label" onClick={this.toggleMenu}>
-            Applications
-          </div>
-          {this.populateMenu(applicationsMenu)}
-        </div>
-        <div className="nav-group show">
-          <div className="nav-label" onClick={this.toggleMenu}>
-            Pages
-          </div>
-          {this.populateMenu(pagesMenu)}
-        </div>
-        <div className="nav-group show">
-          <div className="nav-label" onClick={this.toggleMenu}>
-            UI Elements
-          </div>
-          {this.populateMenu(uiElementsMenu)}
-        </div> */}
       </React.Fragment>
     )
   }

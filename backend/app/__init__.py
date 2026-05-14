@@ -298,6 +298,10 @@ def create_app(config_class=Config):
 
     app.register_blueprint(PerfilUsuarioDF_bp, url_prefix="/PerfilUsuarioDF")   
 
+    from app.ContraCliDF import bp as ContraCliDF_bp
+
+    app.register_blueprint(ContraCliDF_bp, url_prefix="/ContraCliDF")   
+
 
 
     print("---------------ENDPOINTS------------------")

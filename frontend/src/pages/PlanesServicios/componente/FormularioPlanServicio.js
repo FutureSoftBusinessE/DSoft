@@ -1,6 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react"
 import { Box, Paper, MenuItem, Select, FormControl, FormLabel, TextField } from "@mui/material"
-import { api, showWarning } from "../../../api"
+import { showWarning } from "../../../api"
 import ImagenTab from "../componente/ImagenTab"
 
 const StyledRoot = {
@@ -23,7 +23,7 @@ const FormularioPlanServicio = forwardRef(
   (
     {
       initialData = {
-        invcodigo: "",
+        invcodigo: "01", // Valor por defecto
         artcodigo: "",
         artdescri: "",
         artprecventa1: "",
@@ -36,28 +36,18 @@ const FormularioPlanServicio = forwardRef(
     },
     ref,
   ) => {
-    const [invcodigo, setInvcodigo] = useState("")
+    // Inicializamos con "01" como valor por defecto para el inventario de servicios
+    const [invcodigo, setInvcodigo] = useState("01") 
     const [artcodigo, setArtcodigo] = useState("")
     const [artdescri, setArtdescri] = useState("")
     const [artprecventa1, setArtprecventa1] = useState("")
     const [artapliiva, setArtapliiva] = useState(0)
     const [artstatus, setArtstatus] = useState("A")
-    const [inventarios, setInventarios] = useState([])
-
-    useEffect(() => {
-      api
-        .post("/PlanesServicios/getInventariosSelect")
-        .then((response) => {
-          const data = response.data?.data?.data
-          setInventarios(Array.isArray(data) ? data : [])
-        })
-        .catch(() => setInventarios([]))
-    }, [])
 
     useEffect(() => {
       // Solo en editar, pre-llenar datos
-      if (modo === "editar" && initialData && initialData.invcodigo) {
-        setInvcodigo(initialData.invcodigo)
+      if (modo === "editar" && initialData) {
+        setInvcodigo(initialData.invcodigo || "01")
         setArtcodigo(initialData.artcodigo || "")
         setArtdescri(initialData.artdescri || "")
         setArtprecventa1(String(initialData.artprecventa1 || ""))
@@ -66,25 +56,10 @@ const FormularioPlanServicio = forwardRef(
       }
     }, [modo, initialData])
 
-    const handleInventarioChange = (e) => {
-      setInvcodigo(e.target.value)
-      // Limpiar otros campos al cambiar inventario
-      if (!e.target.value) {
-        setArtcodigo("")
-        setArtdescri("")
-        setArtprecventa1("")
-        setArtapliiva(0)
-      }
-    }
-
     const handleSubmit = async (e) => {
       if (e) e.preventDefault()
 
       // Validaciones simples
-      if (!invcodigo) {
-        showWarning("Selecciona un inventario")
-        return
-      }
       if (!artcodigo || artcodigo.length > 15) {
         showWarning("Código artículo: máximo 15 caracteres")
         return
@@ -101,7 +76,7 @@ const FormularioPlanServicio = forwardRef(
       const payload =
         modo === "crear"
           ? {
-              invcodigo,
+              invcodigo, // Se enviará "01" automáticamente
               artcodigo,
               artdescri,
               artprecventa1: parseFloat(artprecventa1),
@@ -137,29 +112,14 @@ const FormularioPlanServicio = forwardRef(
           component="form"
           onSubmit={handleSubmit}
         >
-          <Box sx={{ mb: 3 }}>
-            <FormControl fullWidth size="small" disabled={modo === "editar"}>
-              <FormLabel>Inventario *</FormLabel>
-              <Select value={invcodigo} onChange={handleInventarioChange} disabled={modo === "editar"}>
-                {inventarios && inventarios.length > 0 ? (
-                  inventarios.map((inv) => (
-                    <MenuItem key={inv.value} value={inv.value}>
-                      {inv.label}
-                    </MenuItem>
-                  ))
-                ) : (
-                  <MenuItem value="">-- Selecciona un inventario --</MenuItem>
-                )}
-              </Select>
-            </FormControl>
-          </Box>
+          {/* SE OMITIÓ EL CAMPO DE INVENTARIO */}
 
           <Box sx={{ mb: 4 }}>
             <FormControl fullWidth size="small">
               <FormLabel>Código de Artículo *</FormLabel>
               <TextField
                 value={artcodigo}
-                onChange={(e) => setArtcodigo(e.target.value)}
+                onChange={(e) => setArtcodigo(e.target.value.toUpperCase())} // Forzamos a mayúsculas como buena práctica
                 variant="outlined"
                 size="small"
                 disabled={modo === "editar"}
@@ -172,7 +132,7 @@ const FormularioPlanServicio = forwardRef(
               <FormLabel>Descripción *</FormLabel>
               <TextField
                 value={artdescri}
-                onChange={(e) => setArtdescri(e.target.value)}
+                onChange={(e) => setArtdescri(e.target.value.toUpperCase())} // Forzamos a mayúsculas
                 variant="outlined"
                 multiline
                 rows={2}
@@ -217,6 +177,7 @@ const FormularioPlanServicio = forwardRef(
           </Box>
         </Paper>
 
+        {/* COMPONENTE DE IMAGEN PARA EDICIÓN */}
         {invcodigo && artcodigo && modo === "editar" && <ImagenTab artcodigo={artcodigo} invcodigo={invcodigo} />}
       </Box>
     )

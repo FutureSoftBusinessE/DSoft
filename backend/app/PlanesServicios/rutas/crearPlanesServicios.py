@@ -59,7 +59,7 @@ def crearPlanesServicios():
         with connection.begin():
             data_inmart = {
                 "ciacodigo": sCodCia,
-                "invcodigo": invcodigo,
+                "invcodigo": "01",
                 "artcodigo": artcodigo,
                 "artdescri": artdescri,
                 "artprecventa1": artprecventa1,
@@ -82,8 +82,8 @@ def crearPlanesServicios():
                 "artcantactual": 0,
                 "artcanttranfer": 0,
                 "artcantimporta": 0,
-                "artprodven": 0,
-                "artservicio": 0,
+                "artprodven": -1,
+                "artservicio": -1,
                 "artcobraiva": 0,
                 "artcostoinicial": 0,
                 "artcostoactual": 0,

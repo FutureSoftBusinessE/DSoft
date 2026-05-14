@@ -219,6 +219,10 @@ import FirmarPDFDF from "./FirmarPDFDF"
 //PerfilUsuarioDF
 import PerfilUsuarioDF from "./PerfilUsuarioDF"
 
+//ContraCliDF
+import ContraCliDF from "./ContraCliDF"
+import CrearContraCliDF from "./ContraCliDF/Crear"
+import EditarContraCliDF from "./ContraCliDF/Editar"
 
 export {
   Login,
@@ -346,4 +350,7 @@ export {
   EditarProveedoresDF,
   FirmarPDFDF,
   PerfilUsuarioDF,
+  ContraCliDF,
+  CrearContraCliDF,
+  EditarContraCliDF,
 }

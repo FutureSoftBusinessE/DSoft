@@ -189,7 +189,7 @@ const PlanesServicios = () => {
                   ],
                 },
                 {
-                  label: "importar",
+                  label: "Importar", // Corregido a mayúscula
                   key: "importarDropdown",
                   icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                   onClick: () => {
@@ -203,36 +203,42 @@ const PlanesServicios = () => {
               {
                 accessorKey: "invcodigo",
                 header: "Inventario",
+                Header: "Inventario", // Compatibilidad con el Wrapper
                 size: 130,
                 Cell: ({ cell }) => <span>{cell.getValue()}</span>,
               },
               {
                 accessorKey: "artcodigo",
                 header: "Código Artículo",
+                Header: "Código Artículo",
                 size: 180,
                 Cell: ({ cell }) => <span>{cell.getValue()}</span>,
               },
               {
                 accessorKey: "artdescri",
                 header: "Descripción",
+                Header: "Descripción",
                 size: 250,
                 Cell: ({ cell }) => <span>{cell.getValue()}</span>,
               },
               {
                 accessorKey: "artstatus",
                 header: "Estado",
+                Header: "Estado",
                 size: 120,
                 Cell: ({ cell }) => <span>{cell.getValue()}</span>,
               },
               {
                 accessorKey: "artapliiva",
                 header: "Aplica IVA",
+                Header: "Aplica IVA",
                 size: 160,
                 Cell: ({ cell }) => <span>{Number(cell.getValue()) !== 0 ? "Sí" : "No"}</span>,
               },
               {
                 accessorKey: "artprecventa1",
                 header: "Precio",
+                Header: "Precio",
                 size: 120,
                 Cell: ({ cell }) => {
                   const value = cell.getValue()
@@ -243,6 +249,7 @@ const PlanesServicios = () => {
               {
                 accessorKey: "artfecisys",
                 header: "Fecha de Creación",
+                Header: "Fecha de Creación",
                 size: 180,
                 Cell: ({ cell }) => {
                   const value = cell.getValue()
@@ -252,12 +259,14 @@ const PlanesServicios = () => {
               {
                 accessorKey: "artusuisys",
                 header: "Creado Por",
+                Header: "Creado Por",
                 size: 150,
                 Cell: ({ cell }) => <span>{cell.getValue()}</span>,
               },
               {
                 accessorKey: "artfecmsys",
                 header: "Fecha de Modificación",
+                Header: "Fecha de Modificación",
                 size: 180,
                 Cell: ({ cell }) => {
                   const value = cell.getValue()
@@ -267,6 +276,7 @@ const PlanesServicios = () => {
               {
                 accessorKey: "artusumsys",
                 header: "Modificado Por",
+                Header: "Modificado Por",
                 size: 180,
                 Cell: ({ cell }) => <span>{cell.getValue()}</span>,
               },

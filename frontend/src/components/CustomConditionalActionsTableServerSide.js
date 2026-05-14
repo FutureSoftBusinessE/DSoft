@@ -29,6 +29,24 @@ import CustomBackdrop from "./CustomBackdrop"
 import ExpandMore from "@mui/icons-material/ExpandMore"
 import CustomModal from "./CustomModal"
 
+// --------------------------------------------------
+// Conversor Hexadecimal a RGBA para transparencias
+// --------------------------------------------------
+const hexToRgba = (hex, alpha) => {
+  let r = 0, g = 0, b = 0;
+  if (!hex || !hex.startsWith("#")) return `rgba(25, 108, 135, ${alpha})`; // Fallback color SIAC
+  if (hex.length === 4) {
+    r = parseInt(hex[1] + hex[1], 16);
+    g = parseInt(hex[2] + hex[2], 16);
+    b = parseInt(hex[3] + hex[3], 16);
+  } else if (hex.length === 7) {
+    r = parseInt(hex.substring(1, 3), 16);
+    g = parseInt(hex.substring(3, 5), 16);
+    b = parseInt(hex.substring(5, 7), 16);
+  }
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 const ExportDropdown = ({ exportActions, columns, data }) => {
   const [anchorEl, setAnchorEl] = useState(null)
   const open = Boolean(anchorEl)
@@ -65,14 +83,8 @@ const ExportDropdown = ({ exportActions, columns, data }) => {
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "right",
-        }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
         {exportActions.map((action) => (
           <MenuItem key={action.key} onClick={() => handleActionClick(action)} sx={{ minWidth: 120 }}>
@@ -86,9 +98,7 @@ const ExportDropdown = ({ exportActions, columns, data }) => {
 }
 
 // --------------------------------------------------
-// --------------------------------------------------
 //                    PaginationActions
-// --------------------------------------------------
 // --------------------------------------------------
 
 function PaginationActions(props) {
@@ -124,9 +134,7 @@ function PaginationActions(props) {
 }
 
 // --------------------------------------------------
-// --------------------------------------------------
 //              CustomRowsPerPageInput
-// --------------------------------------------------
 // --------------------------------------------------
 
 const CustomRowsPerPageInput = ({ value, onChange, rowsPerPageOptions }) => {
@@ -139,7 +147,6 @@ const CustomRowsPerPageInput = ({ value, onChange, rowsPerPageOptions }) => {
 
   const handleInputChange = (e) => {
     const newValue = e.target.value
-    // Solo permitir números
     if (/^\d*$/.test(newValue)) {
       setInputValue(newValue)
     }
@@ -148,12 +155,9 @@ const CustomRowsPerPageInput = ({ value, onChange, rowsPerPageOptions }) => {
   const handleBlur = () => {
     setIsEditing(false)
     const numValue = parseInt(inputValue, 10)
-
-    // Validar que sea un número válido y mayor a 0
     if (!isNaN(numValue) && numValue > 0) {
       onChange(numValue)
     } else {
-      // Si no es válido, restaurar el valor anterior
       setInputValue(value.toString())
     }
   }
@@ -170,42 +174,20 @@ const CustomRowsPerPageInput = ({ value, onChange, rowsPerPageOptions }) => {
         <Box
           onClick={() => setIsEditing(true)}
           sx={{
-            minWidth: "60px",
-            cursor: "pointer",
-            px: 1,
-            py: 0.5,
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 1,
-            "&:hover": {
-              borderColor: "primary.main",
-              bgcolor: "action.hover",
-            },
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            minWidth: "60px", cursor: "pointer", px: 1, py: 0.5,
+            border: "1px solid", borderColor: "divider", borderRadius: 1,
+            "&:hover": { borderColor: "primary.main", bgcolor: "action.hover" },
+            display: "flex", alignItems: "center", justifyContent: "center",
           }}
         >
           <Typography variant="body2">{value}</Typography>
         </Box>
       ) : (
         <TextField
-          value={inputValue}
-          onChange={handleInputChange}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          autoFocus
-          size="small"
-          inputProps={{
-            style: { textAlign: "center" },
-            maxLength: 4,
-          }}
-          sx={{
-            width: "70px",
-            "& .MuiOutlinedInput-root": {
-              height: "32px",
-            },
-          }}
+          value={inputValue} onChange={handleInputChange} onBlur={handleBlur}
+          onKeyDown={handleKeyDown} autoFocus size="small"
+          inputProps={{ style: { textAlign: "center" }, maxLength: 4 }}
+          sx={{ width: "70px", "& .MuiOutlinedInput-root": { height: "32px" } }}
         />
       )}
 
@@ -223,30 +205,14 @@ const CustomRowsPerPageInput = ({ value, onChange, rowsPerPageOptions }) => {
 }
 
 // --------------------------------------------------
-// --------------------------------------------------
 //                    LargeScreenTable
-// --------------------------------------------------
 // --------------------------------------------------
 
 const LargeScreenTable = ({
-  theme,
-  data,
-  columnsTable,
-  perPage,
-  rowsPerPageOptions,
-  onRowsPerPageChange,
-  isLoading,
-  isError,
-  totalPages,
-  currentPage,
-  onPageChange,
-  onFilterChange,
-  errorMsgFilterSearch,
-  refetch,
-  rowActionsWidthTable,
-  rowActions,
-  useGetObj,
-  topToolbarCustomActions,
+  theme, data, columnsTable, perPage, rowsPerPageOptions, onRowsPerPageChange,
+  isLoading, isError, totalPages, currentPage, onPageChange, onFilterChange,
+  errorMsgFilterSearch, refetch, rowActionsWidthTable, rowActions, useGetObj,
+  topToolbarCustomActions, visualConfig // <--- Dinámico
 }) => {
   const columns = useMemo(
     () =>
@@ -254,8 +220,7 @@ const LargeScreenTable = ({
         ...column,
         Filter: ({ column }) => (
           <TextField
-            variant="standard"
-            placeholder="Filtrar"
+            variant="standard" placeholder="Filtrar"
             onChange={(e) => onFilterChange(column.id, e.target.value)}
           />
         ),
@@ -266,7 +231,6 @@ const LargeScreenTable = ({
   const table = useMaterialReactTable({
     columns,
     data,
-
     initialState: { showColumnFilters: true },
     enableEditing: false,
     enableSorting: false,
@@ -283,36 +247,38 @@ const LargeScreenTable = ({
     localization: { ...MRT_Localization_ES },
     muiToolbarAlertBannerProps: isError ? { color: "error", children: errorMsgFilterSearch } : undefined,
     muiTableContainerProps: {
-      sx: {
-        minWidth: "100%",
-        maxWidth: "100%",
-        maxHeight: "600px", // Ajusta la altura máxima de la tabla
-        overflowY: "auto",
-        overflowX: "auto",
-      },
+      sx: { minWidth: "100%", maxWidth: "100%", maxHeight: "600px", overflowY: "auto", overflowX: "auto" },
     },
+    // --- ESTILOS DINÁMICOS PARA CABECERAS ---
     muiTableHeadCellProps: {
       sx: {
-        fontSize: "0.875rem",
+        fontSize: visualConfig.fontSizeHeader,
+        fontFamily: visualConfig.fontFamily,
+        color: visualConfig.color, 
         fontWeight: "bold",
       },
     },
     mrtTheme: (theme) => ({
       baseBackgroundColor: theme.palette.background.default,
     }),
+    // --- ESTILOS DINÁMICOS PARA FILAS (CEBRA) ---
     muiTableBodyRowProps: ({ row }) => ({
       sx: {
-        backgroundColor: row.index % 2 === 0 ? "#A4EEB3" : "#ffff",
+        backgroundColor: row.index % 2 === 0 ? visualConfig.rowColor : "#ffff",
         "&:hover": {
-          backgroundColor: theme.palette.action.hover + "!important",
+          backgroundColor: visualConfig.hoverColor + "!important",
         },
       },
     }),
-    muiTablePaperProps: {
+    // --- ESTILOS DINÁMICOS PARA CELDAS ---
+    muiTableBodyCellProps: {
       sx: {
-        borderRadius: "10px",
-        overflow: "hidden",
+        fontSize: visualConfig.fontSize,
+        fontFamily: visualConfig.fontFamily,
       },
+    },
+    muiTablePaperProps: {
+      sx: { borderRadius: "10px", overflow: "hidden" },
     },
     renderRowActions: ({ row, table }) => (
       <Box sx={{ display: "flex", gap: "0.3rem" }}>
@@ -320,71 +286,53 @@ const LargeScreenTable = ({
           (action) =>
             action.label && (
               <Tooltip title={action.label} key={action.key}>
-                <IconButton onClick={() => action.onClick(row, useGetObj)}>{action.icon}</IconButton>
+                <IconButton onClick={() => action.onClick(row, useGetObj)} sx={{ color: visualConfig.color }}>
+                  {action.icon}
+                </IconButton>
               </Tooltip>
             ),
         )}
       </Box>
     ),
     renderTopToolbarCustomActions: ({ table }) => (
-      <Box
-        sx={{
-          display: "flex",
-          gap: "10px",
-          padding: "8px",
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
+      <Box sx={{ display: "flex", gap: "10px", padding: "8px", flexWrap: "wrap", alignItems: "center" }}>
         {topToolbarCustomActions({ table, device: "lg" }).map((toolbarAction) => {
           if (!toolbarAction.label) return null
-          // Si es un dropdown, renderiza el componente Dropdown
           if (toolbarAction.type === "dropdown") {
             return (
-              <ExportDropdown
-                key={toolbarAction.key}
-                exportActions={toolbarAction.actions}
-                columns={columns}
-                data={data}
-              />
+              <ExportDropdown key={toolbarAction.key} exportActions={toolbarAction.actions} columns={columns} data={data} />
             )
           }
           if (toolbarAction.type === "modal") {
             return (
               <>
                 <Tooltip title={toolbarAction.label} key={toolbarAction.key}>
-                  <IconButton onClick={() => toolbarAction.onClick()} color="primary">
+                  <IconButton onClick={() => toolbarAction.onClick()} sx={{ color: visualConfig.color }}>
                     {toolbarAction.icon}
                   </IconButton>
                 </Tooltip>
-
                 <CustomModal {...toolbarAction.propsModal}>{toolbarAction.Component}</CustomModal>
               </>
             )
           }
-
-          // Si es una acción normal, renderiza el botón normal
           return (
             <Tooltip title={toolbarAction.label} key={toolbarAction.key}>
-              <IconButton onClick={() => toolbarAction.onClick({ columns, data })}>{toolbarAction.icon}</IconButton>
+              <IconButton onClick={() => toolbarAction.onClick({ columns, data })} sx={{ color: visualConfig.color }}>
+                {toolbarAction.icon}
+              </IconButton>
             </Tooltip>
           )
         })}
         <Tooltip title="Recargar datos">
-          <IconButton onClick={refetch}>
+          <IconButton onClick={refetch} sx={{ color: visualConfig.color }}>
             <Refresh />
           </IconButton>
         </Tooltip>
       </Box>
     ),
-    state: {
-      isLoading,
-    },
+    state: { isLoading },
     displayColumnDefOptions: {
-      "mrt-row-actions": {
-        size: rowActionsWidthTable, // if using layoutMode that is not 'semantic', the columns will not auto-size, so you need to set the size manually
-        // grow: false,
-      },
+      "mrt-row-actions": { size: rowActionsWidthTable },
     },
   })
 
@@ -393,47 +341,30 @@ const LargeScreenTable = ({
       <MaterialReactTable table={table} />
       <Box
         sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          px: 2,
-          py: 1,
-          borderTop: "1px solid",
-          borderColor: "divider",
+          display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, py: 1,
+          borderTop: "1px solid", borderColor: "divider", fontFamily: visualConfig.fontFamily
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" fontFamily={visualConfig.fontFamily}>
             Registros por página:
           </Typography>
-          <CustomRowsPerPageInput
-            value={perPage}
-            onChange={onRowsPerPageChange}
-            rowsPerPageOptions={rowsPerPageOptions}
-          />
+          <CustomRowsPerPageInput value={perPage} onChange={onRowsPerPageChange} rowsPerPageOptions={rowsPerPageOptions} />
           {rowsPerPageOptions.length > 0 && (
             <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
               {rowsPerPageOptions.map((option) => (
                 <Box
-                  key={option}
-                  onClick={() => onRowsPerPageChange(option)}
+                  key={option} onClick={() => onRowsPerPageChange(option)}
                   sx={{
-                    px: 1.5,
-                    py: 0.5,
-                    cursor: "pointer",
-                    border: "1px solid",
-                    borderColor: option === perPage ? "primary.main" : "divider",
-                    borderRadius: 1,
-                    bgcolor: option === perPage ? "#A4EEB3" : "transparent",
-                    color: option === perPage ? "primary.dark" : "text.secondary",
-                    "&:hover": {
-                      borderColor: "primary.main",
-                      bgcolor: option === perPage ? "#A4EEB3" : "action.hover",
-                    },
+                    px: 1.5, py: 0.5, cursor: "pointer", border: "1px solid",
+                    borderColor: option === perPage ? visualConfig.color : "divider", borderRadius: 1,
+                    bgcolor: option === perPage ? visualConfig.rowColor : "transparent",
+                    color: option === perPage ? visualConfig.color : "text.secondary",
+                    "&:hover": { borderColor: visualConfig.color, bgcolor: option === perPage ? visualConfig.rowColor : "action.hover" },
                     transition: "all 0.2s",
                   }}
                 >
-                  <Typography variant="caption">{option}</Typography>
+                  <Typography variant="caption" fontFamily={visualConfig.fontFamily}>{option}</Typography>
                 </Box>
               ))}
             </Box>
@@ -441,15 +372,10 @@ const LargeScreenTable = ({
         </Box>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" fontFamily={visualConfig.fontFamily}>
             {`${(currentPage - 1) * perPage + 1}-${Math.min(currentPage * perPage, totalPages * perPage)} de ${totalPages * perPage} | Página ${currentPage} de ${totalPages}`}
           </Typography>
-          <PaginationActions
-            count={totalPages * perPage}
-            page={currentPage - 1}
-            rowsPerPage={perPage}
-            onPageChange={(_, newPage) => onPageChange(newPage + 1)}
-          />
+          <PaginationActions count={totalPages * perPage} page={currentPage - 1} rowsPerPage={perPage} onPageChange={(_, newPage) => onPageChange(newPage + 1)} />
         </Box>
       </Box>
     </>
@@ -457,29 +383,13 @@ const LargeScreenTable = ({
 }
 
 // --------------------------------------------------
-// --------------------------------------------------
 //                    SmallScreenTable
-// --------------------------------------------------
 // --------------------------------------------------
 
 const SmallScreenTable = ({
-  theme,
-  data,
-  columnsTable,
-  perPage,
-  rowsPerPageOptions,
-  onRowsPerPageChange,
-  isLoading,
-  isError,
-  totalPages,
-  currentPage,
-  onPageChange,
-  onFilterChange,
-  errorMsgFilterSearch,
-  refetch,
-  rowActions,
-  useGetObj,
-  topToolbarCustomActions,
+  theme, data, columnsTable, perPage, rowsPerPageOptions, onRowsPerPageChange,
+  isLoading, isError, totalPages, currentPage, onPageChange, onFilterChange,
+  errorMsgFilterSearch, refetch, rowActions, useGetObj, topToolbarCustomActions, visualConfig // <--- Dinámico
 }) => {
   const DataIsVoidMsg = "No hay registros para mostrar"
   const DataIsLoadingMsg = "Cargando..."
@@ -490,232 +400,109 @@ const SmallScreenTable = ({
 
   return (
     <div>
-      <Box
-        sx={{
-          p: 1.5,
-          borderRadius: 1,
-          bgcolor: "background.paper",
-        }}
-      >
-        {/* Barra superior con botón de refresco alineado a la derecha */}
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            mb: 2,
-          }}
-        >
+      <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "background.paper" }}>
+        <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", mb: 2 }}>
           {topToolbarCustomActions({ device: "sm" }).map((toolbarAction) => {
             if (!toolbarAction.label) return null
             if (toolbarAction.type === "dropdown") {
-              return (
-                <ExportDropdown
-                  key={toolbarAction.key}
-                  exportActions={toolbarAction.actions}
-                  columns={columnsTable}
-                  data={data}
-                />
-              )
+              return <ExportDropdown key={toolbarAction.key} exportActions={toolbarAction.actions} columns={columnsTable} data={data} />
             }
-
             if (toolbarAction.type === "modal") {
               return (
                 <>
                   <Tooltip title={toolbarAction.label} key={toolbarAction.key}>
-                    <IconButton onClick={() => toolbarAction.onClick()} color="primary">
+                    <IconButton onClick={() => toolbarAction.onClick()} sx={{ color: visualConfig.color }}>
                       {toolbarAction.icon}
                     </IconButton>
                   </Tooltip>
-
                   <CustomModal {...toolbarAction.propsModal}>{toolbarAction.Component}</CustomModal>
                 </>
               )
             }
-
             return (
               <Tooltip title={toolbarAction.label} key={toolbarAction.key}>
-                <IconButton onClick={() => toolbarAction.onClick({ columns: columnsTable, data })}>
+                <IconButton onClick={() => toolbarAction.onClick({ columns: columnsTable, data })} sx={{ color: visualConfig.color }}>
                   {toolbarAction.icon}
                 </IconButton>
               </Tooltip>
             )
           })}
-          <IconButton
-            onClick={refetch}
-            sx={{
-              bgcolor: "action.selected",
-              borderRadius: 1,
-              p: 1,
-            }}
-          >
+          <IconButton onClick={refetch} sx={{ bgcolor: visualConfig.rowColor, color: visualConfig.color, borderRadius: 1, p: 1, ml: 1 }}>
             <Refresh fontSize="small" />
           </IconButton>
         </Box>
-        {/* Banner de error */}
+        
         {isError && (
-          <Alert
-            severity="error"
-            sx={{
-              mb: 2,
-              "& .MuiAlert-icon": { alignItems: "center" },
-              borderRadius: 1,
-            }}
-          >
+          <Alert severity="error" sx={{ mb: 2, "& .MuiAlert-icon": { alignItems: "center" }, borderRadius: 1 }}>
             {errorMsgFilterSearch || FilterSearchErrorMsg}
           </Alert>
         )}
-        {/* Accordion para filtros */}
+
         <Accordion
-          expanded={filtersOpen}
-          onChange={() => setFiltersOpen(!filtersOpen)}
+          expanded={filtersOpen} onChange={() => setFiltersOpen(!filtersOpen)}
           sx={{
-            mb: 2,
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: "8px !important",
-            boxShadow: "none",
-            bgcolor: "background.paper",
-            "&:before": {
-              display: "none",
-            },
-            "& .MuiAccordionSummary-root": {
-              borderRadius: "8px",
-              bgcolor: (theme) => theme.palette.grey[50], // Fondo header
-            },
-            "& .MuiAccordionDetails-root": {
-              bgcolor: (theme) => theme.palette.grey[50], // Fondo contenido
-            },
+            mb: 2, border: "1px solid", borderColor: "divider", borderRadius: "8px !important", boxShadow: "none",
+            bgcolor: "background.paper", "&:before": { display: "none" },
+            "& .MuiAccordionSummary-root": { borderRadius: "8px", bgcolor: (theme) => theme.palette.grey[50] },
+            "& .MuiAccordionDetails-root": { bgcolor: (theme) => theme.palette.grey[50] },
           }}
         >
-          <AccordionSummary
-            expandIcon={<ExpandMore />}
-            sx={{
-              minHeight: "48px",
-              "& .MuiAccordionSummary-content": {
-                margin: "12px 0",
-              },
-            }}
-          >
+          <AccordionSummary expandIcon={<ExpandMore />} sx={{ minHeight: "48px", "& .MuiAccordionSummary-content": { margin: "12px 0" } }}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Typography variant="body2" fontWeight="medium">
+              <Typography variant="body2" fontWeight="medium" fontFamily={visualConfig.fontFamily}>
                 {AccordionFilterTilte}
               </Typography>
             </Box>
           </AccordionSummary>
           <AccordionDetails>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 1.5,
-                p: 1,
-              }}
-            >
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, p: 1 }}>
               {columnsTable.map((col) => (
                 <TextField
-                  key={col.id || col.accessorKey}
-                  variant="outlined"
-                  size="small"
-                  fullWidth
-                  label={`${col.header}`}
-                  onChange={(e) => onFilterChange(col.id || col.accessorKey, e.target.value)}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 1,
-                      backgroundColor: (theme) => theme.palette.common.white, // Fondo inputs
-                    },
-                  }}
+                  key={col.id || col.accessorKey} variant="outlined" size="small" fullWidth
+                  label={`${col.header}`} onChange={(e) => onFilterChange(col.id || col.accessorKey, e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 1, backgroundColor: (theme) => theme.palette.common.white } }}
                 />
               ))}
             </Box>
           </AccordionDetails>
         </Accordion>
 
-        {/* Contenido principal */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
           {isLoading ? (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                py: 3,
-              }}
-            >
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 3 }}>
               <Box
                 component="span"
                 sx={{
-                  display: "inline-block",
-                  width: 16,
-                  height: 16,
-                  borderRadius: "50%",
-                  borderTop: "2px solid",
-                  borderColor: "primary.main",
+                  display: "inline-block", width: 16, height: 16, borderRadius: "50%",
+                  borderTop: "2px solid", borderColor: visualConfig.color,
                   animation: "spin 1s linear infinite",
-                  "@keyframes spin": {
-                    "0%": { transform: "rotate(0deg)" },
-                    "100%": { transform: "rotate(360deg)" },
-                  },
-                  mr: 1.5,
+                  "@keyframes spin": { "0%": { transform: "rotate(0deg)" }, "100%": { transform: "rotate(360deg)" } }, mr: 1.5,
                 }}
               />
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              <Typography variant="body2" sx={{ color: "text.secondary", fontFamily: visualConfig.fontFamily }}>
                 {DataIsLoadingMsg}
               </Typography>
             </Box>
           ) : data.length === 0 && !isError ? (
-            <Box
-              sx={{
-                textAlign: "center",
-                py: 4,
-                bgcolor: "background.default",
-                borderRadius: 1,
-              }}
-            >
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            <Box sx={{ textAlign: "center", py: 4, bgcolor: "background.default", borderRadius: 1 }}>
+              <Typography variant="body2" sx={{ color: "text.secondary", fontFamily: visualConfig.fontFamily }}>
                 {DataIsVoidMsg}
               </Typography>
             </Box>
           ) : (
             data.map((row, rowIndex) => (
               <Card
-                key={rowIndex}
-                variant="outlined"
-                sx={{
-                  borderRadius: 1,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  mb: 0.5,
-                  position: "relative", // Para posicionar absolutamente las acciones
-                }}
+                key={rowIndex} variant="outlined"
+                sx={{ borderRadius: 1, border: "1px solid", borderColor: "divider", mb: 0.5, position: "relative" }}
               >
-                {/* Acciones colocadas en la esquina superior derecha */}
                 {rowActions({ original: row }) && rowActions({ original: row }).length > 0 && (
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      top: 0,
-                      right: 0,
-                      zIndex: 1,
-                      display: "flex",
-                      flexDirection: "row",
-                    }}
-                  >
+                  <Box sx={{ position: "absolute", top: 0, right: 0, zIndex: 1, display: "flex", flexDirection: "row" }}>
                     {rowActions({ original: row }).map(
                       (action) =>
                         action.key && (
                           <IconButton
-                            key={action.key}
-                            onClick={() => action.onClick({ original: row }, useGetObj)}
-                            size="small"
-                            sx={{
-                              m: 0.5,
-                              bgcolor: "background.paper",
-                              "&:active": {
-                                bgcolor: "action.selected",
-                              },
-                            }}
+                            key={action.key} onClick={() => action.onClick({ original: row }, useGetObj)} size="small"
+                            sx={{ m: 0.5, bgcolor: "background.paper", "&:active": { bgcolor: "action.selected" }, color: visualConfig.color }}
                           >
                             {action.icon}
                           </IconButton>
@@ -729,24 +516,16 @@ const SmallScreenTable = ({
                     <Box
                       key={col.id || col.accessorKey}
                       sx={{
-                        mb: 1.5,
-                        pb: index !== columnsTable.length - 1 ? 1 : 0,
+                        mb: 1.5, pb: index !== columnsTable.length - 1 ? 1 : 0,
                         borderBottom: index !== columnsTable.length - 1 ? "1px dashed" : "none",
-                        borderColor: "divider",
-                        // Añadir un poco más de padding a la derecha para evitar solapamiento con botones
-                        pr: index === 0 && rowActions({ original: row })?.length ? 8 : 0,
+                        borderColor: "divider", pr: index === 0 && rowActions({ original: row })?.length ? 8 : 0,
                       }}
                     >
                       <Typography
                         variant="caption"
                         sx={{
-                          fontWeight: 700, // Más grueso que bolder (equivalente a bold)
-                          letterSpacing: "0.5px", // Añadido espacio entre letras
-                          color: "text.primary",
-                          display: "block",
-                          mb: 0.5,
-                          textTransform: "uppercase", // Texto en mayúsculas
-                          fontSize: "0.75rem", // Tamaño ligeramente más pequeño
+                          fontWeight: 700, letterSpacing: "0.5px", color: visualConfig.color, display: "block",
+                          mb: 0.5, textTransform: "uppercase", fontSize: visualConfig.fontSizeHeader, fontFamily: visualConfig.fontFamily,
                         }}
                       >
                         {col.header}
@@ -754,16 +533,11 @@ const SmallScreenTable = ({
                       <Typography
                         variant="body2"
                         sx={{
-                          fontWeight: 400, // Mantenemos regular
-                          color: "text.secondary",
-                          fontSize: "0.875rem", // Tamaño estándar
-                          lineHeight: 1.3, // Ajuste de interlineado
+                          fontWeight: 400, color: "text.secondary", lineHeight: 1.3, fontSize: visualConfig.fontSize, fontFamily: visualConfig.fontFamily,
                         }}
                       >
                         {col?.Cell
-                          ? col.Cell({
-                              cell: { getValue: () => row[col.accessorKey] || DefaultColumnCotentIsVoidMsg },
-                            })
+                          ? col.Cell({ cell: { getValue: () => row[col.accessorKey] || DefaultColumnCotentIsVoidMsg } })
                           : row[col.accessorKey] || DefaultColumnCotentIsVoidMsg}
                       </Typography>
                     </Box>
@@ -774,55 +548,29 @@ const SmallScreenTable = ({
           )}
         </Box>
 
-        {/* Paginación optimizada para móvil */}
         {!isLoading && data.length > 0 && !isError && (
-          <Box
-            sx={{
-              mt: 2,
-              pt: 1.5,
-              borderTop: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-              }}
-            >
+          <Box sx={{ mt: 2, pt: 1.5, borderTop: "1px solid", borderColor: "divider" }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", justifyContent: "center" }}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.75rem", fontFamily: visualConfig.fontFamily }}>
                   Registros por página:
                 </Typography>
-                <CustomRowsPerPageInput
-                  value={perPage}
-                  onChange={onRowsPerPageChange}
-                  rowsPerPageOptions={rowsPerPageOptions}
-                />
+                <CustomRowsPerPageInput value={perPage} onChange={onRowsPerPageChange} rowsPerPageOptions={rowsPerPageOptions} />
                 {rowsPerPageOptions.length > 0 && (
                   <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
                     {rowsPerPageOptions.map((option) => (
                       <Box
-                        key={option}
-                        onClick={() => onRowsPerPageChange(option)}
+                        key={option} onClick={() => onRowsPerPageChange(option)}
                         sx={{
-                          px: 1,
-                          py: 0.5,
-                          cursor: "pointer",
-                          border: "1px solid",
-                          borderColor: option === perPage ? "primary.main" : "divider",
-                          borderRadius: 1,
-                          bgcolor: option === perPage ? "#A4EEB3" : "transparent",
-                          color: option === perPage ? "primary.dark" : "text.secondary",
-                          "&:hover": {
-                            borderColor: "primary.main",
-                            bgcolor: option === perPage ? "#A4EEB3" : "action.hover",
-                          },
+                          px: 1, py: 0.5, cursor: "pointer", border: "1px solid",
+                          borderColor: option === perPage ? visualConfig.color : "divider", borderRadius: 1,
+                          bgcolor: option === perPage ? visualConfig.rowColor : "transparent",
+                          color: option === perPage ? visualConfig.color : "text.secondary",
+                          "&:hover": { borderColor: visualConfig.color, bgcolor: option === perPage ? visualConfig.rowColor : "action.hover" },
                           transition: "all 0.2s",
                         }}
                       >
-                        <Typography variant="caption" sx={{ fontSize: "0.7rem" }}>
+                        <Typography variant="caption" sx={{ fontSize: "0.7rem", fontFamily: visualConfig.fontFamily }}>
                           {option}
                         </Typography>
                       </Box>
@@ -834,49 +582,20 @@ const SmallScreenTable = ({
               <TablePagination
                 rowsPerPageOptions={[]}
                 sx={{
+                  fontFamily: visualConfig.fontFamily,
                   "& .MuiTablePagination-toolbar": {
-                    minHeight: { xs: "48px", sm: "64px" },
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    flexWrap: "wrap",
-                    gap: 1,
-                    padding: { xs: "4px", sm: "8px" },
+                    minHeight: { xs: "48px", sm: "64px" }, display: "flex", alignItems: "center",
+                    justifyContent: "space-between", flexWrap: "wrap", gap: 1, padding: { xs: "4px", sm: "8px" },
                   },
-                  "& .MuiTablePagination-displayedRows": {
-                    margin: "auto 0",
-                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                    whiteSpace: "nowrap",
-                  },
-                  "& .MuiTablePagination-selectLabel": {
-                    display: "none",
-                  },
-                  "& .MuiTablePagination-select": {
-                    display: "none",
-                  },
-                  "& .MuiInputBase-root": {
-                    display: "none",
-                  },
-                  "@media (max-width: 480px)": {
-                    "& .MuiTablePagination-toolbar": {
-                      justifyContent: "center",
-                    },
-                    "& .MuiTablePagination-spacer": {
-                      display: "none",
-                    },
-                  },
+                  "& .MuiTablePagination-displayedRows": { margin: "auto 0", fontSize: { xs: "0.75rem", sm: "0.875rem" }, whiteSpace: "nowrap" },
+                  "& .MuiTablePagination-selectLabel": { display: "none" },
+                  "& .MuiTablePagination-select": { display: "none" },
+                  "& .MuiInputBase-root": { display: "none" },
+                  "@media (max-width: 480px)": { "& .MuiTablePagination-toolbar": { justifyContent: "center" }, "& .MuiTablePagination-spacer": { display: "none" } },
                 }}
-                component="div"
-                count={totalPages * perPage}
-                rowsPerPage={perPage}
-                page={currentPage - 1}
-                onPageChange={(_, newPage) => {
-                  onPageChange(newPage + 1)
-                }}
-                ActionsComponent={PaginationActions}
-                labelDisplayedRows={({ from, to, count }) =>
-                  `${from}-${to} de ${count} | Página ${currentPage} de ${Math.ceil((totalPages * perPage) / perPage)}`
-                }
+                component="div" count={totalPages * perPage} rowsPerPage={perPage} page={currentPage - 1}
+                onPageChange={(_, newPage) => { onPageChange(newPage + 1) }} ActionsComponent={PaginationActions}
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count} | Página ${currentPage} de ${Math.ceil((totalPages * perPage) / perPage)}`}
               />
             </Box>
           </Box>
@@ -887,9 +606,7 @@ const SmallScreenTable = ({
 }
 
 // --------------------------------------------------
-// --------------------------------------------------
 //                    CustomTable
-// --------------------------------------------------
 // --------------------------------------------------
 
 const CustomTable = (props) => {
@@ -906,9 +623,7 @@ const CustomTable = (props) => {
 }
 
 // --------------------------------------------------
-// --------------------------------------------------
 //            CustomConditionalActionsTableServer
-// --------------------------------------------------
 // --------------------------------------------------
 
 const CustomConditionalActionsTableServer = ({
@@ -930,7 +645,31 @@ const CustomConditionalActionsTableServer = ({
   const [totalPages, setTotalPages] = useState(1)
   const timeoutRef = useRef(null)
 
-  // Función debounce para los filtros
+  // =========================================================================
+  // EXTRACCIÓN DINÁMICA DE ESTILOS (Usa el caché automático de getInfoHome)
+  // =========================================================================
+  const { data: homeInfo } = useQuery({
+    queryKey: ["initialHomeInfo"],
+    queryFn: async () => {
+      const response = await fetchwrapper(`/Home/getInfoHome`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}),
+      })
+      const result = await response.json()
+      return result.data
+    },
+    staleTime: Infinity, 
+  })
+
+  const visualConfig = {
+    color: homeInfo?.ciacolor || "#196C87", 
+    rowColor: hexToRgba(homeInfo?.ciacolor || "#A4EEB3", 0.10), 
+    hoverColor: hexToRgba(homeInfo?.ciacolor || "#196C87", 0.18), 
+    fontFamily: homeInfo?.ciatipoletra || "Arial",
+    fontSize: homeInfo?.ciatamanioletra ? `${homeInfo.ciatamanioletra}px` : "0.875rem",
+    fontSizeHeader: homeInfo?.ciatamanioletra ? `${parseInt(homeInfo.ciatamanioletra) + 1}px` : "0.9rem",
+  }
+  // =========================================================================
+
   const handleFilterChange = useCallback((columnId, value) => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
@@ -938,16 +677,13 @@ const CustomConditionalActionsTableServer = ({
 
     timeoutRef.current = setTimeout(() => {
       setFilters((prevFilters) => {
-        // Si el valor está vacío, eliminamos la clave del filtro
         if (!value.trim()) {
           const { [columnId]: _, ...rest } = prevFilters
           return rest
         }
-
-        // Si tiene valor, actualizamos normalmente
         return {
           ...prevFilters,
-          [columnId]: value.trim(), // eliminar espacios en blanco
+          [columnId]: value.trim(), 
         }
       })
     }, 500)
@@ -969,9 +705,7 @@ const CustomConditionalActionsTableServer = ({
       queryFn: async () => {
         const response = await fetchwrapper(`${endpoint}`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...endpointJson,
             page: pageNumber,
@@ -1009,6 +743,7 @@ const CustomConditionalActionsTableServer = ({
         rowActions={rowActions}
         useGetObj={{ data, isLoading, isError, refetch, isFetching }}
         topToolbarCustomActions={topToolbarCustomActions}
+        visualConfig={visualConfig} // <--- Inyectamos la configuración
       />
     </Box>
   )

@@ -25,7 +25,7 @@ const StyledRoot = {
 }
 
 // Opciones de la Regla de Negocio
-const FRECUENCIAS = ["MENSUAL", "BIMESTRAL", "TRIMESTRAL", "SEMESTRAL", "ANUAL"]
+const FRECUENCIAS = ["MENSUAL", "ANUAL"]
 
 const EditarTipodeContraCli = () => {
   const navigate = useNavigate()

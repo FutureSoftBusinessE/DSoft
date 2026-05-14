@@ -25,11 +25,26 @@ import CustomBackdrop from "./CustomBackdrop"
 import ExpandMore from "@mui/icons-material/ExpandMore"
 
 // --------------------------------------------------
+// Conversor Hexadecimal a RGBA para transparencias
 // --------------------------------------------------
-//                    PaginationActions
-// --------------------------------------------------
-// --------------------------------------------------
+const hexToRgba = (hex, alpha) => {
+  let r = 0, g = 0, b = 0;
+  if (!hex || !hex.startsWith("#")) return `rgba(25, 108, 135, ${alpha})`; // Fallback color SIAC
+  if (hex.length === 4) {
+    r = parseInt(hex[1] + hex[1], 16);
+    g = parseInt(hex[2] + hex[2], 16);
+    b = parseInt(hex[3] + hex[3], 16);
+  } else if (hex.length === 7) {
+    r = parseInt(hex.substring(1, 3), 16);
+    g = parseInt(hex.substring(3, 5), 16);
+    b = parseInt(hex.substring(5, 7), 16);
+  }
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
 
+// --------------------------------------------------
+// PaginationActions
+// --------------------------------------------------
 function PaginationActions(props) {
   const theme = useTheme()
   const { count, page, rowsPerPage, onPageChange } = props
@@ -63,11 +78,8 @@ function PaginationActions(props) {
 }
 
 // --------------------------------------------------
+// LargeScreenTable
 // --------------------------------------------------
-//                    LargeScreenTable
-// --------------------------------------------------
-// --------------------------------------------------
-
 const LargeScreenTable = ({
   theme,
   data,
@@ -81,6 +93,7 @@ const LargeScreenTable = ({
   onFilterChange,
   errorMsgFilterSearch,
   refetch,
+  visualConfig, // <--- Recibe la configuración visual dinámica
 }) => {
   const columns = useMemo(
     () =>
@@ -100,7 +113,6 @@ const LargeScreenTable = ({
   const table = useMaterialReactTable({
     columns,
     data,
-
     initialState: { showColumnFilters: true },
     enableEditing: false,
     enableSorting: false,
@@ -119,28 +131,39 @@ const LargeScreenTable = ({
       sx: {
         minWidth: "100%",
         maxWidth: "100%",
-        maxHeight: "600px", // Ajusta la altura máxima de la tabla
+        maxHeight: "600px", 
         overflowY: "auto",
         overflowX: "auto",
       },
     },
+    // --- ESTILOS DINÁMICOS PARA CABECERAS ---
     muiTableHeadCellProps: {
       sx: {
-        fontSize: "0.875rem",
+        fontSize: visualConfig.fontSizeHeader,
+        fontFamily: visualConfig.fontFamily,
+        color: visualConfig.color, 
         fontWeight: "bold",
       },
     },
     mrtTheme: (theme) => ({
       baseBackgroundColor: theme.palette.background.default,
     }),
+    // --- ESTILOS DINÁMICOS PARA FILAS (CEBRA) ---
     muiTableBodyRowProps: ({ row }) => ({
       sx: {
-        backgroundColor: row.index % 2 === 0 ? "#A4EEB3" : "#ffff",
+        backgroundColor: row.index % 2 === 0 ? visualConfig.rowColor : "#ffff",
         "&:hover": {
-          backgroundColor: theme.palette.action.hover + "!important",
+          backgroundColor: visualConfig.hoverColor + "!important",
         },
       },
     }),
+    // --- ESTILOS DINÁMICOS PARA CELDAS ---
+    muiTableBodyCellProps: {
+      sx: {
+        fontSize: visualConfig.fontSize,
+        fontFamily: visualConfig.fontFamily,
+      },
+    },
     muiTablePaperProps: {
       sx: {
         borderRadius: "10px",
@@ -150,7 +173,7 @@ const LargeScreenTable = ({
 
     renderTopToolbarCustomActions: () => (
       <Tooltip title="Recargar datos">
-        <IconButton onClick={refetch}>
+        <IconButton onClick={refetch} sx={{ color: visualConfig.color }}>
           <Refresh />
         </IconButton>
       </Tooltip>
@@ -166,25 +189,24 @@ const LargeScreenTable = ({
       <TablePagination
         rowsPerPageOptions={[perPage]}
         sx={{
+          fontFamily: visualConfig.fontFamily, // Aplica tipografía a la paginación
           "& .MuiTablePagination-toolbar": {
-            // Contenedor principal
-            minHeight: "64px", // Altura mínima
+            minHeight: "64px", 
             display: "flex",
-            alignItems: "center", // Centrado vertical
-            justifyContent: "center", // Centrado horizontal
-            gap: 1, // Espacio entre elementos
+            alignItems: "center", 
+            justifyContent: "center", 
+            gap: 1, 
           },
           "& .MuiTablePagination-displayedRows": {
-            // Texto de paginación
-            margin: "auto 0", // Ajuste fino vertical
+            margin: "auto 0", 
           },
         }}
         component="div"
-        count={totalPages * perPage} // Total real de registros
+        count={totalPages * perPage} 
         rowsPerPage={perPage}
-        page={currentPage - 1} // Conversión de 1-based a 0-based
+        page={currentPage - 1} 
         onPageChange={(_, newPage) => {
-          onPageChange(newPage + 1) // Convertir de vuelta a 1-based
+          onPageChange(newPage + 1) 
         }}
         ActionsComponent={PaginationActions}
         labelDisplayedRows={({ from, to, count }) =>
@@ -196,11 +218,8 @@ const LargeScreenTable = ({
 }
 
 // --------------------------------------------------
+// SmallScreenTable
 // --------------------------------------------------
-//                    SmallScreenTable
-// --------------------------------------------------
-// --------------------------------------------------
-
 const SmallScreenTable = ({
   theme,
   data,
@@ -214,6 +233,7 @@ const SmallScreenTable = ({
   onFilterChange,
   errorMsgFilterSearch,
   refetch,
+  visualConfig, // <--- Recibe la configuración visual dinámica
 }) => {
   const DataIsVoidMsg = "No hay registros para mostrar"
   const DataIsLoadingMsg = "Cargando..."
@@ -224,26 +244,14 @@ const SmallScreenTable = ({
 
   return (
     <div>
-      <Box
-        sx={{
-          p: 1.5,
-          borderRadius: 1,
-          bgcolor: "background.paper",
-        }}
-      >
-        {/* Barra superior con botón de refresco alineado a la derecha */}
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            mb: 2,
-          }}
-        >
+      <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "background.paper" }}>
+        {/* Barra superior con botón de refresco */}
+        <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", mb: 2 }}>
           <IconButton
             onClick={refetch}
             sx={{
-              bgcolor: "action.selected",
+              bgcolor: visualConfig.rowColor, // Color de fondo dinámico
+              color: visualConfig.color,      // Ícono de color dinámico
               borderRadius: 1,
               p: 1,
             }}
@@ -251,66 +259,33 @@ const SmallScreenTable = ({
             <Refresh fontSize="small" />
           </IconButton>
         </Box>
-        {/* Banner de error */}
+        
         {isError && (
-          <Alert
-            severity="error"
-            sx={{
-              mb: 2,
-              "& .MuiAlert-icon": { alignItems: "center" },
-              borderRadius: 1,
-            }}
-          >
+          <Alert severity="error" sx={{ mb: 2, "& .MuiAlert-icon": { alignItems: "center" }, borderRadius: 1 }}>
             {errorMsgFilterSearch || FilterSearchErrorMsg}
           </Alert>
         )}
+
         {/* Accordion para filtros */}
         <Accordion
           expanded={filtersOpen}
           onChange={() => setFiltersOpen(!filtersOpen)}
           sx={{
-            mb: 2,
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: "8px !important",
-            boxShadow: "none",
-            bgcolor: "background.paper",
-            "&:before": {
-              display: "none",
-            },
-            "& .MuiAccordionSummary-root": {
-              borderRadius: "8px",
-              bgcolor: (theme) => theme.palette.grey[50], // Fondo header
-            },
-            "& .MuiAccordionDetails-root": {
-              bgcolor: (theme) => theme.palette.grey[50], // Fondo contenido
-            },
+            mb: 2, border: "1px solid", borderColor: "divider", borderRadius: "8px !important", boxShadow: "none",
+            bgcolor: "background.paper", "&:before": { display: "none" },
+            "& .MuiAccordionSummary-root": { borderRadius: "8px", bgcolor: (theme) => theme.palette.grey[50] },
+            "& .MuiAccordionDetails-root": { bgcolor: (theme) => theme.palette.grey[50] },
           }}
         >
-          <AccordionSummary
-            expandIcon={<ExpandMore />}
-            sx={{
-              minHeight: "48px",
-              "& .MuiAccordionSummary-content": {
-                margin: "12px 0",
-              },
-            }}
-          >
+          <AccordionSummary expandIcon={<ExpandMore />} sx={{ minHeight: "48px", "& .MuiAccordionSummary-content": { margin: "12px 0" } }}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Typography variant="body2" fontWeight="medium">
+              <Typography variant="body2" fontWeight="medium" fontFamily={visualConfig.fontFamily}>
                 {AccordionFilterTilte}
               </Typography>
             </Box>
           </AccordionSummary>
           <AccordionDetails>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 1.5,
-                p: 1,
-              }}
-            >
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, p: 1 }}>
               {columnsTable.map((col) => (
                 <TextField
                   key={col.id || col.accessorKey}
@@ -319,12 +294,7 @@ const SmallScreenTable = ({
                   fullWidth
                   label={`${col.header}`}
                   onChange={(e) => onFilterChange(col.id || col.accessorKey, e.target.value)}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 1,
-                      backgroundColor: (theme) => theme.palette.common.white, // Fondo inputs
-                    },
-                  }}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 1, backgroundColor: (theme) => theme.palette.common.white } }}
                 />
               ))}
             </Box>
@@ -334,45 +304,25 @@ const SmallScreenTable = ({
         {/* Contenido principal */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
           {isLoading ? (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                py: 3,
-              }}
-            >
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 3 }}>
+              {/* Spinner de Carga Dinámico */}
               <Box
                 component="span"
                 sx={{
-                  display: "inline-block",
-                  width: 16,
-                  height: 16,
-                  borderRadius: "50%",
-                  borderTop: "2px solid",
-                  borderColor: "primary.main",
+                  display: "inline-block", width: 16, height: 16, borderRadius: "50%",
+                  borderTop: "2px solid", borderColor: visualConfig.color, // Color dinámico
                   animation: "spin 1s linear infinite",
-                  "@keyframes spin": {
-                    "0%": { transform: "rotate(0deg)" },
-                    "100%": { transform: "rotate(360deg)" },
-                  },
+                  "@keyframes spin": { "0%": { transform: "rotate(0deg)" }, "100%": { transform: "rotate(360deg)" } },
                   mr: 1.5,
                 }}
               />
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              <Typography variant="body2" sx={{ color: "text.secondary", fontFamily: visualConfig.fontFamily }}>
                 {DataIsLoadingMsg}
               </Typography>
             </Box>
           ) : data.length === 0 && !isError ? (
-            <Box
-              sx={{
-                textAlign: "center",
-                py: 4,
-                bgcolor: "background.default",
-                borderRadius: 1,
-              }}
-            >
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            <Box sx={{ textAlign: "center", py: 4, bgcolor: "background.default", borderRadius: 1 }}>
+              <Typography variant="body2" sx={{ color: "text.secondary", fontFamily: visualConfig.fontFamily }}>
                 {DataIsVoidMsg}
               </Typography>
             </Box>
@@ -381,52 +331,41 @@ const SmallScreenTable = ({
               <Card
                 key={rowIndex}
                 variant="outlined"
-                sx={{
-                  borderRadius: 1,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  mb: 0.5,
-                  position: "relative", // Para posicionar absolutamente las acciones
-                }}
+                sx={{ borderRadius: 1, border: "1px solid", borderColor: "divider", mb: 0.5, position: "relative" }}
               >
                 <CardContent sx={{ p: 1.5, pb: 1.5 }}>
                   {columnsTable.map((col, index) => (
                     <Box
                       key={col.id || col.accessorKey}
                       sx={{
-                        mb: 1.5,
-                        pb: index !== columnsTable.length - 1 ? 1 : 0,
+                        mb: 1.5, pb: index !== columnsTable.length - 1 ? 1 : 0,
                         borderBottom: index !== columnsTable.length - 1 ? "1px dashed" : "none",
                         borderColor: "divider",
                       }}
                     >
+                      {/* Cabecera Móvil */}
                       <Typography
                         variant="caption"
                         sx={{
-                          fontWeight: 700, // Más grueso que bolder (equivalente a bold)
-                          letterSpacing: "0.5px", // Añadido espacio entre letras
-                          color: "text.primary",
-                          display: "block",
-                          mb: 0.5,
-                          textTransform: "uppercase", // Texto en mayúsculas
-                          fontSize: "0.75rem", // Tamaño ligeramente más pequeño
+                          fontWeight: 700, letterSpacing: "0.5px", color: visualConfig.color, // Color dinámico
+                          display: "block", mb: 0.5, textTransform: "uppercase",
+                          fontSize: visualConfig.fontSizeHeader,
+                          fontFamily: visualConfig.fontFamily,
                         }}
                       >
                         {col.header}
                       </Typography>
+                      {/* Contenido Móvil */}
                       <Typography
                         variant="body2"
                         sx={{
-                          fontWeight: 400, // Mantenemos regular
-                          color: "text.secondary",
-                          fontSize: "0.875rem", // Tamaño estándar
-                          lineHeight: 1.3, // Ajuste de interlineado
+                          fontWeight: 400, color: "text.secondary", lineHeight: 1.3,
+                          fontSize: visualConfig.fontSize,
+                          fontFamily: visualConfig.fontFamily,
                         }}
                       >
                         {col?.Cell
-                          ? col.Cell({
-                              cell: { getValue: () => row[col.accessorKey] || DefaultColumnCotentIsVoidMsg },
-                            })
+                          ? col.Cell({ cell: { getValue: () => row[col.accessorKey] || DefaultColumnCotentIsVoidMsg } })
                           : row[col.accessorKey] || DefaultColumnCotentIsVoidMsg}
                       </Typography>
                     </Box>
@@ -437,59 +376,32 @@ const SmallScreenTable = ({
           )}
         </Box>
 
-        {/* Paginación optimizada para móvil */}
         {!isLoading && data.length > 0 && !isError && (
-          <Box
-            sx={{
-              mt: 2,
-              pt: 1.5,
-              borderTop: "1px solid",
-              borderColor: "divider",
-            }}
-          >
+          <Box sx={{ mt: 2, pt: 1.5, borderTop: "1px solid", borderColor: "divider" }}>
             <TablePagination
               rowsPerPageOptions={[perPage]}
               sx={{
+                fontFamily: visualConfig.fontFamily,
                 "& .MuiTablePagination-toolbar": {
-                  // Contenedor principal
-                  minHeight: { xs: "48px", sm: "64px" }, // Altura mínima responsiva
-                  display: "flex",
-                  alignItems: "center", // Centrado vertical
-                  justifyContent: "space-between", // Espaciado entre elementos
-                  flexWrap: "wrap", // Permite salto de línea en móviles
-                  gap: 1, // Espacio entre elementos
-                  padding: { xs: "4px", sm: "8px" }, // Padding reducido en móviles
+                  minHeight: { xs: "48px", sm: "64px" }, display: "flex", alignItems: "center",
+                  justifyContent: "space-between", flexWrap: "wrap", gap: 1, padding: { xs: "4px", sm: "8px" },
                 },
                 "& .MuiTablePagination-displayedRows": {
-                  // Texto de paginación
-                  margin: "auto 0", // Ajuste fino vertical
-                  fontSize: { xs: "0.75rem", sm: "0.875rem" }, // Texto más pequeño en móviles
-                  whiteSpace: "nowrap", // Evita que el texto se rompa
+                  margin: "auto 0", fontSize: { xs: "0.75rem", sm: "0.875rem" }, whiteSpace: "nowrap",
                 },
-                "& .MuiInputBase-root": {
-                  // Selector de filas por página
-                  marginRight: { xs: 0, sm: 2 }, // Menor margen en móviles
-                },
+                "& .MuiInputBase-root": { marginRight: { xs: 0, sm: 2 } },
                 "@media (max-width: 480px)": {
-                  "& .MuiTablePagination-toolbar": {
-                    justifyContent: "center", // Centra todo en pantallas muy pequeñas
-                  },
-                  "& .MuiTablePagination-spacer": {
-                    display: "none", // Oculta espaciador en pantallas muy pequeñas
-                  },
+                  "& .MuiTablePagination-toolbar": { justifyContent: "center" },
+                  "& .MuiTablePagination-spacer": { display: "none" },
                 },
               }}
               component="div"
-              count={totalPages * perPage} // Total real de registros
+              count={totalPages * perPage}
               rowsPerPage={perPage}
-              page={currentPage - 1} // Conversión de 1-based a 0-based
-              onPageChange={(_, newPage) => {
-                onPageChange(newPage + 1) // Convertir de vuelta a 1-based
-              }}
+              page={currentPage - 1}
+              onPageChange={(_, newPage) => { onPageChange(newPage + 1) }}
               ActionsComponent={PaginationActions}
-              labelDisplayedRows={({ from, to, count }) =>
-                `${from}-${to} de ${count} | Página ${currentPage} de ${Math.ceil((totalPages * perPage) / perPage)}`
-              }
+              labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count} | Página ${currentPage} de ${Math.ceil((totalPages * perPage) / perPage)}`}
             />
           </Box>
         )}
@@ -499,11 +411,8 @@ const SmallScreenTable = ({
 }
 
 // --------------------------------------------------
+// CustomTable
 // --------------------------------------------------
-//                    CustomTable
-// --------------------------------------------------
-// --------------------------------------------------
-
 const CustomTable = (props) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
@@ -518,50 +427,69 @@ const CustomTable = (props) => {
 }
 
 // --------------------------------------------------
+// CustomReadableTableServer
 // --------------------------------------------------
-//            CustomTableServer
-// --------------------------------------------------
-// --------------------------------------------------
-
 const CustomReadableTableServer = ({
-  endpoint = "", // Este el endpoint que va a hacer las peticiones
-  endpointJson = {}, // Este es el json del endpoint que va a mandar en las peticiones
-  errorMsgFilterSearch = "Error en cargar datos", // Este errror solo aparecera en el react table cuando falle el busqueda por filter
-  queryKeyModal = "", // Este es el key que usa react query en el modal para manejar la cache
-  perPage = 10, // Estas son las filas que se muestran por cada pagina
-  columnsTable = [], // Estas son las columnas que estaran siempre presente en las tablas
+  endpoint = "", 
+  endpointJson = {}, 
+  errorMsgFilterSearch = "Error en cargar datos", 
+  queryKeyModal = "", 
+  perPage = 10, 
+  columnsTable = [], 
 }) => {
-  const [filters, setFilters] = useState({}) // Estado para filtros de columnas
-  const [page, setPage] = useState(1) // Pagina actual que se esta viendo
+  const [filters, setFilters] = useState({}) 
+  const [page, setPage] = useState(1) 
   const { data, isLoading, isError, refetch, isFetching } = useGetData(page, filters)
   const [totalPages, setTotalPages] = useState(1)
-  const timeoutRef = useRef(null) // Nuevo ref para el timeout
+  const timeoutRef = useRef(null) 
 
-  // Función debounce para los filtros
+  // =========================================================================
+  // EXTRACCIÓN DINÁMICA DE ESTILOS (Usa el caché automático de getInfoHome)
+  // =========================================================================
+  const { data: homeInfo } = useQuery({
+    queryKey: ["initialHomeInfo"], // Reutiliza el caché mágico de Main.js
+    queryFn: async () => {
+      const response = await fetchwrapper(`/Home/getInfoHome`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      })
+      const result = await response.json()
+      return result.data
+    },
+    staleTime: Infinity, // No agobia al servidor si ya está en caché
+  })
+
+  // Estructuramos la configuración visual lista para ser consumida
+  const visualConfig = {
+    color: homeInfo?.ciacolor || "#196C87", // Color primario
+    rowColor: hexToRgba(homeInfo?.ciacolor || "#A4EEB3", 0.10), // Fila Par: 10% de opacidad del color primario
+    hoverColor: hexToRgba(homeInfo?.ciacolor || "#196C87", 0.18), // Fila Hover: 18% de opacidad
+    fontFamily: homeInfo?.ciatipoletra || "Arial",
+    fontSize: homeInfo?.ciatamanioletra ? `${homeInfo.ciatamanioletra}px` : "0.875rem",
+    // Cabecera ligeramente más grande que el texto base
+    fontSizeHeader: homeInfo?.ciatamanioletra ? `${parseInt(homeInfo.ciatamanioletra) + 1}px` : "0.9rem",
+  }
+  // =========================================================================
+
   const handleFilterChange = useCallback((columnId, value) => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-    }
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
 
     timeoutRef.current = setTimeout(() => {
       setFilters((prevFilters) => {
-        // Si el valor está vacío, eliminamos la clave del filtro
         if (!value.trim()) {
           const { [columnId]: _, ...rest } = prevFilters
           return rest
         }
-
-        // Si tiene valor, actualizamos normalmente
         return {
           ...prevFilters,
-          [columnId]: value.trim(), // eliminar espacios en blanco
+          [columnId]: value.trim(),
         }
       })
     }, 500)
     setPage(1)
   }, [])
 
-  // Obtener los datos siempre que el num pagina actual, filtros cambien
   useEffect(() => {
     refetch()
   }, [page, filters, refetch])
@@ -572,14 +500,12 @@ const CustomReadableTableServer = ({
       queryFn: async () => {
         const response = await fetchwrapper(`${endpoint}`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...endpointJson,
             page: pageNumber,
             perPage,
-            filters, // Envía los filtros al backend
+            filters, 
           }),
         })
         const result = await response.json()
@@ -590,6 +516,7 @@ const CustomReadableTableServer = ({
       retry: 1,
     })
   }
+
   return (
     <Box>
       <CustomBackdrop isLoading={isLoading || isFetching} />
@@ -602,9 +529,10 @@ const CustomReadableTableServer = ({
         totalPages={totalPages}
         currentPage={page}
         onPageChange={setPage}
-        onFilterChange={handleFilterChange} // Pasa la función de manejo de filtros
+        onFilterChange={handleFilterChange} 
         errorMsgFilterSearch={errorMsgFilterSearch}
         refetch={refetch}
+        visualConfig={visualConfig} // <--- Enviamos la configuración inyectada
       />
     </Box>
   )

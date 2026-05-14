@@ -155,6 +155,10 @@ import { FirmarPDFDF } from "../pages"
 //PerfilUsuarioDF
 import { PerfilUsuarioDF } from "../pages"
 
+//ContraCliDF
+import { ContraCliDF, CrearContraCliDF, EditarContraCliDF } from "../pages"
+
+
 const protectedRoutes = [
   { path: "Submenu/:label/:id", element: <SubMenu /> },
   { path: "dashboard/AccesoACompañiasYModulos", element: <AccesoACompañiasYModulos /> },
@@ -277,6 +281,9 @@ const protectedRoutes = [
   { path: "dashboard/ProveedoresDF/editar", element: <EditarProveedoresDF /> }, 
   { path: "dashboard/FirmarPDFDF", element: <FirmarPDFDF /> },
   { path: "dashboard/PerfilUsuarioDF", element: <PerfilUsuarioDF /> },
+  { path: "dashboard/ContraCliDF", element: <ContraCliDF /> },
+  { path: "dashboard/ContraCliDF/crear", element: <CrearContraCliDF /> },
+  { path: "dashboard/ContraCliDF/editar", element: <EditarContraCliDF /> },   
 ]
 
 export default protectedRoutes

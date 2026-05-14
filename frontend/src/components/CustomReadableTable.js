@@ -134,7 +134,7 @@ const LargeScreenTable = ({
     }),
     muiTableBodyRowProps: ({ row }) => ({
       sx: {
-        backgroundColor: row.index % 2 === 0 ? "#A4EEB3" : "#ffff",
+        backgroundColor: row.index % 2 === 0 ? "#eea4a4" : "#ffff",
         "&:hover": {
           backgroundColor: theme.palette.action.hover + "!important",
         },

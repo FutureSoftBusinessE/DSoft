@@ -5,7 +5,7 @@ const defaultZIndex = 9999 // Valor para z-index más alto
 export const showSuccess = (message, title = "¡Éxito!") => {
   return Swal.fire({
     title,
-    text: message,      
+    text: message,
     icon: "success",
     confirmButtonText: "Aceptar",
     customClass: {

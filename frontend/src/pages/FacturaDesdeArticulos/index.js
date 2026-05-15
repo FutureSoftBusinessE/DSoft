@@ -232,7 +232,7 @@ const FacturaDesdeArticulos = () => {
             columnsTable={[
               {
                 accessorKey: "pednumped",
-                header: "Número Pedido",
+                header: "Número Proforma",
                 size: 180,
                 Cell: ({ cell }) => <span>{cell.getValue()}</span>,
               },
@@ -249,7 +249,7 @@ const FacturaDesdeArticulos = () => {
                 Cell: ({ cell }) => <span>{cell.getValue()}</span>,
               },
               {
-                accessorKey: "nickname",
+                accessorKey: "clinombre",
                 header: "Cliente",
                 size: 200,
                 Cell: ({ cell }) => <span>{cell.getValue()}</span>,
@@ -309,7 +309,7 @@ const FacturaDesdeArticulos = () => {
                 },
               },
               {
-                accessorKey: "comentario",
+                accessorKey: "peddetalle",
                 header: "Comentario",
                 size: 250,
                 Cell: ({ cell }) => <span>{cell.getValue()}</span>,

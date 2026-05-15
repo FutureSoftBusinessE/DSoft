@@ -33,13 +33,11 @@ def getAllFacturas():
 
     with engine.connect() as connection:
         with connection.begin():
-            # Definir columnas permitidas para filtros
             allowed_columns = [
-                {"ciacodigo": FILTER_VALUE_TYPE.STRING},
                 {"pednumped": FILTER_VALUE_TYPE.STRING},
                 {"loccodigo": FILTER_VALUE_TYPE.STRING},
                 {"vencodigo": FILTER_VALUE_TYPE.STRING},
-                {"nickname": FILTER_VALUE_TYPE.STRING},
+                {"clinombre": FILTER_VALUE_TYPE.STRING},
                 {"pedstatus": FILTER_VALUE_TYPE.STRING},
                 {"pedestisys": FILTER_VALUE_TYPE.STRING},
                 {"pedusuisys": FILTER_VALUE_TYPE.STRING},
@@ -47,42 +45,31 @@ def getAllFacturas():
 
             base_query = """
             SELECT
-                ciacodigo,
-                pednumped,
-                loccodigo,
-                vencodigo,
-                nickname,
-                pedfecemi,
-                pedfecven,
-                pedtivacer,
-                pedtivapor,
-                pedsubtot,
-                pedpordes,
-                peddesglobal,
-                peddesdirecto,
-                pedporiva,
-                pedapliiva,
-                pediva,
-                pedtotal,
-                pedstatus,
-                pedfecisys,
-                pedhorisys,
-                pedusuisys,
-                pedestisys,
-                comentario,
-                sesnumses,
-                sesnumsesref,
+                f.ciacodigo,
+                f.pednumped,
+                f.loccodigo,
+                f.vencodigo,
+                f.clicodigo,
+                c.clinombre,
+                f.pedfecemi,
+                f.pedfecven,
+                f.pedsubtot,
+                f.pediva,
+                f.pedtotal,
+                f.pedstatus,
+                f.peddetalle,
+                f.pedfecisys,
+                f.pedhorisys,
+                f.pedusuisys,
+                f.pedestisys,
                 COUNT(*) OVER() as total
-            FROM facpedweb
+            FROM facped f
+            LEFT JOIN cxcmcli c ON f.ciacodigo = c.ciacodigo AND f.clicodigo = c.clicodigo
             """
 
-            # Construir consulta paginada con filtros
             final_query, params = build_paginated_query(
                 base_query=base_query,
-                order_by=[
-                    "pedfecisys DESC",
-                    "pedhorisys DESC",
-                ],
+                order_by=["pedfecisys DESC", "pedhorisys DESC"],
                 filters=filters,
                 page=page,
                 per_page=per_page,
@@ -103,13 +90,7 @@ def getAllFacturas():
                     "pedfecven": row["pedfecven"].strftime("%Y-%m-%d %H:%M:%S") if row["pedfecven"] else None,
                     "pedfecisys": row["pedfecisys"].strftime("%Y-%m-%d %H:%M:%S") if row["pedfecisys"] else None,
                     # Convertir valores decimales a float para JSON
-                    "pedtivacer": float(row["pedtivacer"]) if row["pedtivacer"] else 0,
-                    "pedtivapor": float(row["pedtivapor"]) if row["pedtivapor"] else 0,
                     "pedsubtot": float(row["pedsubtot"]) if row["pedsubtot"] else 0,
-                    "pedpordes": float(row["pedpordes"]) if row["pedpordes"] else 0,
-                    "peddesglobal": float(row["peddesglobal"]) if row["peddesglobal"] else 0,
-                    "peddesdirecto": float(row["peddesdirecto"]) if row["peddesdirecto"] else 0,
-                    "pedporiva": float(row["pedporiva"]) if row["pedporiva"] else 0,
                     "pediva": float(row["pediva"]) if row["pediva"] else 0,
                     "pedtotal": float(row["pedtotal"]) if row["pedtotal"] else 0,
                 }

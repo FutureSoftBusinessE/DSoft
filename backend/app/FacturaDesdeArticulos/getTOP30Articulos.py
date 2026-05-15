@@ -19,7 +19,7 @@ def getTOP30Articulos():
     loccodigo = claims["localidad"]["loccodigo"]
 
     data = request.get_json()
-    clicodigo = data.get("clicodigo", "000001")
+    clicodigo = data.get("clicodigo", "")
     factippag = data.get("factippag", "")
 
     db.session = get_session(clicianonBD)
@@ -28,6 +28,18 @@ def getTOP30Articulos():
     try:
         with engine.connect() as connection:
             with connection.begin():
+                # Si no pasa el clicodigo buscar el cliente final automaticamente
+                if not clicodigo:
+                    # Consulta para obtener el código del cliente final
+                    query_cliente_final = """
+                        SELECT clicodigo
+                        FROM cxcmcli
+                        WHERE ciacodigo = :ciacodigo
+                        AND cliidentifica = 'F'
+                    """
+                    response_cliente_final = connection.execute(text(query_cliente_final), {"ciacodigo": ciacodigo}).mappings().first()
+                    clicodigo = response_cliente_final["clicodigo"]
+
                 # Verificar si existen facturas en los últimos 60 días
                 sSql_verificar_facturas = """
                     SELECT COUNT(*) as total
@@ -90,7 +102,9 @@ def getTOP30Articulos():
                                 predescri,
                                 lindescri,
                                 artcantactual,
-                                mardescri
+                                mardescri,
+                                artservicio,
+                                artapliiva
                             FROM view_inmart
                             WHERE artcodigo = :artcodigo
                             AND ciacodigo = :ciacodigo
@@ -118,8 +132,11 @@ def getTOP30Articulos():
                             "lindescri": info_base["lindescri"],
                             "artcantactual": float(info_base["artcantactual"]) if info_base["artcantactual"] else 0,
                             "mardescri": info_base["mardescri"],
+                            "esServicio": info_base["artservicio"] != 0,
+                            "artservicio": info_base["artservicio"],
                             "precioUnitario": float(info_producto["precioUnitario"]),
                             "ivaPorcentaje": float(info_producto["ivaProductoPorcentaje"]),
+                            "artapliiva": info_base["artapliiva"],
                             "descuentoPorcentaje": float(info_producto["descuentoPorcentaje"]),
                             "imagen": base64.b64encode(result_imagen["artimagen"]).decode("utf-8").replace("\n", "") if result_imagen and result_imagen["artimagen"] else None,
                         }
@@ -146,7 +163,7 @@ def getArticulosConFiltros():
     loccodigo = claims["localidad"]["loccodigo"]
 
     data = request.get_json()
-    clicodigo = data.get("clicodigo", "000001")
+    clicodigo = data.get("clicodigo", "")
     factippag = data.get("factippag", "")
     filtros = data.get("filtros", {})
 
@@ -156,6 +173,18 @@ def getArticulosConFiltros():
     try:
         with engine.connect() as connection:
             with connection.begin():
+                # Si no pasa el clicodigo buscar el cliente final automaticamente
+                if not clicodigo:
+                    # Consulta para obtener el código del cliente final
+                    query_cliente_final = """
+                        SELECT clicodigo
+                        FROM cxcmcli
+                        WHERE ciacodigo = :ciacodigo
+                        AND cliidentifica = 'F'
+                    """
+                    response_cliente_final = connection.execute(text(query_cliente_final), {"ciacodigo": ciacodigo}).mappings().first()
+                    clicodigo = response_cliente_final["clicodigo"]
+
                 # Construir consulta base
                 sSql_articulos = """
                     SELECT DISTINCT im.artcodigo
@@ -235,7 +264,9 @@ def getArticulosConFiltros():
                                 predescri,
                                 lindescri,
                                 artcantactual,
-                                mardescri
+                                mardescri,
+                                artservicio,
+                                artapliiva
                             FROM view_inmart
                             WHERE artcodigo = :artcodigo
                             AND ciacodigo = :ciacodigo
@@ -263,8 +294,11 @@ def getArticulosConFiltros():
                             "lindescri": info_base["lindescri"],
                             "artcantactual": float(info_base["artcantactual"]) if info_base["artcantactual"] else 0,
                             "mardescri": info_base["mardescri"],
+                            "esServicio": info_base["artservicio"] != 0,
+                            "artservicio": info_base["artservicio"],
                             "precioUnitario": float(info_producto["precioUnitario"]),
                             "ivaPorcentaje": float(info_producto["ivaProductoPorcentaje"]),
+                            "artapliiva": info_base["artapliiva"],
                             "descuentoPorcentaje": float(info_producto["descuentoPorcentaje"]),
                             "imagen": base64.b64encode(result_imagen["artimagen"]).decode("utf-8").replace("\n", "") if result_imagen and result_imagen["artimagen"] else None,
                         }

@@ -30,6 +30,8 @@ import {
   Dialog,
 } from "@mui/material"
 import CustomBackdrop from "../../../components/CustomBackdrop"
+import { useMutation, api } from "../../../api"
+import CustomFieldsetAccordion from "../../../components/CustomFieldsetAccordion"
 
 import ExpandMore from "@mui/icons-material/ExpandMore"
 import CustomDatePicker from "../../../components/CustomDatePicker"
@@ -255,6 +257,10 @@ function useGetCodigoPedidoTemporal() {
 
 const CrearFacturaDesdeArticulos = () => {
   const navigate = useNavigate()
+  const [expandedInfoGeneral, setExpandedInfoGeneral] = useState(true)
+  const handleToggleInfoGeneral = () => setExpandedInfoGeneral((prev) => !prev)
+  const [expandedInfoCliente, setExpandedInfoCliente] = useState(true)
+  const handleToggleInfoCliente = () => setExpandedInfoCliente((prev) => !prev)
   // Dentro de CrearFacturaDesdeArticulos, agregar estos estados y efectos
 
   const [codigoFactura, setCodigoFactura] = useState("")
@@ -386,12 +392,41 @@ const CrearFacturaDesdeArticulos = () => {
     setMostrandoFiltros(true)
   }
 
+  // Mutation para guardar pedido
+  const { mutate: guardarPedidoMutation, isPending: isSavingPedido } = useMutation({
+    queryKey: ["guardarPedido"],
+    mutationFn: async (payload) => {
+      const response = await api.post("/FacturaDesdeArticulos/guardarPedido", payload)
+      return response.data
+    },
+    showError: "modal", // Muestra errores en modal
+    showSuccess: "toast", // Muestra éxito en toast
+    onSuccess: (data, variables, context, message) => {
+      // Mostrar mensaje de éxito con detalles del pedido
+      Swal.fire({
+        icon: "success",
+        title: "¡Proforma realizado!",
+        html: `
+        <p>Profroma N°: <strong>${data.pednumped}</strong></p>
+        <p>Total: <strong>$${data.total.toFixed(2)}</strong></p>
+        <p>Productos: <strong>${data.productos}</strong></p>
+      `,
+        confirmButtonText: "Aceptar",
+      }).then(() => {
+        // Limpiar carrito y resetear estado
+        setProductosAgregados([])
+        // Redirigir hacia atrás
+        navigate(-1)
+      })
+    },
+  })
+
   const handleRealizarPedido = async () => {
     if (productosAgregados.length === 0) {
       Swal.fire({
         icon: "warning",
         title: "Sin productos",
-        text: "Debe agregar al menos un producto para realizar el pedido",
+        text: "Debe agregar al menos un producto para realizar el proforma",
       })
       return
     }
@@ -400,7 +435,7 @@ const CrearFacturaDesdeArticulos = () => {
       Swal.fire({
         icon: "warning",
         title: "Cliente no seleccionado",
-        text: "Debe seleccionar un cliente para realizar el pedido",
+        text: "Debe seleccionar un cliente para realizar el proforma",
       })
       return
     }
@@ -414,9 +449,18 @@ const CrearFacturaDesdeArticulos = () => {
       return
     }
 
+    if (!cabeceraFactura.vendedor.vencodigo) {
+      Swal.fire({
+        icon: "warning",
+        title: "Vendedor no seleccionado",
+        text: "Debe seleccionar una vendedor",
+      })
+      return
+    }
+
     // Mostrar loading
     Swal.fire({
-      title: "Guardando pedido...",
+      title: "Guardando proforma...",
       allowOutsideClick: false,
       didOpen: () => {
         Swal.showLoading()
@@ -436,59 +480,17 @@ const CrearFacturaDesdeArticulos = () => {
         mardescri: p.mardescri,
         precioUnitario: p.precioUnitario,
         ivaPorcentaje: p.ivaPorcentaje,
+        artapliiva: p.artapliiva,
         descuentoPorcentaje: p.descuentoPorcentaje,
         imagen: p.imagen,
         cantidadPedido: p.cantidadPedido,
       })),
-      formaPago: cabeceraFactura.fortipo,
+      formaPago: cabeceraFactura.factippag,
       vendedor: cabeceraFactura.vendedor,
       observacion: cabeceraFactura.observacion,
     }
 
-    try {
-      const options = {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-        body: JSON.stringify(payload),
-      }
-
-      const response = await fetchwrapper(`/FacturaDesdeArticulos/guardarPedido`, options)
-      const result = await response.json()
-
-      if (result.success) {
-        Swal.fire({
-          icon: "success",
-          title: "¡Pedido realizado!",
-          html: `
-          <p>Pedido N°: <strong>${result.data.pednumped}</strong></p>
-          <p>Total: <strong>$${result.data.total.toFixed(2)}</strong></p>
-          <p>Productos: <strong>${result.data.productos}</strong></p>
-        `,
-          confirmButtonText: "Aceptar",
-        }).then(() => {
-          // Limpiar carrito y resetear estado
-          setProductosAgregados([])
-          // Opcional: redirigir o limpiar formulario
-          navigate(-1)
-        })
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: result.error || "No se pudo guardar el pedido",
-        })
-      }
-    } catch (error) {
-      console.error("Error al guardar pedido:", error)
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Hubo un problema al guardar el pedido",
-      })
-    }
+    await guardarPedidoMutation(payload)
   }
 
   const FloatingMenu = () => {
@@ -577,7 +579,7 @@ const CrearFacturaDesdeArticulos = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <CustomBackdrop isLoading={isLoadingCodigo} />
+      <CustomBackdrop isLoading={isLoadingCodigo || isSavingPedido} />
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
@@ -595,111 +597,114 @@ const CrearFacturaDesdeArticulos = () => {
         <FloatingMenu />
 
         <Box className={StyledRoot}>
-          <ContainerCabecera id="informacion">
-            <Codigo>
-              <CustomTextFieldReadable label="Codigo Factura" value={codigoFactura} />
-            </Codigo>
-            <FechaE>
-              <CustomDatePicker
-                label="Fecha Emision"
-                value={dayjs(new Date())}
-                format="DD/MM/YYYY"
-                setValue={() => {}}
-                isOptional={true}
-              />
-            </FechaE>
-            <FechaV>
-              <CustomDatePicker
-                label="Fecha Vencimiento"
-                value={dayjs(new Date())}
-                setValue={() => {}}
-                format="DD/MM/YYYY"
-                isOptional={true}
-              />
-            </FechaV>
-            <FormaPago>
-              <InputLabel>Forma de pago</InputLabel>
-              <FormaDePagoAutocomplete cabeceraProforma={cabeceraFactura} setCabeceraProforma={setCabeceraFactura} />
-            </FormaPago>
-            <Vendedor>
-              <InputLabel>Vendedor</InputLabel>
-              <VendedorAutocomplete cabeceraProforma={cabeceraFactura} setCabeceraProforma={setCabeceraFactura} />
-            </Vendedor>
-            <Observacion>
-              <CustomTextField
-                label="Observacion cliente"
-                value={cabeceraFactura.observacion}
-                onChange={(e) => handleSetCabeceraFactura("observacion", e.target.value)}
-              />
-            </Observacion>
-          </ContainerCabecera>
+          <CustomFieldsetAccordion
+            title="Información General"
+            expanded={expandedInfoGeneral}
+            onToggle={handleToggleInfoGeneral}
+          >
+            <ContainerCabecera id="informacion">
+              <Codigo>
+                <CustomTextFieldReadable label="Codigo Factura" value={codigoFactura} />
+              </Codigo>
+              <FechaE>
+                <CustomDatePicker
+                  label="Fecha Emision"
+                  value={dayjs(new Date())}
+                  format="DD/MM/YYYY"
+                  setValue={() => {}}
+                  isOptional={true}
+                />
+              </FechaE>
+              <FechaV>
+                <CustomDatePicker
+                  label="Fecha Vencimiento"
+                  value={dayjs(new Date())}
+                  setValue={() => {}}
+                  format="DD/MM/YYYY"
+                  isOptional={true}
+                />
+              </FechaV>
+              <FormaPago>
+                <InputLabel>Forma de pago</InputLabel>
+                <FormaDePagoAutocomplete cabeceraProforma={cabeceraFactura} setCabeceraProforma={setCabeceraFactura} />
+              </FormaPago>
+              <Vendedor>
+                <InputLabel>Vendedor</InputLabel>
+                <VendedorAutocomplete cabeceraProforma={cabeceraFactura} setCabeceraProforma={setCabeceraFactura} />
+              </Vendedor>
+              <Observacion>
+                <CustomTextField
+                  label="Observacion cliente"
+                  value={cabeceraFactura.observacion}
+                  onChange={(e) => handleSetCabeceraFactura("observacion", e.target.value)}
+                />
+              </Observacion>
+            </ContainerCabecera>
+          </CustomFieldsetAccordion>
 
           <br />
 
           {/* Accordion de Datos de Cliente */}
           <div style={{ paddingBottom: "10px" }}>
-            <Accordion expanded={expanded} onChange={() => setExpanded(!expanded)}>
-              <AccordionSummary expandIcon={<ExpandMore />} style={styles.accordionSummary}>
-                <Typography variant="h6" style={{ width: "100%", textAlign: "center" }}>
-                  Datos de Cliente
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <ContainerCliente>
-                  <Cliente>
-                    <CustomHelperDetail
-                      label="Cliente"
-                      valueSearched={cabeceraFactura.cliente.clicodigo}
-                      endpoint="/FacturaDesdeArticulos/getCliente"
-                      valueInputMain="clicodigo"
-                      valueInputSecondary="clinombre"
-                      idSearchField="clicodigo"
-                      errorMsgIdSearch="Error fetching data:"
-                      errorMsgFilterSearch="Error en cargar datos"
-                      queryKeyModal="clienteAsociacionProdAgencia"
-                      perPage={10}
-                      placeholder=""
-                      columnsTable={[
-                        { accessorKey: "ciacodigo", header: "Ciacodigo", size: 100 },
-                        { accessorKey: "clicodigo", header: "Código de Cliente", size: 100 },
-                        { accessorKey: "clinombre", header: "Nombre del Cliente", size: 250 },
-                        { accessorKey: "cliruc", header: "Número de identificación", size: 150 },
-                        { accessorKey: "clitelef1", header: "Teléfono", size: 100 },
-                        { accessorKey: "clidirec", header: "Dirección", size: 400 },
-                        { accessorKey: "clireferencia1", header: "Referencia Rápida", size: 120 },
-                        { accessorKey: "zoncodigo", header: "Zona", size: 120 },
-                        {
-                          accessorKey: "clistatus",
-                          header: "Estado",
-                          size: 120,
-                          Cell: ({ cell }) => {
-                            const value = cell.getValue()
-                            if (value === "A") return "Activo"
-                            if (value === "I") return "Inactivo"
-                            return value
-                          },
+            <CustomFieldsetAccordion
+              title="Información Cliente"
+              expanded={expandedInfoCliente}
+              onToggle={handleToggleInfoCliente}
+            >
+              <ContainerCliente>
+                <Cliente>
+                  <CustomHelperDetail
+                    label="Cliente"
+                    valueSearched={cabeceraFactura.cliente.clicodigo}
+                    endpoint="/FacturaDesdeArticulos/getCliente"
+                    valueInputMain="clicodigo"
+                    valueInputSecondary="clinombre"
+                    idSearchField="clicodigo"
+                    errorMsgIdSearch="Error fetching data:"
+                    errorMsgFilterSearch="Error en cargar datos"
+                    queryKeyModal="clienteAsociacionProdAgencia"
+                    perPage={10}
+                    placeholder=""
+                    columnsTable={[
+                      { accessorKey: "ciacodigo", header: "Ciacodigo", size: 100 },
+                      { accessorKey: "clicodigo", header: "Código de Cliente", size: 100 },
+                      { accessorKey: "clinombre", header: "Nombre del Cliente", size: 250 },
+                      { accessorKey: "cliruc", header: "Número de identificación", size: 150 },
+                      { accessorKey: "clitelef1", header: "Teléfono", size: 100 },
+                      { accessorKey: "clidirec", header: "Dirección", size: 400 },
+                      { accessorKey: "clireferencia1", header: "Referencia Rápida", size: 120 },
+                      { accessorKey: "zoncodigo", header: "Zona", size: 120 },
+                      {
+                        accessorKey: "clistatus",
+                        header: "Estado",
+                        size: 120,
+                        Cell: ({ cell }) => {
+                          const value = cell.getValue()
+                          if (value === "A") return "Activo"
+                          if (value === "I") return "Inactivo"
+                          return value
                         },
-                      ]}
-                      onHandleSelectedData={(v) => {
-                        handleSetCabeceraFactura("cliente", v)
-                        handleSetCabeceraFactura("nombre", v.clinombre)
-                      }}
-                      sxInputMain={{ minWidth: "170px", maxWidth: "170px", marginRight: "10px" }}
-                      sxInputSecondary={{ width: "100%" }}
-                    />
-                  </Cliente>
-                  <Direccion>
-                    <CustomTextFieldReadable label="Direccion" value={cabeceraFactura.direccion} />
-                  </Direccion>
-                  <Telefono>
-                    <CustomTextFieldReadable disabled label="Telefono" value={cabeceraFactura.telefono} />
-                  </Telefono>
-                  <Id>
-                    <CustomTextFieldReadable disabled label="Id" value={cabeceraFactura.ruc} />
-                  </Id>
-                </ContainerCliente>
-              </AccordionDetails>
-            </Accordion>
+                      },
+                    ]}
+                    onHandleSelectedData={(v) => {
+                      handleSetCabeceraFactura("cliente", v)
+                      handleSetCabeceraFactura("nombre", v.clinombre)
+                    }}
+                    sxInputMain={{ minWidth: "170px", maxWidth: "170px", marginRight: "10px" }}
+                    sxInputSecondary={{ width: "100%" }}
+                  />
+                </Cliente>
+                <Direccion>
+                  <CustomTextFieldReadable label="Direccion" value={cabeceraFactura.direccion} />
+                </Direccion>
+                <Telefono>
+                  <CustomTextFieldReadable disabled label="Telefono" value={cabeceraFactura.telefono} />
+                </Telefono>
+                <Id>
+                  <CustomTextFieldReadable disabled label="Id" value={cabeceraFactura.ruc} />
+                </Id>
+              </ContainerCliente>
+            </CustomFieldsetAccordion>
           </div>
 
           <br />

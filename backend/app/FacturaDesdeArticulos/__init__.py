@@ -18,3 +18,4 @@ from app.FacturaDesdeArticulos import getAllFacturas
 from app.FacturaDesdeArticulos import guardarPedido
 from app.FacturaDesdeArticulos import get_forma_pago
 from app.FacturaDesdeArticulos import generarCodigoTemporal
+from app.FacturaDesdeArticulos import getVendedores

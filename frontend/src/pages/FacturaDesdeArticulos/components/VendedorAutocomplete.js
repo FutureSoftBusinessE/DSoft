@@ -39,7 +39,7 @@ function VendedorAutocomplete({ cabeceraProforma, setCabeceraProforma }) {
     const getVendedores = async () => {
       try {
         setIsLoading(true)
-        const response = await fetchwrapper(`/proformas/getVendedor`)
+        const response = await fetchwrapper(`/FacturaDesdeArticulos/getVendedores`)
         const data = await response.json()
         setOptions(data)
       } catch (err) {

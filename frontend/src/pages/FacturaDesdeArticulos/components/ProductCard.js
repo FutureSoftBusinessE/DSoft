@@ -114,7 +114,11 @@ const ProductCard = ({ producto, onAgregar }) => {
 
       <Box sx={{ p: 2, pt: 0 }}>
         <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-          <IconButton onClick={handleDecrement} size="small" disabled={producto.artcantactual <= 0}>
+          <IconButton
+            onClick={handleDecrement}
+            size="small"
+            disabled={!producto.esServicio && producto.artcantactual <= 0}
+          >
             <RemoveIcon />
           </IconButton>
           <TextField
@@ -123,14 +127,23 @@ const ProductCard = ({ producto, onAgregar }) => {
             onChange={handleCantidadChange}
             onBlur={handleBlur}
             inputProps={{ style: { textAlign: "center", width: 50 } }}
-            disabled={producto.artcantactual <= 0}
+            disabled={!producto.esServicio && producto.artcantactual <= 0}
             sx={{ mx: 1 }}
           />
-          <IconButton onClick={handleIncrement} size="small" disabled={producto.artcantactual <= 0}>
+          <IconButton
+            onClick={handleIncrement}
+            size="small"
+            disabled={!producto.esServicio && producto.artcantactual <= 0}
+          >
             <AddIcon />
           </IconButton>
         </Box>
-        <Button fullWidth variant="contained" onClick={handleAgregar} disabled={producto.artcantactual <= 0}>
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={handleAgregar}
+          disabled={!producto.esServicio && producto.artcantactual <= 0}
+        >
           Agregar
         </Button>
       </Box>

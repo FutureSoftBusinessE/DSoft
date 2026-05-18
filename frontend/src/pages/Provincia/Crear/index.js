@@ -118,7 +118,7 @@ const CrearProvincia = () => {
     }
   }
 
-  const ejecutarAction = selectedMenuInfo?.data?.barraAcciones?.find((action) => action?.acccaption === "EJECUTAR")
+  const ejecutarAction = selectedMenuInfo?.data?.barraAcciones?.find((action) => action?.acccaption === "GRABAR")
   const toolbarActions = []
 
   if (ejecutarAction) {

@@ -301,30 +301,6 @@ const ActualizaClaveFechaCaducidadLote = () => {
                     },
                   ],
                 },
-                // {
-                //   type: "modal",
-                //   label: "importar",
-                //   key: "importarDropdown",
-                //   icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
-                //   Component: (
-                //     <CustomCSVImportButton
-                //       templateFileName="PlantillaCreacionUsuarios.csv"
-                //       fieldConfigs={{
-                //         usrcodigo: { required: true },
-                //         usrnombre: { required: true },
-                //         usrfeccad: { required: false },
-                //         usrcodper: { required: false },
-                //         usremail: { required: false },
-                //         usrflagoficre: { required: true },
-                //         usrflagperfil: { required: true },
-                //         usrstatus: { required: true },
-                //         usrdiascaduclave: { required: true },
-                //       }}
-                //       maxFileSize={10 * 1024 * 1024} // 10MB
-                //       onImportComplete={(data) => console.log("Datos importados:", data)}
-                //     />
-                //   ),
-                // },
               ]
               return toolbarActions
             }}

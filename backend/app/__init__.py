@@ -302,6 +302,14 @@ def create_app(config_class=Config):
 
     app.register_blueprint(ContraCliDF_bp, url_prefix="/ContraCliDF")   
 
+    from app.AutorizacionesSri import bp as AutorizacionesSri_bp
+
+    app.register_blueprint(AutorizacionesSri_bp, url_prefix="/AutorizacionesSri")   
+
+    from app.PuntosEmisionSri import bp as PuntosEmisionSri_bp
+
+    app.register_blueprint(PuntosEmisionSri_bp, url_prefix="/PuntosEmisionSri")  
+
 
 
     print("---------------ENDPOINTS------------------")

@@ -224,6 +224,16 @@ import ContraCliDF from "./ContraCliDF"
 import CrearContraCliDF from "./ContraCliDF/Crear"
 import EditarContraCliDF from "./ContraCliDF/Editar"
 
+//AutorizacionesSri
+import AutorizacionesSri from "./AutorizacionesSri"
+import CrearAutorizacionesSri from "./AutorizacionesSri/Crear"
+import EditarAutorizacionesSri from "./AutorizacionesSri/Editar"
+
+//PuntosEmisionSri
+import PuntosEmisionSri from "./PuntosEmisionSri"
+import CrearPuntosEmisionSri from "./PuntosEmisionSri/Crear"
+import EditarPuntosEmisionSri from "./PuntosEmisionSri/Editar"
+
 export {
   Login,
   LoginInner,
@@ -353,4 +363,10 @@ export {
   ContraCliDF,
   CrearContraCliDF,
   EditarContraCliDF,
+  AutorizacionesSri,
+  CrearAutorizacionesSri,
+  EditarAutorizacionesSri,
+  PuntosEmisionSri,
+  CrearPuntosEmisionSri,
+  EditarPuntosEmisionSri,
 }

@@ -158,6 +158,11 @@ import { PerfilUsuarioDF } from "../pages"
 //ContraCliDF
 import { ContraCliDF, CrearContraCliDF, EditarContraCliDF } from "../pages"
 
+//AutorizacionesSri
+import { AutorizacionesSri, CrearAutorizacionesSri, EditarAutorizacionesSri } from "../pages"
+
+//PuntosEmisionSri
+import { PuntosEmisionSri, CrearPuntosEmisionSri, EditarPuntosEmisionSri } from "../pages"
 
 const protectedRoutes = [
   { path: "Submenu/:label/:id", element: <SubMenu /> },
@@ -283,7 +288,13 @@ const protectedRoutes = [
   { path: "dashboard/PerfilUsuarioDF", element: <PerfilUsuarioDF /> },
   { path: "dashboard/ContraCliDF", element: <ContraCliDF /> },
   { path: "dashboard/ContraCliDF/crear", element: <CrearContraCliDF /> },
-  { path: "dashboard/ContraCliDF/editar", element: <EditarContraCliDF /> },   
+  { path: "dashboard/ContraCliDF/editar", element: <EditarContraCliDF /> }, 
+  { path: "dashboard/AutorizacionesSri", element: <AutorizacionesSri /> },
+  { path: "dashboard/AutorizacionesSri/crear", element: <CrearAutorizacionesSri /> },
+  { path: "dashboard/AutorizacionesSri/editar", element: <EditarAutorizacionesSri /> }, 
+  { path: "dashboard/PuntosEmisionSri", element: <PuntosEmisionSri /> },
+  { path: "dashboard/PuntosEmisionSri/crear", element: <CrearPuntosEmisionSri /> },
+  { path: "dashboard/PuntosEmisionSri/editar", element: <EditarPuntosEmisionSri /> },  
 ]
 
 export default protectedRoutes

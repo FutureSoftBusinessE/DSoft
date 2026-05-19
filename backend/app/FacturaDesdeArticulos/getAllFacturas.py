@@ -41,6 +41,8 @@ def getAllFacturas():
                 {"pedstatus": FILTER_VALUE_TYPE.STRING},
                 {"pedestisys": FILTER_VALUE_TYPE.STRING},
                 {"pedusuisys": FILTER_VALUE_TYPE.STRING},
+                {"facnumfac": FILTER_VALUE_TYPE.STRING},  # NUEVO: Filtrar por número de factura
+                {"audnumxml": FILTER_VALUE_TYPE.STRING},  # NUEVO: Filtrar por autorización
             ]
 
             base_query = """
@@ -62,9 +64,27 @@ def getAllFacturas():
                 f.pedhorisys,
                 f.pedusuisys,
                 f.pedestisys,
+                -- NUEVOS CAMPOS: Datos de la factura electrónica
+                fa.facnumfac,
+                fa.audnumxml,
+                fa.facelectronica,
+                fa.sriautnumero,
+                fa.sriautfecemi,
+                -- Subconsulta para obtener el estado SRI
+                COALESCE(
+                    (SELECT TOP 1 sristatus
+                     FROM siacdocelectronicos s
+                     WHERE s.ciacodigo = fa.ciacodigo
+                       AND s.facnumfac = fa.facnumfac
+                       AND s.loccodigo = fa.loccodigo),
+                    'PENDIENTE'
+                ) as sri_status,
                 COUNT(*) OVER() as total
             FROM facped f
             LEFT JOIN cxcmcli c ON f.ciacodigo = c.ciacodigo AND f.clicodigo = c.clicodigo
+            LEFT JOIN facfac fa ON f.ciacodigo = fa.ciacodigo
+                AND f.pednumped = fa.pednumped
+                AND f.loccodigo = fa.loccodigo
             """
 
             final_query, params = build_paginated_query(
@@ -89,10 +109,17 @@ def getAllFacturas():
                     "pedfecemi": row["pedfecemi"].strftime("%Y-%m-%d %H:%M:%S") if row["pedfecemi"] else None,
                     "pedfecven": row["pedfecven"].strftime("%Y-%m-%d %H:%M:%S") if row["pedfecven"] else None,
                     "pedfecisys": row["pedfecisys"].strftime("%Y-%m-%d %H:%M:%S") if row["pedfecisys"] else None,
+                    "sriautfecemi": row["sriautfecemi"].strftime("%Y-%m-%d %H:%M:%S") if row.get("sriautfecemi") else None,
                     # Convertir valores decimales a float para JSON
                     "pedsubtot": float(row["pedsubtot"]) if row["pedsubtot"] else 0,
                     "pediva": float(row["pediva"]) if row["pediva"] else 0,
                     "pedtotal": float(row["pedtotal"]) if row["pedtotal"] else 0,
+                    # Campos de factura electrónica
+                    "facnumfac": row.get("facnumfac", ""),
+                    "audnumxml": row.get("audnumxml", None),
+                    "facelectronica": row.get("facelectronica", 0),
+                    "sriautnumero": row.get("sriautnumero", ""),
+                    "sri_status": row.get("sri_status", "PENDIENTE"),
                 }
                 for row in result
             ]

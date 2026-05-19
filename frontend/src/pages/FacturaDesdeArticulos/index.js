@@ -48,15 +48,288 @@ const ACCIONES = {
   ELIMINAR: "ELIMINAR",
   EXPORTAR: "EXPORTAR",
   IMPORTAR: "IMPORTAR",
+  FACTURAR: "FACTURAR",
+  AUTORIZAR: "AUTORIZAR",
 }
 
 const FacturaDesdeArticulos = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { selectedMenuInfo } = useContext(GlobalContext)
+  const [isLoading, setIsLoading] = useState(false)
+
+  /**
+   * Función para llamar a facturarProforma (PASO 1: Crear factura + Obtener payload)
+   */
+  const handleFacturar = async (row) => {
+    try {
+      // Confirmación con SweetAlert2
+      const result = await Swal.fire({
+        title: "¿Está seguro que desea facturar esta proforma?",
+        html: `
+          <p>Proforma: <strong>${row.original.pednumped}</strong></p>
+          <p>Cliente: <strong>${row.original.clinombre}</strong></p>
+          <p>Total: <strong>$${parseFloat(row.original.pedtotal || 0).toFixed(2)}</strong></p>
+          <br/>
+          <p style="color: #ff9800; font-weight: bold;">⚠️ Esta acción no se puede deshacer</p>
+          <p>Se creará la factura y se enviará al SRI</p>
+        `,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, facturar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#196C87",
+        cancelButtonColor: "#d33",
+      })
+
+      if (!result.isConfirmed) return
+
+      // Mostrar loading
+      setIsLoading(true)
+      Swal.fire({
+        title: "Creando factura...",
+        text: "Por favor espere mientras se procesa",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading()
+        },
+      })
+
+      // PASO 1: Llamar a facturarProforma para crear la factura
+      const responseFacturar = await api.post("/FacturaDesdeArticulos/facturarProforma", {
+        pednumped: row.original.pednumped,
+        loccodigo: row.original.loccodigo,
+        ciacodigo: row.original.ciacodigo,
+      })
+
+      const dataFacturar = responseFacturar.data
+
+      if (!dataFacturar.data.success) {
+        throw new Error(dataFacturar.data.message || "Error al crear la factura")
+      }
+
+      // PASO 2: Llamar a emisionFactura con el payload recibido
+      Swal.update({
+        title: "Enviando factura al SRI...",
+        text: "Firmando, validando y enviando a recepción",
+      })
+
+      const responseEmision = await api.post(
+        "/IntegracionFacturacionElectronica/emisionFactura",
+        dataFacturar.data.payload_sri,
+      )
+
+      const dataEmision = responseEmision.data.data
+
+      // PASO 3: Mostrar resultado
+      setIsLoading(false)
+
+      if (dataEmision.estado_sri === "AUTORIZADO") {
+        await Swal.fire({
+          icon: "success",
+          title: "¡Factura creada y autorizada!",
+          html: `
+            <p>Factura: <strong>${dataFacturar.data.facnumfac}</strong></p>
+            <p>Clave de acceso: <strong>${dataEmision.clave_acceso}</strong></p>
+            <p>N° Autorización: <strong>${dataEmision.numero_autorizacion}</strong></p>
+            <p>Estado SRI: <strong style="color: green;">${dataEmision.estado_sri}</strong></p>
+          `,
+          confirmButtonText: "Aceptar",
+          confirmButtonColor: "#196C87",
+        })
+      } else if (dataEmision.estado_sri === "NO AUTORIZADO" || dataEmision.estado_sri === "RECHAZADA") {
+        await Swal.fire({
+          icon: "warning",
+          title: "Factura creada pero NO autorizada",
+          html: `
+            <p>Factura: <strong>${dataFacturar.data.facnumfac}</strong></p>
+            <p>Estado SRI: <strong style="color: orange;">${dataEmision.estado_sri}</strong></p>
+            <br/>
+            <p style="color: #ff9800;">La factura fue creada pero el SRI no la autorizó.</p>
+            <p>Puede intentar autorizar nuevamente más tarde.</p>
+          `,
+          confirmButtonText: "Aceptar",
+          confirmButtonColor: "#196C87",
+        })
+      } else {
+        // Error en el proceso SRI pero factura creada
+        await Swal.fire({
+          icon: "info",
+          title: "Factura creada con error en SRI",
+          html: `
+            <p>Factura: <strong>${dataFacturar.data.facnumfac}</strong></p>
+            <p>Error: <strong>${dataEmision.msg || "Error desconocido"}</strong></p>
+            <br/>
+            <p style="color: #2196f3;">La factura fue creada pero hubo un error en el proceso SRI.</p>
+            <p>Puede intentar autorizar nuevamente.</p>
+          `,
+          confirmButtonText: "Aceptar",
+          confirmButtonColor: "#196C87",
+        })
+      }
+    } catch (error) {
+      setIsLoading(false)
+      console.error("Error en facturación:", error)
+
+      const errorMessage = error.message || "Error desconocido"
+      const errorDetails = error?.details || null
+
+      await Swal.fire({
+        icon: "error",
+        title: "Error en el proceso de facturación",
+        html: `
+      <p><strong>${errorMessage}</strong></p>
+      ${errorDetails ? `<br/><pre style="text-align: left; font-size: 11px; max-height: 250px; overflow-y: auto; background: #f5f5f5; padding: 10px; border-radius: 5px;">${JSON.stringify(errorDetails, null, 2)}</pre>` : ""}
+    `,
+        confirmButtonText: "Aceptar",
+        confirmButtonColor: "#d33",
+      })
+    } finally {
+      setIsLoading(false)
+      // Refrescar tabla
+      queryClient.invalidateQueries({ queryKey: ["getAllFacturas"] })
+    }
+  }
+
+  /**
+   * Función para llamar a emisionFactura (AUTORIZAR factura ya creada)
+   */
+  /**
+   * Función para AUTORIZAR factura ya creada
+   */
+  const handleAutorizar = async (row) => {
+    try {
+      // Verificar que tenga número de factura
+      if (!row.original.facnumfac) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Factura no encontrada",
+          text: "Esta proforma aún no tiene una factura creada. Primero debe FACTURAR.",
+          confirmButtonText: "Aceptar",
+          confirmButtonColor: "#196C87",
+        })
+        return
+      }
+
+      // Confirmación
+      const result = await Swal.fire({
+        title: "¿Desea autorizar esta factura en el SRI?",
+        html: `
+        <p>Factura: <strong>${row.original.facnumfac}</strong></p>
+        <p>Proforma: <strong>${row.original.pednumped}</strong></p>
+        <p>Cliente: <strong>${row.original.clinombre}</strong></p>
+        <p>Total: <strong>$${parseFloat(row.original.pedtotal || 0).toFixed(2)}</strong></p>
+        <br/>
+        <p style="color: #2196f3;">Se recuperará el payload y se enviará al SRI</p>
+      `,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Sí, autorizar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#196C87",
+        cancelButtonColor: "#d33",
+      })
+
+      if (!result.isConfirmed) return
+
+      // Mostrar loading
+      setIsLoading(true)
+      Swal.fire({
+        title: "Recuperando datos de la factura...",
+        text: "Por favor espere",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading()
+        },
+      })
+
+      // PASO 1: Recuperar payload desde la BD
+      const responseRecuperar = await api.post("/FacturaDesdeArticulos/recuperarPayloadFactura", {
+        facnumfac: row.original.facnumfac,
+        loccodigo: row.original.loccodigo,
+        ciacodigo: row.original.ciacodigo,
+      })
+
+      const dataRecuperar = responseRecuperar.data
+
+      if (!dataRecuperar.data?.success) {
+        throw new Error(dataRecuperar.data?.message || "Error al recuperar datos de la factura")
+      }
+
+      // PASO 2: Enviar a autorizar al SRI
+      Swal.update({
+        title: "Enviando factura al SRI...",
+        text: "Firmando, validando y enviando a autorización",
+      })
+
+      const responseEmision = await api.post(
+        "/IntegracionFacturacionElectronica/emisionFactura",
+        dataRecuperar.data.payload_sri,
+      )
+
+      const dataEmision = responseEmision.data.data
+
+      // PASO 3: Mostrar resultado
+      setIsLoading(false)
+
+      if (dataEmision.estado_sri === "AUTORIZADO") {
+        await Swal.fire({
+          icon: "success",
+          title: "¡Factura autorizada exitosamente!",
+          html: `
+          <p>Factura: <strong>${row.original.facnumfac}</strong></p>
+          <p>Clave de acceso: <strong>${dataEmision.clave_acceso}</strong></p>
+          <p>N° Autorización: <strong>${dataEmision.numero_autorizacion}</strong></p>
+          <p>Estado SRI: <strong style="color: green;">${dataEmision.estado_sri}</strong></p>
+        `,
+          confirmButtonText: "Aceptar",
+          confirmButtonColor: "#196C87",
+        })
+      } else {
+        await Swal.fire({
+          icon: "warning",
+          title: "Factura NO autorizada",
+          html: `
+          <p>Factura: <strong>${row.original.facnumfac}</strong></p>
+          <p>Estado SRI: <strong style="color: orange;">${dataEmision.estado_sri || "ERROR"}</strong></p>
+          <p>Mensaje: <strong>${dataEmision.msg || "Sin mensaje"}</strong></p>
+          <br/>
+          <p style="color: #ff9800;">Puede intentar autorizar nuevamente más tarde.</p>
+        `,
+          confirmButtonText: "Aceptar",
+          confirmButtonColor: "#196C87",
+        })
+      }
+
+      // Refrescar tabla
+      queryClient.invalidateQueries({ queryKey: ["getAllFacturas"] })
+    } catch (error) {
+      setIsLoading(false)
+      console.error("Error en autorización:", error)
+
+      const errorMessage = error.message || "Error desconocido"
+      const errorDetails = error?.details || null
+
+      await Swal.fire({
+        icon: "error",
+        title: "Error al autorizar factura",
+        html: `
+      <p><strong>${errorMessage}</strong></p>
+      ${errorDetails ? `<br/><pre style="text-align: left; font-size: 11px; max-height: 250px; overflow-y: auto; background: #f5f5f5; padding: 10px; border-radius: 5px;">${JSON.stringify(errorDetails, null, 2)}</pre>` : ""}
+    `,
+        confirmButtonText: "Aceptar",
+        confirmButtonColor: "#d33",
+      })
+    } finally {
+      setIsLoading(false)
+      // Refrescar tabla
+      queryClient.invalidateQueries({ queryKey: ["getAllFacturas"] })
+    }
+  }
 
   return (
     <ThemeProvider theme={theme}>
+      <CustomBackdrop isLoading={isLoading} />
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
@@ -78,7 +351,7 @@ const FacturaDesdeArticulos = () => {
             errorMsgFilterSearch="Error en cargar datos"
             queryKeyModal="getAllFacturas"
             perPage={10}
-            rowActionsWidthTable={180}
+            rowActionsWidthTable={350}
             rowActions={(row) => {
               const buscarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action?.acccaption === ACCIONES.BUSCAR,
@@ -88,6 +361,12 @@ const FacturaDesdeArticulos = () => {
               )
               const eliminarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action?.acccaption === ACCIONES.ELIMINAR,
+              )
+              const facturarAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (action) => action?.acccaption === ACCIONES.FACTURAR,
+              )
+              const autorizarAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (action) => action?.acccaption === ACCIONES.AUTORIZAR,
               )
 
               const actions = [
@@ -99,15 +378,43 @@ const FacturaDesdeArticulos = () => {
                     navigate(`buscar`, { state: row.original })
                   },
                 },
-                {
+              ]
+
+              // Botón EDITAR (solo si la proforma está pendiente 'P')
+              if (editarAction && row.original.pedstatus === "P") {
+                actions.push({
                   label: editarAction?.acccaption,
                   key: editarAction?.acccaption,
                   icon: getIconComponent(editarAction?.accnameicono, editarAction?.acctipoico),
                   onClick: (row) => {
                     navigate("editar", { state: row.original })
                   },
-                },
-                {
+                })
+              }
+
+              // Botón FACTURAR (solo si la proforma está pendiente 'P')
+              if (facturarAction && row.original.pedstatus === "P") {
+                actions.push({
+                  label: facturarAction?.acccaption,
+                  key: facturarAction?.acccaption,
+                  icon: getIconComponent(facturarAction?.accnameicono, facturarAction?.acctipoico),
+                  onClick: (row) => handleFacturar(row),
+                })
+              }
+
+              // Botón AUTORIZAR (solo si la factura no esta autorizada y ya tiene numero de factura asignado)
+              if (autorizarAction && row.original.sri_status !== "A" && row.original.facnumfac) {
+                actions.push({
+                  label: autorizarAction?.acccaption,
+                  key: autorizarAction?.acccaption,
+                  icon: getIconComponent(autorizarAction?.accnameicono, autorizarAction?.acctipoico),
+                  onClick: (row) => handleAutorizar(row),
+                })
+              }
+
+              // Botón ELIMINAR (solo si la proforma está pendiente 'P')
+              if (eliminarAction && row.original.pedstatus === "P") {
+                actions.push({
                   label: eliminarAction?.acccaption,
                   key: eliminarAction?.acccaption,
                   icon: getIconComponent(eliminarAction?.accnameicono, eliminarAction?.acctipoico),
@@ -150,8 +457,8 @@ const FacturaDesdeArticulos = () => {
                       }
                     }
                   },
-                },
-              ]
+                })
+              }
 
               return actions
             }}
@@ -179,7 +486,6 @@ const FacturaDesdeArticulos = () => {
                   key: importarAction?.acccaption,
                   icon: getIconComponent(importarAction?.accnameicono, importarAction?.acctipoico),
                   onClick: () => {
-                    // Aquí va la lógica para importar facturas
                     Swal.fire({
                       title: "Importar Facturas",
                       text: "Funcionalidad de importación en desarrollo",
@@ -235,6 +541,15 @@ const FacturaDesdeArticulos = () => {
                 header: "Número Proforma",
                 size: 180,
                 Cell: ({ cell }) => <span>{cell.getValue()}</span>,
+              },
+              {
+                accessorKey: "facnumfac",
+                header: "N° Factura",
+                size: 200,
+                Cell: ({ cell }) => {
+                  const value = cell.getValue()
+                  return value
+                },
               },
               {
                 accessorKey: "loccodigo",
@@ -301,11 +616,29 @@ const FacturaDesdeArticulos = () => {
               },
               {
                 accessorKey: "pedstatus",
-                header: "Estado",
-                size: 100,
+                header: "Estado Profrorma",
+                size: 200,
                 Cell: ({ cell }) => {
                   const value = cell.getValue()
-                  return <span>{value === "A" ? "Activo" : value === "I" ? "Inactivo" : value}</span>
+                  return <span>{value}</span>
+                },
+              },
+              {
+                accessorKey: "sriautnumero",
+                header: "N° Autorización",
+                size: 450,
+                Cell: ({ cell }) => {
+                  const value = cell.getValue()
+                  return <span>{value}</span>
+                },
+              },
+              {
+                accessorKey: "sri_status",
+                header: "Estado SRI",
+                size: 200,
+                Cell: ({ cell }) => {
+                  const value = cell.getValue()
+                  return value
                 },
               },
               {

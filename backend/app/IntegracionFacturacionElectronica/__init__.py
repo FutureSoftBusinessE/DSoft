@@ -6,4 +6,4 @@ bp = Blueprint("IntegracionFacturacionElectronica", __name__)
 cors = CORS(bp, resources={r"/*": {"origins": "*", "headers": ["Content-Type", "Authorization"]}})
 
 # APIS PARA EL CRUD
-from app.IntegracionFacturacionElectronica.rutas import getSample
+from app.IntegracionFacturacionElectronica.rutas import emisionFactura

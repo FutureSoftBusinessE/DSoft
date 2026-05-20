@@ -109,7 +109,7 @@ def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, dato
             "fecha_emision": datetime.now().strftime("%d/%m/%Y"),
             "dir_establecimiento": datos_empresa.get("ciadirec"),
             "contribuyente_especial": "",  # TODO: Buscar de dónde obtener este campo
-            "obligado_contabilidad": "SI" if datos_empresa.get("ciacontabilidad") == "1" else "NO",
+            "obligado_contabilidad": "SI" if datos_empresa.get("ciacontabilidad") == 1 else "NO",
             "tipo_identificacion_comprador": get_tipo_identificacion(datos_cliente["cliruc"]),
             "razon_social_comprador": datos_cliente["clinombre"],
             "identificacion_comprador": datos_cliente["cliruc"],

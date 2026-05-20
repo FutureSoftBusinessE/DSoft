@@ -65,7 +65,7 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
         secuencial = info_tributaria.get("secuencial", "")
         dir_matriz = info_tributaria.get("dir_matriz", "")
         dir_establecimiento = info_factura.get("dir_establecimiento", "")
-        obligado_contabilidad = info_factura.get("obligado_contabilidad", "NO")
+        obligado_contabilidad = info_factura.get("obligado_contabilidad", "")
 
         emisor_data = [
             [Paragraph(f"<b>{razon_social}</b>", style_normal)],

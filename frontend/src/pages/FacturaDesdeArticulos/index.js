@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import React, { useContext, useState } from "react"
 import Header from "../../layouts/Header"
 import { styled, createTheme, ThemeProvider } from "@mui/material/styles"
@@ -50,6 +51,7 @@ const ACCIONES = {
   IMPORTAR: "IMPORTAR",
   FACTURAR: "FACTURAR",
   AUTORIZAR: "AUTORIZAR",
+  RIDE: "RIDE",
 }
 
 const FacturaDesdeArticulos = () => {
@@ -327,6 +329,61 @@ const FacturaDesdeArticulos = () => {
     }
   }
 
+  const generateRIDE = async (row) => {
+    try {
+      setIsLoading(true)
+      Swal.fire({
+        title: "Generando RIDE...",
+        text: "Por favor espere",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      })
+
+      const response = await api.post("/IntegracionFacturacionElectronica/emisionFactura", {
+        ciacodigo: row.original.ciacodigo,
+        facnumfac: row.original.facnumfac,
+        loccodigo: row.original.loccodigo,
+        tipo_proceso: "1", // ✅ "2" = Solo RIDE
+      })
+
+      const data = response.data.data
+      const pdfBase64 = data.ridePDF
+
+      // Convertir base64 a Blob
+      const byteString = atob(pdfBase64)
+      const byteArray = new Uint8Array(byteString.length)
+      for (let i = 0; i < byteString.length; i++) {
+        byteArray[i] = byteString.charCodeAt(i)
+      }
+      const blob = new Blob([byteArray], { type: "application/pdf" })
+
+      // Crear enlace de descarga
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = data.claveAcceso
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      setIsLoading(false)
+      Swal.fire({
+        icon: "success",
+        title: "RIDE generado",
+        text: "El PDF se ha descargado correctamente",
+        confirmButtonText: "Aceptar",
+      })
+    } catch (error) {
+      setIsLoading(false)
+      Swal.fire({
+        icon: "error",
+        title: "Error al generar RIDE",
+        text: error.message || "Error desconocido",
+      })
+    }
+  }
+
   return (
     <ThemeProvider theme={theme}>
       <CustomBackdrop isLoading={isLoading} />
@@ -367,6 +424,10 @@ const FacturaDesdeArticulos = () => {
               )
               const autorizarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action?.acccaption === ACCIONES.AUTORIZAR,
+              )
+
+              const rideAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (action) => action?.acccaption === ACCIONES.RIDE,
               )
 
               const actions = [
@@ -457,6 +518,16 @@ const FacturaDesdeArticulos = () => {
                       }
                     }
                   },
+                })
+              }
+
+              // Botón RIDE (solo si la factura tiene estatus del sri 'A')
+              if (rideAction && row.original.sri_status === "A" && row.original.facnumfac) {
+                actions.push({
+                  label: rideAction?.acccaption,
+                  key: rideAction?.acccaption,
+                  icon: getIconComponent(rideAction?.accnameicono, rideAction?.acctipoico),
+                  onClick: (row) => generateRIDE(row),
                 })
               }
 

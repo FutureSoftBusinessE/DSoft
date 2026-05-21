@@ -23,8 +23,8 @@ def createPuntosEmisionSri():
     sNomEst = str(request.headers.get("X-Forwarded-For", request.remote_addr) or "WEB").strip()[:30]
 
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
@@ -59,30 +59,35 @@ def createPuntosEmisionSri():
     with engine.connect() as connection:
         with connection.begin():
             # A. Validar que no exista la caja (fapcaja PK)
-            check_caja = connection.execute(
-                text("SELECT cjacodigo FROM fapcaja WHERE ciacodigo = :cia AND cjacodigo = :cja"),
-                {"cia": sCodCia, "cja": cjacodigo}
-            ).fetchone()
+            check_caja = connection.execute(text("SELECT cjacodigo FROM fapcaja WHERE ciacodigo = :cia AND cjacodigo = :cja"), {"cia": sCodCia, "cja": cjacodigo}).fetchone()
             if check_caja:
                 raise ValidationError(f"La Caja con código '{cjacodigo}' ya existe.")
 
             # B. Validar que no exista la serie SRI (siaccsriseries PK)
             check_serie = connection.execute(
-                text("""SELECT sriautnumero FROM siaccsriseries
+                text(
+                    """SELECT sriautnumero FROM siaccsriseries
                         WHERE ciacodigo = :cia AND sripreauto = :pre AND sriautnumero = :num
-                        AND sriserie01 = :s1 AND sriserie02 = :s2"""),
-                {"cia": sCodCia, "pre": sripreauto, "num": sriautnumero, "s1": sriserie01, "s2": sriserie02}
+                        AND sriserie01 = :s1 AND sriserie02 = :s2"""
+                ),
+                {"cia": sCodCia, "pre": sripreauto, "num": sriautnumero, "s1": sriserie01, "s2": sriserie02},
             ).fetchone()
             if check_serie:
                 raise ValidationError(f"La serie {sriserie01}-{sriserie02} ya está registrada para esta autorización.")
 
             # C. Obtener metadatos de la autorización seleccionada (siacsrinumero)
-            auth_meta = connection.execute(
-                text("""SELECT sritramite, sriautfecemi, sriautfecven, sriautnumeroold
+            auth_meta = (
+                connection.execute(
+                    text(
+                        """SELECT sritramite, sriautfecemi, sriautfecven, sriautnumeroold
                         FROM siacsrinumero
-                        WHERE ciacodigo = :cia AND sripreauto = :pre AND sriautnumero = :num"""),
-                {"cia": sCodCia, "pre": sripreauto, "num": sriautnumero}
-            ).mappings().fetchone()
+                        WHERE ciacodigo = :cia AND sripreauto = :pre AND sriautnumero = :num"""
+                    ),
+                    {"cia": sCodCia, "pre": sripreauto, "num": sriautnumero},
+                )
+                .mappings()
+                .fetchone()
+            )
 
             if not auth_meta:
                 raise ValidationError("La Autorización seleccionada no se encuentra en la base de datos.")
@@ -90,7 +95,8 @@ def createPuntosEmisionSri():
             # =========================================================================
             # INSERT 1: fapcaja (Cabecera de Cajas)
             # =========================================================================
-            insert_caja = text("""
+            insert_caja = text(
+                """
                 INSERT INTO fapcaja (
                     ciacodigo, cjacodigo, cjadescri, loccodigo, cjastatus,
                     cjafecisys, cjahorisys, cjausuisys, cjaestisys,
@@ -101,17 +107,17 @@ def createPuntosEmisionSri():
                     :fecisys, :horisys, :usuisys, :estisys,
                     :fecmsys, :hormsys, :usumsys, :estmsys
                 )
-            """)
-            connection.execute(insert_caja, {
-                "ciacodigo": sCodCia, "cjacodigo": cjacodigo, "cjadescri": cjadescri, "loccodigo": loccodigo,
-                "fecisys": fecha_pura, "horisys": hora_pura, "usuisys": sUsuario, "estisys": sNomEst,
-                "fecmsys": fecha_pura, "hormsys": hora_pura, "usumsys": sUsuario, "estmsys": sNomEst
-            })
+            """
+            )
+            connection.execute(
+                insert_caja, {"ciacodigo": sCodCia, "cjacodigo": cjacodigo, "cjadescri": cjadescri, "loccodigo": loccodigo, "fecisys": fecha_pura, "horisys": hora_pura, "usuisys": sUsuario, "estisys": sNomEst, "fecmsys": fecha_pura, "hormsys": hora_pura, "usumsys": sUsuario, "estmsys": sNomEst}
+            )
 
             # =========================================================================
             # INSERT 2: fatcaja (Relación Caja - Autorización)
             # =========================================================================
-            insert_fatcaja = text("""
+            insert_fatcaja = text(
+                """
                 INSERT INTO fatcaja (
                     ciacodigo, cjacodigo, sripreauto, sriautnumero,
                     cjafecisys, cjahorisys, cjausuisys, cjaestisys,
@@ -121,17 +127,18 @@ def createPuntosEmisionSri():
                     :fecisys, :horisys, :usuisys, :estisys,
                     :fecmsys, :hormsys, :usumsys, :estmsys
                 )
-            """)
-            connection.execute(insert_fatcaja, {
-                "ciacodigo": sCodCia, "cjacodigo": cjacodigo, "sripreauto": sripreauto, "sriautnumero": sriautnumero,
-                "fecisys": fecha_pura, "horisys": hora_pura, "usuisys": sUsuario, "estisys": sNomEst,
-                "fecmsys": fecha_pura, "hormsys": hora_pura, "usumsys": sUsuario, "estmsys": sNomEst
-            })
+            """
+            )
+            connection.execute(
+                insert_fatcaja,
+                {"ciacodigo": sCodCia, "cjacodigo": cjacodigo, "sripreauto": sripreauto, "sriautnumero": sriautnumero, "fecisys": fecha_pura, "horisys": hora_pura, "usuisys": sUsuario, "estisys": sNomEst, "fecmsys": fecha_pura, "hormsys": hora_pura, "usumsys": sUsuario, "estmsys": sNomEst},
+            )
 
             # =========================================================================
             # INSERT 3: siaccsriseries (Cabecera de Series SRI)
             # =========================================================================
-            insert_siacc = text("""
+            insert_siacc = text(
+                """
                 INSERT INTO siaccsriseries (
                     ciacodigo, sripreauto, sriautnumero, sritramite, sriserie01, sriserie02,
                     sriautfecemi, sriautfecven, sriautnumeroold, cjacodigo,
@@ -143,15 +150,31 @@ def createPuntosEmisionSri():
                     :fecisys, :horisys, :usuisys, :estisys, '',
                     :fecmsys, :hormsys, :usumsys, :estmsys, ''
                 )
-            """)
-            connection.execute(insert_siacc, {
-                "ciacodigo": sCodCia, "sripreauto": sripreauto, "sriautnumero": sriautnumero,
-                "sritramite": auth_meta["sritramite"], "sriserie01": sriserie01, "sriserie02": sriserie02,
-                "sriautfecemi": auth_meta["sriautfecemi"], "sriautfecven": auth_meta["sriautfecven"],
-                "sriautnumeroold": auth_meta["sriautnumeroold"], "cjacodigo": cjacodigo,
-                "fecisys": fecha_pura, "horisys": hora_pura, "usuisys": sUsuario, "estisys": sNomEst,
-                "fecmsys": fecha_pura, "hormsys": hora_pura, "usumsys": sUsuario, "estmsys": sNomEst
-            })
+            """
+            )
+            connection.execute(
+                insert_siacc,
+                {
+                    "ciacodigo": sCodCia,
+                    "sripreauto": sripreauto,
+                    "sriautnumero": sriautnumero,
+                    "sritramite": auth_meta["sritramite"],
+                    "sriserie01": sriserie01,
+                    "sriserie02": sriserie02,
+                    "sriautfecemi": auth_meta["sriautfecemi"],
+                    "sriautfecven": auth_meta["sriautfecven"],
+                    "sriautnumeroold": auth_meta["sriautnumeroold"],
+                    "cjacodigo": cjacodigo,
+                    "fecisys": fecha_pura,
+                    "horisys": hora_pura,
+                    "usuisys": sUsuario,
+                    "estisys": sNomEst,
+                    "fecmsys": fecha_pura,
+                    "hormsys": hora_pura,
+                    "usumsys": sUsuario,
+                    "estmsys": sNomEst,
+                },
+            )
 
             # =========================================================================
             # INSERT 4: siactsriseries (Detalle de Documentos Fijos)
@@ -163,10 +186,11 @@ def createPuntosEmisionSri():
                 {"sec": "04", "desc": "Nota de Crédito"},
                 {"sec": "05", "desc": "Nota de Débito"},
                 {"sec": "06", "desc": "Guía de Remisión"},
-                {"sec": "07", "desc": "Comprobante de Retención"}
+                {"sec": "07", "desc": "Comprobante de Retención"},
             ]
 
-            insert_siact = text("""
+            insert_siact = text(
+                """
                 INSERT INTO siactsriseries (
                     ciacodigo, sripreauto, sriautnumero, sritramite, sriserie01, sriserie02,
                     srisecdoc, sridestipo, srisecini, srisecfin, srisecact,
@@ -180,26 +204,45 @@ def createPuntosEmisionSri():
                     :fecisys, :horisys, :usuisys, :estisys, '',
                     :fecmsys, :hormsys, :usumsys, :estmsys, ''
                 )
-            """)
+            """
+            )
 
             for doc in docs_fijos:
                 # Regla de Negocio: Si es 'E' (Electrónica) la secuencia final es siempre 999999999
-                if sripreauto == 'E':
+                if sripreauto == "E":
                     sec_fin = 999999999
                 else:
                     # Buscamos si el frontend mandó una secuencia final para este tipo de documento
                     match = next((item for item in detalles if str(item.get("srisecdoc")) == doc["sec"]), None)
                     sec_fin = int(match["srisecfin"]) if match and match.get("srisecfin") else 0
 
-                connection.execute(insert_siact, {
-                    "ciacodigo": sCodCia, "sripreauto": sripreauto, "sriautnumero": sriautnumero,
-                    "sritramite": auth_meta["sritramite"], "sriserie01": sriserie01, "sriserie02": sriserie02,
-                    "srisecdoc": doc["sec"], "sridestipo": str(doc["desc"])[:100],
-                    "srisecini": 1, "srisecfin": sec_fin, "srisecact": 0,
-                    "sriautfecemi": auth_meta["sriautfecemi"], "sriautfecven": auth_meta["sriautfecven"],
-                    "sriautnumeroold": auth_meta["sriautnumeroold"], "cjacodigo": cjacodigo,
-                    "fecisys": fecha_pura, "horisys": hora_pura, "usuisys": sUsuario, "estisys": sNomEst,
-                    "fecmsys": fecha_pura, "hormsys": hora_pura, "usumsys": sUsuario, "estmsys": sNomEst
-                })
+                connection.execute(
+                    insert_siact,
+                    {
+                        "ciacodigo": sCodCia,
+                        "sripreauto": sripreauto,
+                        "sriautnumero": sriautnumero,
+                        "sritramite": auth_meta["sritramite"],
+                        "sriserie01": sriserie01,
+                        "sriserie02": sriserie02,
+                        "srisecdoc": doc["sec"],
+                        "sridestipo": str(doc["desc"])[:100],
+                        "srisecini": 1,
+                        "srisecfin": sec_fin,
+                        "srisecact": 0,
+                        "sriautfecemi": auth_meta["sriautfecemi"],
+                        "sriautfecven": auth_meta["sriautfecven"],
+                        "sriautnumeroold": auth_meta["sriautnumeroold"],
+                        "cjacodigo": cjacodigo,
+                        "fecisys": fecha_pura,
+                        "horisys": hora_pura,
+                        "usuisys": sUsuario,
+                        "estisys": sNomEst,
+                        "fecmsys": fecha_pura,
+                        "hormsys": hora_pura,
+                        "usumsys": sUsuario,
+                        "estmsys": sNomEst,
+                    },
+                )
 
     return {"data": f"Punto de Emisión {sriserie01}-{sriserie02} creado y enlazado a la caja '{cjacodigo}' exitosamente."}

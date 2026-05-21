@@ -56,7 +56,7 @@ def getAllVendedoresDF():
             final_query, params = build_paginated_query(
                 base_query=base_query,
                 order_by=[
-                    "vennombre ASC",   # Ordenamiento por defecto: Alfabético por nombre
+                    "vennombre ASC",  # Ordenamiento por defecto: Alfabético por nombre
                 ],
                 filters=filters,
                 page=page,
@@ -71,10 +71,7 @@ def getAllVendedoresDF():
             total_records = result[0]["total"] if result else 0
 
             # Formatear lista excluyendo la columna virtual de conteo 'total'
-            all_vendedores_result = [
-                {**{key: value for key, value in dict(row).items() if key != "total"}}
-                for row in result
-            ]
+            all_vendedores_result = [{**{key: value for key, value in dict(row).items() if key != "total"}} for row in result]
 
     # 8. Retorno estructurado para el componente de grilla en React
     return (

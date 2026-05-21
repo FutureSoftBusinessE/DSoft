@@ -60,11 +60,6 @@ def getArticuloDataDF():
             raise ValidationError(f"El código '{artcodigo}' no existe, no está activo, o no está clasificado como un Servicio apto para venta.")
 
         # 5. Formateo de respuesta
-        articulo_data = {
-            "invcodigo": result["invcodigo"],
-            "artcodigo": result["artcodigo"],
-            "artdescri": result["artdescri"],
-            "precio1": float(result["precio1"] or 0.0)
-        }
+        articulo_data = {"invcodigo": result["invcodigo"], "artcodigo": result["artcodigo"], "artdescri": result["artdescri"], "precio1": float(result["precio1"] or 0.0)}
 
     return {"data": articulo_data}

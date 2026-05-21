@@ -27,8 +27,8 @@ def insertarVendedoresDFIMP():
 
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
     columns = data.get("columns")
@@ -69,7 +69,6 @@ def insertarVendedoresDFIMP():
                         "vendireccion": str(fila.get("vendireccion", "")).strip().upper()[:40],
                         "ventelefono": str(fila.get("ventelefono", "")).strip()[:15],
                         "venstatus": str(fila.get("venstatus", "A")).strip().upper()[:1],
-
                         # Valores por defecto para campos técnicos
                         "vencomision": 0.0,
                         "ventipcom": "P",
@@ -82,13 +81,11 @@ def insertarVendedoresDFIMP():
                         "pedidossiac": 0,
                         "pedidosweb": 0,
                         "pedidoswebart": 0,
-
                         # Auditoría de Inserción
                         "venfecisys": fecha_pura,
                         "venhorisys": hora_pura,
                         "venusuisys": sUsuario[:10],
                         "venestisys": sNomEst[:30] if sNomEst else "WEB",
-
                         # Auditoría de Modificación
                         "venfecmsys": fecha_pura,
                         "venhormsys": hora_pura,

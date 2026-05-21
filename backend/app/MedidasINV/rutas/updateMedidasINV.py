@@ -24,8 +24,8 @@ def updateMedidasINV():
 
     # 2. Lógica de separación de Fecha y Hora para auditoría en SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
     # Identificadores de la Clave Primaria (Old para localizar el registro, New por si se edita el código)
@@ -52,10 +52,8 @@ def updateMedidasINV():
                 "ciacodigo": sCodCia,
                 "medcodigoOld": str(medcodigo_old).strip().upper()[:3],
                 "medcodigoNew": str(medcodigo_new).strip().upper()[:3],
-
                 "meddescri": str(meddescri).strip().upper()[:30],
                 "medstatus": str(medstatus).strip().upper()[:1],
-
                 # Auditoría de Modificación (msys)
                 "medfecmsys": fecha_pura,
                 "medhormsys": hora_pura,

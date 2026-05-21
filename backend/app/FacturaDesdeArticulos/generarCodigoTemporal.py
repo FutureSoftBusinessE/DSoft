@@ -35,7 +35,7 @@ def generarCodigoPedidoTemporal():
 
                 year = datetime.now().strftime("%y")
                 _dptoanio = datetime.now().strftime("%Y")
-                _doccodigo = "PED"
+                _doccodigo = "PRO"
 
                 # Obtener el registro actual en cgpdpto filtrado por los parámetros
                 cgpdpto_query = """
@@ -60,13 +60,13 @@ def generarCodigoPedidoTemporal():
                     .fetchone()
                 )
                 if not cgpdpto_result:
-                    raise Exception("No se ha configurado en el sistema la secuencia PED")
+                    raise Exception("No se ha configurado en el sistema la secuencia PRO")
                 # Obtener y actualizar la secuencia actual
                 secuenciaActualPedido = cgpdpto_result["dptonumsec"]
                 nuevaSecuenciaActualPedido = secuenciaActualPedido + 1
 
                 # Generar el código del Pedido concatenando los valores
-                pedidoCodigoGenerated = f"PE{locservidor}{year}{nuevaSecuenciaActualPedido:06}{loccodigo}"
+                pedidoCodigoGenerated = f"PR{locservidor}{year}{nuevaSecuenciaActualPedido:06}{loccodigo}"
 
                 return (
                     jsonify(

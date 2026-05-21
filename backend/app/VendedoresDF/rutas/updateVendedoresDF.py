@@ -25,8 +25,8 @@ def updateVendedoresDF():
 
     # 2. Lógica de separación de Fecha y Hora para auditoría en SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
@@ -63,7 +63,6 @@ def updateVendedoresDF():
                 "ciacodigo": sCodCia,
                 "vencodigoOld": str(vencodigo_old).strip().upper()[:3],
                 "vencodigoNew": str(vencodigo_new).strip().upper()[:3],
-
                 "vennombre": str(vennombre).strip().upper()[:30],
                 "vendireccion": str(vendireccion).strip().upper()[:40],
                 "ventelefono": str(ventelefono).strip()[:15],
@@ -71,12 +70,10 @@ def updateVendedoresDF():
                 "ventipcom": str(ventipcom).strip().upper()[:1],
                 "venaplica": str(venaplica).strip().upper()[:1],
                 "venstatus": str(venstatus).strip().upper()[:1],
-
                 "usrcodigo": str(usrcodigo).strip()[:10] if usrcodigo else None,
                 "vencomisiona": int(vencomisiona),
                 "emcodemp": str(emcodemp).strip()[:10] if emcodemp else None,
                 "loccodigo": str(loccodigo).strip()[:2],
-
                 # Auditoría de Modificación (msys)
                 "venfecmsys": fecha_pura,
                 "venhormsys": hora_pura,

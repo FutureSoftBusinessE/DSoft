@@ -34,17 +34,16 @@ def eliminarTransportistasDF():
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparar parámetros para el borrado (Cia + Código)
-            data_delete = {
-                "ciacodigo": sCodCia,
-                "transcodigo": str(transcodigo).strip().upper()
-            }
+            data_delete = {"ciacodigo": sCodCia, "transcodigo": str(transcodigo).strip().upper()}
 
             # 5. Sentencia SQL de eliminación con integridad multitenancy sobre inbtranspor
-            delete_query = text("""
+            delete_query = text(
+                """
                 DELETE FROM inbtranspor
                 WHERE ciacodigo = :ciacodigo
                   AND transcodigo = :transcodigo
-            """)
+            """
+            )
 
             try:
                 # 6. Ejecución del borrado con captura de errores de integridad referencial

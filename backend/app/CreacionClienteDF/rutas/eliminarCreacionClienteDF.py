@@ -34,17 +34,16 @@ def eliminarCreacionClienteDF():
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparar parámetros para el borrado (Cia + Código)
-            data_delete = {
-                "ciacodigo": sCodCia,
-                "clicodigo": str(clicodigo).strip().upper()
-            }
+            data_delete = {"ciacodigo": sCodCia, "clicodigo": str(clicodigo).strip().upper()}
 
             # 5. Sentencia SQL de eliminación con integridad multitenancy
-            delete_query = text("""
+            delete_query = text(
+                """
                 DELETE FROM cxcmcli
                 WHERE ciacodigo = :ciacodigo
                   AND clicodigo = :clicodigo
-            """)
+            """
+            )
 
             try:
                 # 6. Ejecución del borrado con captura de errores de integridad referencial

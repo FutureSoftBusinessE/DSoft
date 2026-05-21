@@ -39,19 +39,17 @@ def eliminarSectorialesIess():
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparar parámetros para el borrado (Cia + Código + Año)
-            data_delete = {
-                "ciacodigo": sCodCia,
-                "seccodigo": seccodigo,
-                "secanio": secanio
-            }
+            data_delete = {"ciacodigo": sCodCia, "seccodigo": seccodigo, "secanio": secanio}
 
             # 5. Sentencia SQL de eliminación con integridad multitenancy
-            delete_query = text("""
+            delete_query = text(
+                """
                 DELETE FROM nomsectorialiess
                 WHERE ciacodigo = :ciacodigo
                   AND seccodigo = :seccodigo
                   AND secanio = :secanio
-            """)
+            """
+            )
 
             try:
                 # Ejecutamos el delete

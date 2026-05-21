@@ -27,10 +27,7 @@ def getConfigLineas():
         res = connection.execute(query, {"ciacodigo": sCodCia}).mappings().fetchone()
 
         if res:
-            return {
-                "ciaforlin": res["ciaforlin"] or "##-##-##",
-                "cianiveleslin": int(res["cianiveleslin"] or 3)
-            }
+            return {"ciaforlin": res["ciaforlin"] or "##-##-##", "cianiveleslin": int(res["cianiveleslin"] or 3)}
         return {"ciaforlin": "##-##-##", "cianiveleslin": 3}
 
 
@@ -53,18 +50,16 @@ def getLineaByCodigo():
 
     with engine.connect() as connection:
         # Usamos TRIM para evitar fallos si el campo en SQL es CHAR de longitud fija
-        query = text("""
+        query = text(
+            """
             SELECT RTRIM(lincodigo) as lincodigo, RTRIM(lindescri) as lindescri
             FROM inblin
             WHERE ciacodigo = :ciacodigo
               AND RTRIM(lincodigo) = :codigo
-        """)
+        """
+        )
         res = connection.execute(query, {"ciacodigo": sCodCia, "codigo": str(codigo).strip().upper()}).mappings().fetchone()
 
         if res:
-            return {
-                "encontrado": True,
-                "lincodigo": res["lincodigo"],
-                "lindescri": res["lindescri"]
-            }
+            return {"encontrado": True, "lincodigo": res["lincodigo"], "lindescri": res["lindescri"]}
         return {"encontrado": False}

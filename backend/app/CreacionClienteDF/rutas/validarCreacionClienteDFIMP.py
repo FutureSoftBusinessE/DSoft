@@ -16,11 +16,13 @@ def validar_creacionclientedf(connection, columns: list, required: list, key_col
         raise ValidationError("rows requerido")
     # 2. Obtener valores por defecto de la Localidad (cgblocal)
     # Según requerimiento: activicodigo, regcodigo, sectorcodigo, tipcodigo, zoncodigo, procodigo, ciucodigo, parrocodigo
-    sql_local = text("""
+    sql_local = text(
+        """
         SELECT activicodigo, regcodigo, sectorcodigo, tipcodigo, zoncodigo, procodigo, ciucodigo, parrocodigo
         FROM cgblocal
         WHERE ciacodigo = :ciacodigo AND loccodigo = '01'
-    """)
+    """
+    )
     localidad = connection.execute(sql_local, {"ciacodigo": sCodCia}).mappings().fetchone()
     if not localidad:
         raise ValidationError("No se encontró la configuración de localidad (01) para obtener códigos por defecto.")

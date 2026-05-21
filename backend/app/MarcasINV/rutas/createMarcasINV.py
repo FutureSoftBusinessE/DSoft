@@ -23,8 +23,8 @@ def createMarcasINV():
 
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
@@ -49,16 +49,15 @@ def createMarcasINV():
             mardescri = str(mardescri).strip().upper()[:30]
 
             # 5. Verificación de Duplicados (PK: ciacodigo + marcodigo)
-            check_data = {
-                "ciacodigo": sCodCia,
-                "marcodigo": marcodigo
-            }
-            check_query = text("""
+            check_data = {"ciacodigo": sCodCia, "marcodigo": marcodigo}
+            check_query = text(
+                """
                 SELECT marcodigo
                 FROM inbmar
                 WHERE ciacodigo = :ciacodigo
                   AND marcodigo = :marcodigo
-            """)
+            """
+            )
             result = connection.execute(check_query, check_data).mappings().fetchone()
             if result:
                 raise ValidationError(f"Ya existe una Marca registrada con el código '{marcodigo}'")

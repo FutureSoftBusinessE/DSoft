@@ -26,8 +26,8 @@ def insertarCreacionClienteDFIMP():
     sNomEst = request.headers.get("X-Forwarded-For", request.remote_addr)
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
     columns = data.get("columns")
@@ -84,7 +84,6 @@ def insertarCreacionClienteDFIMP():
                         "procodigo": fila["procodigo"],
                         "ciucodigo": fila["ciucodigo"],
                         "parrocodigo": fila["parrocodigo"],
-
                         # Valores por defecto para campos técnicoscxcmcli
                         "cliapliiva": 0,
                         "clibloqueo": 0,
@@ -104,7 +103,6 @@ def insertarCreacionClienteDFIMP():
                         "clicastigada": 0,
                         "cliparterel": 0,
                         "cliprefac": 1,
-
                         # Auditoría
                         "clifecisys": fecha_pura,
                         "clihorisys": hora_pura,
@@ -146,11 +144,13 @@ def insertarCreacionClienteDFIMP():
             # 6. Actualizar la secuencia en siacsec
             # Se incrementa la secuencia según la cantidad de registros insertados
             nueva_secuencia = int(to_insert[-1]["clicodigo"])
-            update_sec_sql = text("""
+            update_sec_sql = text(
+                """
                 UPDATE siacsec
                 SET secnumero = :nueva_secuencia
                 WHERE ciacodigo = :ciacodigo AND seccodigo = 'CLI'
-            """)
+            """
+            )
             connection.execute(update_sec_sql, {"ciacodigo": sCodCia, "nueva_secuencia": nueva_secuencia})
 
     return {"data": "Clientes importados exitosamente", "inserted": len(to_insert)}

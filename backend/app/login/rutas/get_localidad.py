@@ -16,8 +16,8 @@ def get_localidad():
     # se confunde y usa la IP incorrecta. Al borrarlo del 'environ', obligamos
     # a get_session a buscar la ruta correcta como si fuera el primer Login.
     # =========================================================================
-    if 'HTTP_AUTHORIZATION' in request.environ:
-        del request.environ['HTTP_AUTHORIZATION']
+    if "HTTP_AUTHORIZATION" in request.environ:
+        del request.environ["HTTP_AUTHORIZATION"]
 
     # 2. Blindaje de lectura JSON (Anti Error 500)
     data = request.get_json(force=True, silent=True) or {}
@@ -41,19 +41,18 @@ def get_localidad():
 
         with engine.connect() as connection:
             # 4. USO DE SQL CRUDO para evitar bloqueos del ORM entre compañías
-            query = text("""
+            query = text(
+                """
                 SELECT DISTINCT C.locdescri, C.loccodigo
                 FROM cgblocal C
                 JOIN siactloc S ON S.ciacodigo = C.ciacodigo AND S.loccodigo = C.loccodigo
                 WHERE S.ciacodigo = :ciacodigo
                   AND S.usrcodigo = :usrcodigo
                   AND C.locstatus = 'A'
-            """)
+            """
+            )
 
-            result = connection.execute(query, {
-                "ciacodigo": ciacodigo,
-                "usrcodigo": cliciausu
-            }).mappings().fetchall()
+            result = connection.execute(query, {"ciacodigo": ciacodigo, "usrcodigo": cliciausu}).mappings().fetchall()
 
         # Formateo manual de la respuesta
         output = [{"locdescri": row["locdescri"], "loccodigo": row["loccodigo"]} for row in result]

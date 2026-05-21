@@ -76,8 +76,8 @@ def getAllSectorialesIess():
             final_query, params = build_paginated_query(
                 base_query=base_query,
                 order_by=[
-                    "secanio DESC",   # Ordenamiento por defecto: Año más reciente
-                    "seccargo ASC",   # Luego por descripción de cargo
+                    "secanio DESC",  # Ordenamiento por defecto: Año más reciente
+                    "seccargo ASC",  # Luego por descripción de cargo
                 ],
                 filters=filters,
                 page=page,
@@ -92,10 +92,7 @@ def getAllSectorialesIess():
             total_records = result[0]["total"] if result else 0
 
             # Formatear lista excluyendo la columna virtual de conteo
-            all_sectoriales_result = [
-                {**{key: value for key, value in dict(row).items() if key != "total"}}
-                for row in result
-            ]
+            all_sectoriales_result = [{**{key: value for key, value in dict(row).items() if key != "total"}} for row in result]
 
     # 8. Retorno estructurado para el componente de grilla en React
     return (

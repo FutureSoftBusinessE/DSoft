@@ -11,10 +11,10 @@ from error_handling import api_endpoint, ValidationError
 
 
 def validar_identificacion_ec(tipo, valor):
-    if tipo == 'R':
+    if tipo == "R":
         if len(str(valor).strip()) != 13:
             raise ValidationError("El R.U.C. debe tener exactamente 13 dígitos")
-    elif tipo == 'C':
+    elif tipo == "C":
         if len(str(valor).strip()) != 10:
             raise ValidationError("La Cédula debe tener exactamente 10 dígitos")
 
@@ -30,8 +30,8 @@ def updateProveedoresDF():
     sUsuario = claims["user"]
 
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
     procodigo = data.get("procodigo")
@@ -66,7 +66,8 @@ def updateProveedoresDF():
                 "prousumsys": sUsuario[:10],
             }
 
-            update_query = text("""
+            update_query = text(
+                """
                 UPDATE cxpmprov SET
                     procalif = :procalif,
                     proruc = :proruc,
@@ -81,7 +82,8 @@ def updateProveedoresDF():
                     prohormsys = :prohormsys,
                     prousumsys = :prousumsys
                 WHERE ciacodigo = :ciacodigo AND procodigo = :procodigo
-            """)
+            """
+            )
             connection.execute(update_query, data_update)
 
     return {"data": "Proveedor actualizado exitosamente"}

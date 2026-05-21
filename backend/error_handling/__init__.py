@@ -59,11 +59,12 @@ class APIError(Exception):
     • error_code: Código interno único del error
     """
 
-    def __init__(self, message, status_code=500, error_code=None):
+    def __init__(self, message, status_code=500, error_code=None, **kwargs):
         super().__init__(message)
         self.message = message
         self.status_code = status_code
         self.error_code = error_code or "INTERNAL_ERROR"
+        self.details = kwargs.get("details", {})
 
 
 class ValidationError(APIError):

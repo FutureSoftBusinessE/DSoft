@@ -24,8 +24,8 @@ def createSectorialesIess():
 
     # 2. Lógica de separación de Fecha y Hora pura
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
@@ -65,18 +65,16 @@ def createSectorialesIess():
             secdetalle = str(secdetalle).strip().upper()[:500] if secdetalle else ""
 
             # 5. Verificación de Duplicados (PK Compuesta: Cia + Código IESS + Año)
-            check_data = {
-                "ciacodigo": sCodCia,
-                "seccodigo": seccodigo,
-                "secanio": secanio
-            }
-            check_query = text("""
+            check_data = {"ciacodigo": sCodCia, "seccodigo": seccodigo, "secanio": secanio}
+            check_query = text(
+                """
                 SELECT seccodigo
                 FROM nomsectorialiess
                 WHERE ciacodigo = :ciacodigo
                   AND seccodigo = :seccodigo
                   AND secanio = :secanio
-            """)
+            """
+            )
             result = connection.execute(check_query, check_data).mappings().fetchone()
 
             if result:
@@ -92,13 +90,11 @@ def createSectorialesIess():
                 "secdetalle": secdetalle,
                 "secsalario": float(secsalario),
                 "secstatus": secstatus,
-
                 # Auditoría de Inserción
                 "secfecisys": fecha_pura,
                 "sechorisys": hora_pura,
                 "secusuisys": sUsuario,
                 "secestisys": sNomEst,
-
                 # Auditoría de Modificación
                 "secfecmsys": fecha_pura,
                 "sechormsys": hora_pura,

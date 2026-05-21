@@ -26,8 +26,8 @@ def insertarTiposClienteIMP():
 
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
     columns = data.get("columns")
@@ -68,12 +68,10 @@ def insertarTiposClienteIMP():
                         "tipcobdir": int(fila.get("tipcobdir", 0)),
                         "tipstatus": str(fila.get("tipstatus", "A")).strip().upper()[:1],
                         "tipdefacr": float(fila.get("tipdefacr", 0)),
-
                         # Auditoría de Inserción (Truncado a varchar(10) según cxcbtipcli)
                         "tipfecisys": fecha_pura,
                         "tiphorisys": hora_pura,
                         "tipusuisys": sUsuario[:10],
-
                         # Auditoría de Modificación
                         "tipfecmsys": fecha_pura,
                         "tiphormsys": hora_pura,

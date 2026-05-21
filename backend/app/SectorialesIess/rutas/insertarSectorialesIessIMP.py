@@ -27,8 +27,8 @@ def insertarSectorialesIessIMP():
 
     # 2. Lógica de separación de Fecha y Hora pura
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
     columns = data.get("columns")
@@ -71,13 +71,11 @@ def insertarSectorialesIessIMP():
                         "secdetalle": str(fila.get("secdetalle", "")).strip().upper()[:500],
                         "secsalario": float(fila.get("secsalario", 0)),
                         "secstatus": str(fila.get("secstatus", "A")).strip().upper()[:1],
-
                         # Auditoría de Inserción
                         "secfecisys": fecha_pura,
                         "sechorisys": hora_pura,
                         "secusuisys": sUsuario,
                         "secestisys": sNomEst,
-
                         # Auditoría de Modificación
                         "secfecmsys": fecha_pura,
                         "sechormsys": hora_pura,

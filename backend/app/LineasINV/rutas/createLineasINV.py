@@ -21,8 +21,8 @@ def createLineasINV():
     sUsuario = claims["user"]
 
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
     # Limpiar código de máscaras visuales
@@ -41,13 +41,14 @@ def createLineasINV():
             segmentos_len = [len(s) for s in formato.split(separador)]
             total_len = sum(segmentos_len)
             # 2. Rellenar código con ceros a la derecha (Capa de Datos)
-            lincodigo_full = lincodigo_raw.ljust(total_len, '0')[:total_len]
+            lincodigo_full = lincodigo_raw.ljust(total_len, "0")[:total_len]
 
             # 3. Descomponer para calcular Jerarquía
             segments = []
             curr = 0
             for length in segmentos_len:
-                segments.append(lincodigo_full[curr: curr + length])
+                segments.append(lincodigo_full[slice(curr, curr + length)])
+                # segments.append(lincodigo_full[curr : curr + length])
                 curr += length
 
             linnivel = 1
@@ -58,7 +59,7 @@ def createLineasINV():
                 if segments[i] != ("0" * segmentos_len[i]):
                     linnivel = i + 1
                     # lincodigo1: Código truncado al nivel actual (Ej: 0201)
-                    lincodigo1 = "".join(segments[:i + 1])
+                    lincodigo1 = "".join(segments[: i + 1])
                     # linlindes: Si no es nivel 1, el padre es el nivel anterior completo (Ej: 020000)
                     if i > 0:
                         parent_segs = segments[:i]
@@ -81,14 +82,20 @@ def createLineasINV():
                 "numsecini": data.get("numsecini"),
                 "numseccont": data.get("numseccont"),
                 "lincodigo1": lincodigo1,
-                "linfecisys": fecha_pura, "linhorisys": hora_pura, "linusuisys": sUsuario[:10],
-                "linfecmsys": fecha_pura, "linhormsys": hora_pura, "linusumsys": sUsuario[:10]
+                "linfecisys": fecha_pura,
+                "linhorisys": hora_pura,
+                "linusuisys": sUsuario[:10],
+                "linfecmsys": fecha_pura,
+                "linhormsys": hora_pura,
+                "linusumsys": sUsuario[:10],
             }
 
-            query = text("""
+            query = text(
+                """
                 INSERT INTO inblin (ciacodigo, lincodigo, lindescri, linlindes, coscodigo, linnivel, lintipo, linstatus, numsecini, numseccont, lincodigo1, linfecisys, linhorisys, linusuisys, linfecmsys, linhormsys, linusumsys)
                 VALUES (:ciacodigo, :lincodigo, :lindescri, :linlindes, :coscodigo, :linnivel, :lintipo, :linstatus, :numsecini, :numseccont, :lincodigo1, :linfecisys, :linhorisys, :linusuisys, :linfecmsys, :linhormsys, :linusumsys)
-            """)
+            """
+            )
             connection.execute(query, data_insert)
 
     return {"data": "Grupo de Productos creado exitosamente"}

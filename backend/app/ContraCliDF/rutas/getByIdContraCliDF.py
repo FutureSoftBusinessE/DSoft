@@ -32,7 +32,8 @@ def getByIdContraCliDF():
         # ---------------------------------------------------------
         # 2. CONSULTA DE CABECERA (JOIN con Clientes y Tipos)
         # ---------------------------------------------------------
-        query_cab = text("""
+        query_cab = text(
+            """
             SELECT
                 c.concodcontrato, c.condescri, c.clicodigo, cl.clinombre,
                 c.concodigo, tc.condescri AS tipcondescri, c.constatus,
@@ -45,7 +46,8 @@ def getByIdContraCliDF():
             INNER JOIN cxcmcli cl ON c.ciacodigo = cl.ciacodigo AND c.clicodigo = cl.clicodigo
             INNER JOIN cxcbtipcon tc ON c.ciacodigo = tc.ciacodigo AND c.concodigo = tc.concodigo
             WHERE c.ciacodigo = :cia AND c.concodcontrato = :contrato
-        """)
+        """
+        )
         cab_res = connection.execute(query_cab, {"cia": sCodCia, "contrato": concodcontrato}).mappings().fetchone()
         if not cab_res:
             raise ValidationError(f"No se encontró el contrato '{concodcontrato}'.")
@@ -57,14 +59,16 @@ def getByIdContraCliDF():
         # ---------------------------------------------------------
         # 3. CONSULTA DE DETALLE DE SERVICIOS
         # ---------------------------------------------------------
-        query_det = text("""
+        query_det = text(
+            """
             SELECT
                 consecuen, invcodigo, artcodigo, artdescri,
                 concantidad, convalor, contotal
             FROM cxctcontratos
             WHERE ciacodigo = :cia AND concodcontrato = :contrato
             ORDER BY consecuen
-        """)
+        """
+        )
         det_res = connection.execute(query_det, {"cia": sCodCia, "contrato": concodcontrato}).mappings().fetchall()
         servicios_list = []
         for row in det_res:
@@ -76,7 +80,8 @@ def getByIdContraCliDF():
         # ---------------------------------------------------------
         # 4. CONSULTA DE PERÍODOS (Con cruce a Facturación)
         # ---------------------------------------------------------
-        query_per = text("""
+        query_per = text(
+            """
             SELECT
                 p.consecuen, p.conmes, p.conanio, p.constatus, p.facnumfac,
                 f.facfecemi, f.factotal, f.facsaldo
@@ -84,14 +89,15 @@ def getByIdContraCliDF():
             LEFT JOIN facfac f ON p.ciacodigo = f.ciacodigo AND p.facnumfac = f.facnumfac
             WHERE p.ciacodigo = :cia AND p.concodcontrato = :contrato
             ORDER BY p.consecuen
-        """)
+        """
+        )
         per_res = connection.execute(query_per, {"cia": sCodCia, "contrato": concodcontrato}).mappings().fetchall()
         periodos_list = []
         for row in per_res:
             per = dict(row)
             # Formateo de fecha y montos de factura si existe
             if per.get("facfecemi"):
-                per["facfecemi"] = per["facfecemi"].strftime('%Y-%m-%d')
+                per["facfecemi"] = per["facfecemi"].strftime("%Y-%m-%d")
             per["factotal"] = float(per["factotal"] or 0.0)
             per["facsaldo"] = float(per["facsaldo"] or 0.0)
             periodos_list.append(per)

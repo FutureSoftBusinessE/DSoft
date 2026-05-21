@@ -15,4 +15,3 @@ from app.TiposCliente.rutas import getAllTiposCliente
 from app.TiposCliente.rutas import updateTiposCliente
 from app.TiposCliente.rutas import validarTiposClienteIMP
 from app.TiposCliente.rutas import insertarTiposClienteIMP
-

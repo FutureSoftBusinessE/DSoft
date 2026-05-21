@@ -64,7 +64,7 @@ def getAllMarcasINV():
             final_query, params = build_paginated_query(
                 base_query=base_query,
                 order_by=[
-                    "mardescri ASC",   # Ordenamiento por defecto: Alfabético
+                    "mardescri ASC",  # Ordenamiento por defecto: Alfabético
                 ],
                 filters=filters,
                 page=page,
@@ -78,10 +78,7 @@ def getAllMarcasINV():
             # 7. Procesamiento de resultados para la grilla
             total_records = result[0]["total"] if result else 0
             # Formatear lista excluyendo la columna virtual de conteo 'total'
-            all_marcas_result = [
-                {**{key: value for key, value in dict(row).items() if key != "total"}}
-                for row in result
-            ]
+            all_marcas_result = [{**{key: value for key, value in dict(row).items() if key != "total"}} for row in result]
 
     # 8. Retorno estructurado para el componente de grilla en React
     return (

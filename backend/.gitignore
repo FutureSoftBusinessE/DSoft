@@ -145,3 +145,7 @@ tempCodeRunnerFile.py
 web.config
 .env.staging
 .env.production
+facturas_autorizadas
+facturas_firmadas
+facturas_no_firmadas
+facturas_rides

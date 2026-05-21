@@ -34,17 +34,16 @@ def eliminarMedidasINV():
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparar parámetros para el borrado (Cia + Código)
-            data_delete = {
-                "ciacodigo": sCodCia,
-                "medcodigo": str(medcodigo).strip().upper()
-            }
+            data_delete = {"ciacodigo": sCodCia, "medcodigo": str(medcodigo).strip().upper()}
 
             # 5. Sentencia SQL de eliminación con integridad multitenancy
-            delete_query = text("""
+            delete_query = text(
+                """
                 DELETE FROM inbmed
                 WHERE ciacodigo = :ciacodigo
                   AND medcodigo = :medcodigo
-            """)
+            """
+            )
 
             try:
                 # 6. Ejecución del borrado con captura de errores de integridad

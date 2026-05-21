@@ -38,8 +38,8 @@ def getAllLineasINV():
                 {"lindescri": FILTER_VALUE_TYPE.STRING},
                 {"linlindes": FILTER_VALUE_TYPE.STRING},  # Código del Padre
                 {"coscodigo": FILTER_VALUE_TYPE.STRING},
-                {"linnivel": FILTER_VALUE_TYPE.NUMBER},   # Nivel de profundidad
-                {"lintipo": FILTER_VALUE_TYPE.STRING},    # Movimiento (M) o Totalizador (T)
+                {"linnivel": FILTER_VALUE_TYPE.NUMBER},  # Nivel de profundidad
+                {"lintipo": FILTER_VALUE_TYPE.STRING},  # Movimiento (M) o Totalizador (T)
                 {"linstatus": FILTER_VALUE_TYPE.STRING},
                 {"numsecini": FILTER_VALUE_TYPE.NUMBER},
                 {"numseccont": FILTER_VALUE_TYPE.NUMBER},
@@ -95,10 +95,7 @@ def getAllLineasINV():
             # 7. Procesamiento de resultados para la grilla
             total_records = result[0]["total"] if result else 0
             # Formatear lista excluyendo la columna virtual de conteo 'total'
-            all_lineas_result = [
-                {**{key: value for key, value in dict(row).items() if key != "total"}}
-                for row in result
-            ]
+            all_lineas_result = [{**{key: value for key, value in dict(row).items() if key != "total"}} for row in result]
 
     # 8. Retorno estructurado JSON para el componente CustomConditionalActionsTableServerSide en React
     return (

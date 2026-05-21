@@ -23,8 +23,8 @@ def createPresentacionesINV():
 
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
@@ -49,16 +49,15 @@ def createPresentacionesINV():
             predescri = str(predescri).strip().upper()[:30]
 
             # 5. Verificación de Duplicados (PK: ciacodigo + precodigo)
-            check_data = {
-                "ciacodigo": sCodCia,
-                "precodigo": precodigo
-            }
-            check_query = text("""
+            check_data = {"ciacodigo": sCodCia, "precodigo": precodigo}
+            check_query = text(
+                """
                 SELECT precodigo
                 FROM inbpre
                 WHERE ciacodigo = :ciacodigo
                   AND precodigo = :precodigo
-            """)
+            """
+            )
             result = connection.execute(check_query, check_data).mappings().fetchone()
 
             if result:
@@ -70,13 +69,11 @@ def createPresentacionesINV():
                 "precodigo": precodigo,
                 "predescri": predescri,
                 "prestatus": str(prestatus).strip().upper()[:1],
-
                 # Auditoría de Inserción
                 "prefecisys": fecha_pura,
                 "prehorisys": hora_pura,
                 # varchar(10) en inbpre
                 "preusuisys": sUsuario[:10],
-
                 # Auditoría de Modificación
                 "prefecmsys": fecha_pura,
                 "prehormsys": hora_pura,

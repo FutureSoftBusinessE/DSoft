@@ -22,23 +22,44 @@ def getInitialDataDF():
 
     with engine.connect() as connection:
         # Clientes Activos
-        clientes = connection.execute(text("""
+        clientes = (
+            connection.execute(
+                text(
+                    """
             SELECT clicodigo, clinombre
             FROM cxcmcli
             WHERE ciacodigo = :cia AND clistatus = 'A'
             ORDER BY clinombre
-        """), {"cia": sCodCia}).mappings().fetchall()
+        """
+                ),
+                {"cia": sCodCia},
+            )
+            .mappings()
+            .fetchall()
+        )
 
         # Tipos de Contrato y sus frecuencias
-        tipos = connection.execute(text("""
+        tipos = (
+            connection.execute(
+                text(
+                    """
             SELECT concodigo, condescri, confrecuencia
             FROM cxcbtipcon
             WHERE ciacodigo = :cia
             ORDER BY condescri
-        """), {"cia": sCodCia}).mappings().fetchall()
+        """
+                ),
+                {"cia": sCodCia},
+            )
+            .mappings()
+            .fetchall()
+        )
 
         # Artículos (Servicios) disponibles para la grilla
-        articulos = connection.execute(text("""
+        articulos = (
+            connection.execute(
+                text(
+                    """
             SELECT invcodigo, artcodigo, artdescri, artprecventa1 AS precio1
             FROM inmart
             WHERE ciacodigo = :cia
@@ -46,12 +67,12 @@ def getInitialDataDF():
               AND artprodven <> 0
               AND artservicio <> 0
             ORDER BY artdescri
-        """), {"cia": sCodCia}).mappings().fetchall()
+        """
+                ),
+                {"cia": sCodCia},
+            )
+            .mappings()
+            .fetchall()
+        )
 
-    return {
-        "data": {
-            "clientes": [dict(c) for c in clientes],
-            "tiposContrato": [dict(t) for t in tipos],
-            "articulos": [dict(a) for a in articulos]
-        }
-    }
+    return {"data": {"clientes": [dict(c) for c in clientes], "tiposContrato": [dict(t) for t in tipos], "articulos": [dict(a) for a in articulos]}}

@@ -23,8 +23,8 @@ def createAutorizacionesSri():
     sNomEst = str(request.headers.get("X-Forwarded-For", request.remote_addr) or "WEB").strip()[:50]
 
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
@@ -36,15 +36,15 @@ def createAutorizacionesSri():
     sriautfecemi = data.get("sriautfecemi")
 
     # 3. Lógica Fuerte de VB6: Forzar valores si es Electrónica
-    if sripreauto == 'E':
+    if sripreauto == "E":
         sriautnumero = 9999999999
-        sriautfecven = '2100-12-31 00:00:00'
+        sriautfecven = "2100-12-31 00:00:00"
     else:
         sriautnumero = int(data.get("sriautnumero", 0))
         sriautfecven = data.get("sriautfecven")
 
     # 4. Validaciones Estrictas
-    if sripreauto not in ['A', 'P', 'E']:
+    if sripreauto not in ["A", "P", "E"]:
         raise ValidationError("Tipo de autorización inválido. Seleccione AutoImpresores, PreImpresa o Electrónica.")
     if sriautnumero <= 0:
         raise ValidationError("El Número de Autorización es obligatorio y debe ser mayor a cero.")
@@ -57,23 +57,22 @@ def createAutorizacionesSri():
     with engine.connect() as connection:
         with connection.begin():
             # 5. Validar Integridad de Llave Primaria (PK_siacsrinumero)
-            sql_check = text("""
+            sql_check = text(
+                """
                 SELECT sriautnumero
                 FROM siacsrinumero
                 WHERE ciacodigo = :cia AND sripreauto = :preauto AND sriautnumero = :autnum
-            """)
-            existe = connection.execute(sql_check, {
-                "cia": sCodCia,
-                "preauto": sripreauto,
-                "autnum": sriautnumero
-            }).fetchone()
+            """
+            )
+            existe = connection.execute(sql_check, {"cia": sCodCia, "preauto": sripreauto, "autnum": sriautnumero}).fetchone()
 
             if existe:
-                tipo_desc = "Electrónica" if sripreauto == 'E' else ("PreImpresa" if sripreauto == 'P' else "AutoImpresores")
+                tipo_desc = "Electrónica" if sripreauto == "E" else ("PreImpresa" if sripreauto == "P" else "AutoImpresores")
                 raise ValidationError(f"El número de autorización {sriautnumero} ya se encuentra registrado para el tipo {tipo_desc}.")
 
             # 6. Inserción en Base de Datos (siacsrinumero)
-            insert_sql = text("""
+            insert_sql = text(
+                """
                 INSERT INTO siacsrinumero (
                     ciacodigo, sripreauto, sriautnumero, sritramite, sriautnumeroold,
                     sriautfecemi, sriautfecven, sritramitexml, sriultimotramite,
@@ -85,17 +84,27 @@ def createAutorizacionesSri():
                     :fecisys, :horisys, :usuisys, :estisys,
                     :fecmsys, :hormsys, :usumsys, :estmsys
                 )
-            """)
+            """
+            )
 
-            connection.execute(insert_sql, {
-                "ciacodigo": sCodCia,
-                "sripreauto": sripreauto,
-                "sriautnumero": sriautnumero,
-                "sritramite": sritramite,
-                "sriautnumeroold": sriautnumeroold,
-                "sriautfecemi": sriautfecemi,
-                "sriautfecven": sriautfecven,
-                "fecisys": fecha_pura, "horisys": hora_pura, "usuisys": sUsuario, "estisys": sNomEst,
-                "fecmsys": fecha_pura, "hormsys": hora_pura, "usumsys": sUsuario, "estmsys": sNomEst
-            })
+            connection.execute(
+                insert_sql,
+                {
+                    "ciacodigo": sCodCia,
+                    "sripreauto": sripreauto,
+                    "sriautnumero": sriautnumero,
+                    "sritramite": sritramite,
+                    "sriautnumeroold": sriautnumeroold,
+                    "sriautfecemi": sriautfecemi,
+                    "sriautfecven": sriautfecven,
+                    "fecisys": fecha_pura,
+                    "horisys": hora_pura,
+                    "usuisys": sUsuario,
+                    "estisys": sNomEst,
+                    "fecmsys": fecha_pura,
+                    "hormsys": hora_pura,
+                    "usumsys": sUsuario,
+                    "estmsys": sNomEst,
+                },
+            )
     return {"data": f"Autorización SRI {sriautnumero} registrada exitosamente."}

@@ -1,7 +1,6 @@
 ﻿# flake8: noqa
 from flask import Flask, jsonify, send_file, send_from_directory
 import os
-
 from config import Config
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -18,6 +17,7 @@ load_dotenv()  # Carga .env por defecto
 
 
 def create_app(config_class=Config):
+
     app = Flask(__name__, static_folder="../../frontend/build")
 
     # ************************************************************
@@ -269,7 +269,7 @@ def create_app(config_class=Config):
     from app.MedidasINV import bp as MedidasINV_bp
 
     app.register_blueprint(MedidasINV_bp, url_prefix="/MedidasINV")
-    
+
     from app.PresentacionesINV import bp as PresentacionesINV_bp
 
     app.register_blueprint(PresentacionesINV_bp, url_prefix="/PresentacionesINV")
@@ -284,39 +284,39 @@ def create_app(config_class=Config):
 
     from app.VendedoresDF import bp as VendedoresDF_bp
 
-    app.register_blueprint(VendedoresDF_bp, url_prefix="/VendedoresDF")   
+    app.register_blueprint(VendedoresDF_bp, url_prefix="/VendedoresDF")
 
     from app.ProveedoresDF import bp as ProveedoresDF_bp
 
-    app.register_blueprint(ProveedoresDF_bp, url_prefix="/ProveedoresDF")   
+    app.register_blueprint(ProveedoresDF_bp, url_prefix="/ProveedoresDF")
 
     from app.FirmarPDFDF import bp as FirmarPDFDF_bp
 
-    app.register_blueprint(FirmarPDFDF_bp, url_prefix="/FirmarPDFDF")   
+    app.register_blueprint(FirmarPDFDF_bp, url_prefix="/FirmarPDFDF")
 
     from app.PerfilUsuarioDF import bp as PerfilUsuarioDF_bp
 
-    app.register_blueprint(PerfilUsuarioDF_bp, url_prefix="/PerfilUsuarioDF")   
+    app.register_blueprint(PerfilUsuarioDF_bp, url_prefix="/PerfilUsuarioDF")
 
     from app.ContraCliDF import bp as ContraCliDF_bp
 
-    app.register_blueprint(ContraCliDF_bp, url_prefix="/ContraCliDF")   
+    app.register_blueprint(ContraCliDF_bp, url_prefix="/ContraCliDF")
 
     from app.AutorizacionesSri import bp as AutorizacionesSri_bp
 
-    app.register_blueprint(AutorizacionesSri_bp, url_prefix="/AutorizacionesSri")   
+    app.register_blueprint(AutorizacionesSri_bp, url_prefix="/AutorizacionesSri")
 
     from app.PuntosEmisionSri import bp as PuntosEmisionSri_bp
 
-    app.register_blueprint(PuntosEmisionSri_bp, url_prefix="/PuntosEmisionSri") 
+    app.register_blueprint(PuntosEmisionSri_bp, url_prefix="/PuntosEmisionSri")
 
     from app.Compania import bp as Compania_bp
 
-    app.register_blueprint(Compania_bp, url_prefix="/Compania")  
+    app.register_blueprint(Compania_bp, url_prefix="/Compania")
 
+    from app.IntegracionFacturacionElectronica import bp as IntegracionFacturacionElectronica_bp
 
-
-
+    app.register_blueprint(IntegracionFacturacionElectronica_bp, url_prefix="/IntegracionFacturacionElectronica")
 
     print("---------------ENDPOINTS------------------")
     for rule in app.url_map.iter_rules():

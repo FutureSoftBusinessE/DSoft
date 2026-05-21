@@ -54,9 +54,7 @@ def firmarDocumentoVisualDF():
 
         # 2. EXTRACCIÓN DE LLAVES
         try:
-            private_key, certificate, _ = pkcs12.load_key_and_certificates(
-                p12_data, password.encode('utf-8'), default_backend()
-            )
+            private_key, certificate, _ = pkcs12.load_key_and_certificates(p12_data, password.encode("utf-8"), default_backend())
         except Exception:
             # Si falla aquí, es garantía 100% de clave incorrecta o archivo P12 inválido
             return error_response("La contraseña de la firma electrónica es incorrecta o el archivo P12 es inválido.")
@@ -68,11 +66,7 @@ def firmarDocumentoVisualDF():
             nombres = "Firma Electrónica Autorizada"
 
         # 3. EXPORTACIÓN A PEM
-        pem_key = private_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption()
-        )
+        pem_key = private_key.private_bytes(encoding=serialization.Encoding.PEM, format=serialization.PrivateFormat.PKCS8, encryption_algorithm=serialization.NoEncryption())
         pem_cert = certificate.public_bytes(serialization.Encoding.PEM)
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as tmp_key:
@@ -92,7 +86,7 @@ def firmarDocumentoVisualDF():
         qr.make(fit=True)
         qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpeg") as tmp_qr:
-            qr_img.save(tmp_qr.name, format='JPEG')
+            qr_img.save(tmp_qr.name, format="JPEG")
             tmp_qr_path = tmp_qr.name
 
         # 5. GUARDADO FÍSICO DEL PDF
@@ -101,39 +95,28 @@ def firmarDocumentoVisualDF():
             tmp_pdf.write(pdf_file.read())
             tmp_pdf_path = tmp_pdf.name
         # 6. ORQUESTACIÓN Y FIRMA
-        with open(tmp_pdf_path, 'r+b') as doc:
+        with open(tmp_pdf_path, "r+b") as doc:
             w = IncrementalPdfFileWriter(doc, strict=False)
-            sig_field_name = f'Firma_QR_SIAC_{int(datetime.now().timestamp())}'
+            sig_field_name = f"Firma_QR_SIAC_{int(datetime.now().timestamp())}"
             box = (x, y, x + 100, y + 100)
 
             try:
-                fields.append_signature_field(
-                    w,
-                    fields.SigFieldSpec(sig_field_name=sig_field_name, on_page=page, box=box)
-                )
+                fields.append_signature_field(w, fields.SigFieldSpec(sig_field_name=sig_field_name, on_page=page, box=box))
             except Exception as e:
                 raise APIError(str(e))
-                fields.append_signature_field(
-                    w,
-                    fields.SigFieldSpec(sig_field_name=sig_field_name, on_page=0, box=box)
-                )
+                fields.append_signature_field(w, fields.SigFieldSpec(sig_field_name=sig_field_name, on_page=0, box=box))
 
             stamp_style = StaticStampStyle(background=PdfImage(tmp_qr_path))
             meta = signers.PdfSignatureMetadata(field_name=sig_field_name)
             pdf_signer = signers.PdfSigner(signature_meta=meta, signer=signer, stamp_style=stamp_style)
             pdf_signer.sign_pdf(w, in_place=True)
         # 7. LECTURA DEL RESULTADO Y ENVÍO
-        with open(tmp_pdf_path, 'rb') as final_doc:
+        with open(tmp_pdf_path, "rb") as final_doc:
             final_bytes = final_doc.read()
         out_stream = io.BytesIO(final_bytes)
         out_stream.seek(0)
-        safe_filename = getattr(pdf_file, 'filename', 'Documento_SIAC.pdf')
-        return send_file(
-            out_stream,
-            mimetype='application/pdf',
-            as_attachment=True,
-            download_name=f"FIRMADO_QR_{safe_filename}"
-        )
+        safe_filename = getattr(pdf_file, "filename", "Documento_SIAC.pdf")
+        return send_file(out_stream, mimetype="application/pdf", as_attachment=True, download_name=f"FIRMADO_QR_{safe_filename}")
     except Exception as e:
         raise APIError(str(e))
     finally:

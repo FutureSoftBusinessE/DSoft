@@ -39,17 +39,15 @@ def eliminarAutorizacionesSri():
     with engine.connect() as connection:
         with connection.begin():
             # 3. ELIMINACIÓN DE DATOS (Asegurando la compañía y las llaves primarias)
-            delete_query = text("""
+            delete_query = text(
+                """
                 DELETE FROM siacsrinumero
                 WHERE ciacodigo = :cia
                   AND sripreauto = :preauto
                   AND sriautnumero = :autnum
-            """)
-            result = connection.execute(delete_query, {
-                "cia": sCodCia,
-                "preauto": sripreauto,
-                "autnum": sriautnumero
-            })
+            """
+            )
+            result = connection.execute(delete_query, {"cia": sCodCia, "preauto": sripreauto, "autnum": sriautnumero})
             # Si no se afectó ninguna fila, significa que el código no existía o era de otra empresa
             if result.rowcount == 0:
                 raise ValidationError("No se pudo eliminar: la autorización no existe o ya fue borrada.")

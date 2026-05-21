@@ -24,8 +24,8 @@ def updateTransportistasDF():
 
     # 2. Lógica de separación de Fecha y Hora para auditoría en SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
@@ -65,7 +65,6 @@ def updateTransportistasDF():
                 "ciacodigo": sCodCia,
                 "transcodigoOld": str(transcodigo_old).strip().upper()[:3],
                 "transcodigoNew": str(transcodigo_new).strip().upper()[:3],
-
                 "transdescri": str(transdescri).strip().upper()[:100],
                 "transdirec": str(transdirec).strip().upper()[:100],
                 "transruc": str(transruc).strip().upper()[:20],
@@ -73,16 +72,13 @@ def updateTransportistasDF():
                 "transstatus": str(transstatus).strip().upper()[:1],
                 "transtipo": str(transtipo).strip().upper()[:1],
                 "transcuenta": str(transcuenta).strip().upper()[:20] if transcuenta else None,
-
                 # Campos de contacto
                 "transcontacto": str(transcontactonombre).strip().upper()[:100] if transcontactonombre else None,
                 "transcontactonombre": str(transcontactonombre).strip().upper()[:100] if transcontactonombre else None,
                 "transcontactodirec": str(transcontactodirec).strip().upper()[:100] if transcontactodirec else None,
                 "transcontactoemail": str(transcontactoemail).strip().lower()[:100] if transcontactoemail else None,
                 "transcontactotelef": str(transcontactotelef).strip()[:20] if transcontactotelef else None,
-
                 "transplaca": str(transplaca).strip().upper()[:10] if transplaca else None,
-
                 # Auditoría de Modificación (msys)
                 "transfecmsys": fecha_pura,
                 "transhormsys": hora_pura,

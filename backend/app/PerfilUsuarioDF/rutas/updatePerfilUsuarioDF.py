@@ -87,13 +87,7 @@ def updatePerfilUsuarioDF():
     with engine.connect() as connection:
         with connection.begin():
             # --- Tabla: siaccia ---
-            params_cia = {
-                "ciatipomenu": ciatipomenu,
-                "ciacolor": ciacolor,
-                "ciatipoletra": ciatipoletra,
-                "ciatamanioletra": ciatamanioletra,
-                "ciacodigo": ciacodigo
-            }
+            params_cia = {"ciatipomenu": ciatipomenu, "ciacolor": ciacolor, "ciatipoletra": ciatipoletra, "ciatamanioletra": ciatamanioletra, "ciacodigo": ciacodigo}
 
             update_cia_sql = """
                 UPDATE siaccia SET
@@ -126,16 +120,7 @@ def updatePerfilUsuarioDF():
                     emailsubject = :emailsubject
                 WHERE ciacodigo = :ciacodigo AND loccodigo = :loccodigo
             """
-            params_loc = {
-                "emailsmtp": emailsmtp,
-                "emailmascara": emailmascara,
-                "emailsalida": emailsalida,
-                "emailtema": emailtema,
-                "emailmensaje": emailmensaje,
-                "emailsubject": emailsubject,
-                "ciacodigo": ciacodigo,
-                "loccodigo": loccodigo
-            }
+            params_loc = {"emailsmtp": emailsmtp, "emailmascara": emailmascara, "emailsalida": emailsalida, "emailtema": emailtema, "emailmensaje": emailmensaje, "emailsubject": emailsubject, "ciacodigo": ciacodigo, "loccodigo": loccodigo}
 
             connection.execute(text(update_loc_sql), params_loc)
 

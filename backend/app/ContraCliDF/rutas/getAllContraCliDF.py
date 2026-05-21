@@ -56,7 +56,7 @@ def getAllContraCliDF():
             final_query, params = build_paginated_query(
                 base_query=base_query,
                 order_by=[
-                    "confecinicio DESC",   # Ordenamiento por defecto: Los más recientes primero
+                    "confecinicio DESC",  # Ordenamiento por defecto: Los más recientes primero
                 ],
                 filters=filters,
                 page=page,

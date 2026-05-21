@@ -124,10 +124,11 @@ def verify_token():
     response = {"status": "ok", "message": "Token verified", "left_time": claims["exp"] - claims["iat"], "data": claims}
     return jsonify(response)
 
-#cambio de compañia sin necesidad de volver a iniciar sesion 
+
+# cambio de compañia sin necesidad de volver a iniciar sesion
 @bp.route("/switch_company_token", methods=["POST"])
 @cross_origin()
-@jwt_required() # <- ESTO ES CLAVE: Solo un usuario ya logueado puede ejecutar esto
+@jwt_required()  # <- ESTO ES CLAVE: Solo un usuario ya logueado puede ejecutar esto
 def switch_company_token():
     try:
         data = request.get_json() if request.is_json else None
@@ -157,22 +158,18 @@ def switch_company_token():
                 franquicias_result = connection.execute(text(franquicias_query), {"cliciaidenti": seleccion.get("cliciaidenti")}).mappings().fetchall()
 
         # Armar el nuevo payload con la NUEVA compañía y localidad
-        payload = {
-            "user": usuario, 
-            "seleccion": seleccion, 
-            "localidad": localidad, 
-            "hasFranquicias": len(franquicias_result) > 0, 
-            "franquicias": [dict(fr) for fr in franquicias_result]
-        }
-        
+        payload = {"user": usuario, "seleccion": seleccion, "localidad": localidad, "hasFranquicias": len(franquicias_result) > 0, "franquicias": [dict(fr) for fr in franquicias_result]}
+
         # Generar el nuevo token SIN pedir contraseña
         access_token = create_access_token(usuario, additional_claims=payload, expires_delta=timedelta(days=1))
-        
-        return jsonify({
-            "status": "ok",
-            "message": "Compañía cambiada exitosamente",
-            "data": payload,
-            "token": access_token,
-        })
+
+        return jsonify(
+            {
+                "status": "ok",
+                "message": "Compañía cambiada exitosamente",
+                "data": payload,
+                "token": access_token,
+            }
+        )
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})

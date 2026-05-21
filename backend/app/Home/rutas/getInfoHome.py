@@ -28,20 +28,7 @@ def getInfoHome():
     engine = db.session.bind
 
     # 3. Estructura inicial de respuesta para el Home
-    dataInfoHome = {
-        "ciaselloagua": None,
-        "cialogo": None,
-        "lastLoginFecisys": None,
-        "usrnombre": None,
-        "totalLogins": 0,
-        "isFirstLoginUser": False,
-        "passwordChangeNeeded": False,
-        "ciaalias": None,
-        "ciatipomenu": 0,
-        "ciacolor": "",
-        "ciatipoletra": "",
-        "ciatamanioletra": ""
-    }
+    dataInfoHome = {"ciaselloagua": None, "cialogo": None, "lastLoginFecisys": None, "usrnombre": None, "totalLogins": 0, "isFirstLoginUser": False, "passwordChangeNeeded": False, "ciaalias": None, "ciatipomenu": 0, "ciacolor": "", "ciatipoletra": "", "ciatamanioletra": ""}
 
     with engine.connect() as connection:
         with connection.begin():
@@ -91,7 +78,7 @@ def getInfoHome():
 
             dataInfoHome["totalLogins"] = num_total_logins
             # 1 porque el login actual ya generó auditoría
-            dataInfoHome["isFirstLoginUser"] = (num_total_logins <= 1)
+            dataInfoHome["isFirstLoginUser"] = num_total_logins <= 1
 
             # 4. Lógica de seguridad y caducidad de clave
             query_siaccusr = """

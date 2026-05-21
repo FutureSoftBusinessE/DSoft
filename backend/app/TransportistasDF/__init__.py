@@ -15,4 +15,3 @@ from app.TransportistasDF.rutas import getAllTransportistasDF
 from app.TransportistasDF.rutas import updateTransportistasDF
 from app.TransportistasDF.rutas import validarTransportistasDFIMP
 from app.TransportistasDF.rutas import insertarTransportistasDFIMP
-

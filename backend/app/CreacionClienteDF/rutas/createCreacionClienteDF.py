@@ -30,10 +30,12 @@ def createCreacionClienteDF():
     with engine.connect() as connection:
         with connection.begin():
             # 1. Validación de Duplicados
-            check_ruc_sql = text("""
+            check_ruc_sql = text(
+                """
                 SELECT clinombre FROM cxcmcli
                 WHERE ciacodigo = :ciacodigo AND cliruc = :cliruc
-            """)
+            """
+            )
             cliente_existente = connection.execute(check_ruc_sql, {"ciacodigo": sCodCia, "cliruc": cliruc}).mappings().fetchone()
             if cliente_existente:
                 # El mensaje se envía sin el prefijo 'APIError' para que el modal lo muestre limpio
@@ -53,35 +55,65 @@ def createCreacionClienteDF():
             # 3. Inserción con auditoría
             now = datetime.now()
             insert_data = {
-                "ciacodigo": sCodCia, "clicodigo": clicodigo, "clinombre": clinombre, "cliruc": cliruc,
+                "ciacodigo": sCodCia,
+                "clicodigo": clicodigo,
+                "clinombre": clinombre,
+                "cliruc": cliruc,
                 "clidirec": str(data.get("clidirec", "")).upper()[:200],
                 "cliidentifica": str(data.get("cliidentifica", "C")).upper()[:1],
                 "cliemail": str(data.get("cliemail", "")).lower()[:100],
                 "clitelef1": data.get("clitelef1", "")[:15],
                 "cliintersec": data.get("cliintersec", "")[:60],
                 "clistatus": data.get("clistatus", "A"),
-                "activicodigo": localidad["activicodigo"], "regcodigo": localidad["regcodigo"],
-                "sectorcodigo": localidad["sectorcodigo"], "tipcodigo": localidad["tipcodigo"],
-                "zoncodigo": localidad["zoncodigo"], "procodigo": localidad["procodigo"],
-                "ciucodigo": localidad["ciucodigo"], "parrocodigo": localidad["parrocodigo"],
-                "cliapliiva": 0, "clibloqueo": 0, "clipersona": "N", "cliorigening": "I", "calificacion": "0",
-                "cliidenrep": "O", "cliidencon": "O", "cliconespecial": 0, "tarenviosta": "D", "clicuotaven": 0,
-                "clidiapago": 0, "clinommatriz": clinombre, "clidiasrecibefac1": 0, "clidiaentregafac": 0,
-                "clidemanda": 0, "clicastigada": 0, "cliparterel": 0, "cliprefac": 1,
-                "clifecisys": now.strftime('%Y-%m-%d 00:00:00'), "clihorisys": now.strftime('1900-01-01 %H:%M:%S'),
-                "cliusuisys": sUsuario[:10], "cliestisys": sNomEst[:40],
-                "clifecmsys": now.strftime('%Y-%m-%d 00:00:00'), "clihormsys": now.strftime('1900-01-01 %H:%M:%S'),
-                "cliusumsys": sUsuario[:10], "cliestmsys": sNomEst[:40]
+                "activicodigo": localidad["activicodigo"],
+                "regcodigo": localidad["regcodigo"],
+                "sectorcodigo": localidad["sectorcodigo"],
+                "tipcodigo": localidad["tipcodigo"],
+                "zoncodigo": localidad["zoncodigo"],
+                "procodigo": localidad["procodigo"],
+                "ciucodigo": localidad["ciucodigo"],
+                "parrocodigo": localidad["parrocodigo"],
+                "cliapliiva": 0,
+                "clibloqueo": 0,
+                "clipersona": "N",
+                "cliorigening": "I",
+                "calificacion": "0",
+                "cliidenrep": "O",
+                "cliidencon": "O",
+                "cliconespecial": 0,
+                "tarenviosta": "D",
+                "clicuotaven": 0,
+                "clidiapago": 0,
+                "clinommatriz": clinombre,
+                "clidiasrecibefac1": 0,
+                "clidiaentregafac": 0,
+                "clidemanda": 0,
+                "clicastigada": 0,
+                "cliparterel": 0,
+                "cliprefac": 1,
+                "clifecisys": now.strftime("%Y-%m-%d 00:00:00"),
+                "clihorisys": now.strftime("1900-01-01 %H:%M:%S"),
+                "cliusuisys": sUsuario[:10],
+                "cliestisys": sNomEst[:40],
+                "clifecmsys": now.strftime("%Y-%m-%d 00:00:00"),
+                "clihormsys": now.strftime("1900-01-01 %H:%M:%S"),
+                "cliusumsys": sUsuario[:10],
+                "cliestmsys": sNomEst[:40],
             }
 
-            connection.execute(text("""
+            connection.execute(
+                text(
+                    """
                 INSERT INTO cxcmcli (ciacodigo, clicodigo, clinombre, cliruc, clidirec, cliidentifica, cliemail, clitelef1, cliintersec, clistatus, activicodigo, regcodigo, sectorcodigo, tipcodigo, zoncodigo, procodigo, ciucodigo, parrocodigo, cliapliiva, clibloqueo, clipersona
                                     , cliorigening, calificacion, cliidenrep, cliidencon, cliconespecial, tarenviosta, clicuotaven, clidiapago, clinommatriz, clidiasrecibefac1, clidiaentregafac, clidemanda, clicastigada, cliparterel, cliprefac, clifecisys, clihorisys, cliusuisys, cliestisys
                                     , clifecmsys, clihormsys, cliusumsys, cliestmsys)
                 VALUES (:ciacodigo, :clicodigo, :clinombre, :cliruc, :clidirec, :cliidentifica, :cliemail, :clitelef1, :cliintersec, :clistatus, :activicodigo, :regcodigo, :sectorcodigo, :tipcodigo, :zoncodigo, :procodigo, :ciucodigo, :parrocodigo, :cliapliiva, :clibloqueo, :clipersona,
                                     :cliorigening, :calificacion, :cliidenrep, :cliidencon, :cliconespecial, :tarenviosta, :clicuotaven, :clidiapago, :clinommatriz, :clidiasrecibefac1, :clidiaentregafac, :clidemanda, :clicastigada, :cliparterel, :cliprefac, :clifecisys, :clihorisys, :cliusuisys,
                                     :cliestisys, :clifecmsys, :clihormsys, :cliusumsys, :cliestmsys)
-            """), insert_data)
+            """
+                ),
+                insert_data,
+            )
 
             # Actualizar Secuencia
             connection.execute(text("UPDATE siacsec SET secnumero = :num WHERE ciacodigo = :cia AND seccodigo = 'CLI'"), {"num": nuevo_secnumero, "cia": sCodCia})

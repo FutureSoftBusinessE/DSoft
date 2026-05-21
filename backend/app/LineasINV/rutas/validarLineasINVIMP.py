@@ -40,7 +40,7 @@ def validar_lineasinv(connection, rows: list, sCodCia: str):
             continue
 
         # Formatear código según el largo de la empresa para validar existencia
-        full_code = raw_code.ljust(total_len, '0')[:total_len]
+        full_code = raw_code.ljust(total_len, "0")[:total_len]
 
         if full_code in vistos_csv:
             fila["ok"] = False
@@ -57,7 +57,9 @@ def validar_lineasinv(connection, rows: list, sCodCia: str):
         idx = 0
         nivel_detectado = 1
         for i, length in enumerate(segs_len):
-            segmento = full_code[idx: idx + length]
+            # segmento = full_code[idx : idx + length]
+            segmento = full_code[idx, idx + length]
+
             if segmento != ("0" * length):
                 nivel_detectado = i + 1
             idx += length

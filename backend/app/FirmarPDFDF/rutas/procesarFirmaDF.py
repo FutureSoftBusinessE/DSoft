@@ -25,9 +25,7 @@ def validarFirmaP12():
     try:
         p12_data = p12_file.read()
         # Carga del certificado
-        private_key, certificate, additional_certificates = pkcs12.load_key_and_certificates(
-            p12_data, password.encode(), default_backend()
-        )
+        private_key, certificate, additional_certificates = pkcs12.load_key_and_certificates(p12_data, password.encode(), default_backend())
 
         # Extracción de atributos específicos
         subject = certificate.subject
@@ -42,12 +40,12 @@ def validarFirmaP12():
         return {
             "emitido_por": entidad,
             "sujeto_completo": cn,
-            "valido_desde": certificate.not_valid_before_utc.strftime('%Y-%m-%d %H:%M:%S'),
-            "valido_hasta": certificate.not_valid_after_utc.strftime('%Y-%m-%d %H:%M:%S'),
+            "valido_desde": certificate.not_valid_before_utc.strftime("%Y-%m-%d %H:%M:%S"),
+            "valido_hasta": certificate.not_valid_after_utc.strftime("%Y-%m-%d %H:%M:%S"),
             "expirado": "SÍ" if expirado else "NO",
             "serial": hex(certificate.serial_number),
             # El campo revocado requiere conexión a listas CRL/OCSP (se deja como N/A por ahora)
-            "revocado": "NO (Verificación local)"
+            "revocado": "NO (Verificación local)",
         }
     except Exception:
         raise ValidationError("Error al leer el certificado. Verifique la contraseña.")

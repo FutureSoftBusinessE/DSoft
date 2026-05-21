@@ -20,8 +20,8 @@ def insertarLineasINVIMP():
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
     sUsuario = claims["user"]
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
     rows_csv = data.get("rows")
@@ -44,12 +44,13 @@ def insertarLineasINVIMP():
             to_insert = []
             for fila in rows:
                 raw_code = str(fila.get("lincodigo", "")).replace("-", "").replace(".", "").strip().upper()
-                full_code = raw_code.ljust(total_len, '0')[:total_len]
+                full_code = raw_code.ljust(total_len, "0")[:total_len]
                 # Cálculo de Jerarquía Automática
                 segments = []
                 idx = 0
                 for largo in segs_len:
-                    segments.append(full_code[idx: idx + largo])
+                    # segments.append(full_code[idx : idx + largo])
+                    segments.append(full_code[slice(idx, idx + largo)])
                     idx += largo
 
                 linnivel = 1
@@ -59,7 +60,7 @@ def insertarLineasINVIMP():
                 for i in range(len(segments) - 1, -1, -1):
                     if segments[i] != ("0" * segs_len[i]):
                         linnivel = i + 1
-                        lincodigo1 = "".join(segments[:i + 1])
+                        lincodigo1 = "".join(segments[: i + 1])
                         if i > 0:
                             p_segs = segments[:i]
                             for j in range(i, len(segments)):
@@ -67,26 +68,34 @@ def insertarLineasINVIMP():
                             linlindes = "".join(p_segs)
                         break
 
-                to_insert.append({
-                    "ciacodigo": sCodCia,
-                    "lincodigo": full_code,
-                    "lindescri": str(fila.get("lindescri")).strip().upper()[:40],
-                    "linlindes": linlindes,
-                    "linnivel": linnivel,
-                    "lincodigo1": lincodigo1,
-                    "lintipo": str(fila.get("lintipo", "T")).upper()[:1],
-                    "linstatus": str(fila.get("linstatus", "A")).upper()[:1],
-                    "coscodigo": None,
-                    "numsecini": None,
-                    "numseccont": None,
-                    "linfecisys": fecha_pura, "linhorisys": hora_pura, "linusuisys": sUsuario[:10],
-                    "linfecmsys": fecha_pura, "linhormsys": hora_pura, "linusumsys": sUsuario[:10]
-                })
+                to_insert.append(
+                    {
+                        "ciacodigo": sCodCia,
+                        "lincodigo": full_code,
+                        "lindescri": str(fila.get("lindescri")).strip().upper()[:40],
+                        "linlindes": linlindes,
+                        "linnivel": linnivel,
+                        "lincodigo1": lincodigo1,
+                        "lintipo": str(fila.get("lintipo", "T")).upper()[:1],
+                        "linstatus": str(fila.get("linstatus", "A")).upper()[:1],
+                        "coscodigo": None,
+                        "numsecini": None,
+                        "numseccont": None,
+                        "linfecisys": fecha_pura,
+                        "linhorisys": hora_pura,
+                        "linusuisys": sUsuario[:10],
+                        "linfecmsys": fecha_pura,
+                        "linhormsys": hora_pura,
+                        "linusumsys": sUsuario[:10],
+                    }
+                )
 
-            insert_sql = text("""
+            insert_sql = text(
+                """
                 INSERT INTO inblin (ciacodigo, lincodigo, lindescri, linlindes, linnivel, lintipo, linstatus, lincodigo1, coscodigo, numsecini, numseccont, linfecisys, linhorisys, linusuisys, linfecmsys, linhormsys, linusumsys)
                 VALUES (:ciacodigo, :lincodigo, :lindescri, :linlindes, :linnivel, :lintipo, :linstatus, :lincodigo1, :coscodigo, :numsecini, :numseccont, :linfecisys, :linhorisys, :linusuisys, :linfecmsys, :linhormsys, :linusumsys)
-            """)
+            """
+            )
             connection.execute(insert_sql, to_insert)
 
     return {"data": "Importación masiva completada con éxito", "inserted": len(to_insert)}

@@ -26,8 +26,8 @@ def insertarPresentacionesINVIMP():
 
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
     columns = data.get("columns")
@@ -66,12 +66,10 @@ def insertarPresentacionesINVIMP():
                         "precodigo": str(fila.get("precodigo", "")).strip().upper()[:2],
                         "predescri": str(fila.get("predescri", "")).strip().upper()[:30],
                         "prestatus": str(fila.get("prestatus", "A")).strip().upper()[:1],
-
                         # Auditoría de Inserción (Truncado a varchar(10) según inbpre)
                         "prefecisys": fecha_pura,
                         "prehorisys": hora_pura,
                         "preusuisys": sUsuario[:10],
-
                         # Auditoría de Modificación
                         "prefecmsys": fecha_pura,
                         "prehormsys": hora_pura,

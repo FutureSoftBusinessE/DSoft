@@ -11,13 +11,13 @@ from error_handling import api_endpoint, ValidationError
 
 
 def validar_identificacion_ec(tipo, valor):
-    """Validador de longitud de identificación estándar """
+    """Validador de longitud de identificación estándar"""
     # R.U.C.
-    if tipo == 'R':
+    if tipo == "R":
         if len(str(valor).strip()) != 13:
             raise ValidationError("El R.U.C. debe tener exactamente 13 dígitos")
         # Cédula
-    elif tipo == 'C':
+    elif tipo == "C":
         if len(str(valor).strip()) != 10:
             raise ValidationError("La Cédula debe tener exactamente 10 dígitos")
 
@@ -35,8 +35,8 @@ def createProveedoresDF():
 
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
@@ -85,15 +85,33 @@ def createProveedoresDF():
                 "protelef1": str(data.get("protelef1", "")).strip()[:15],
                 "procelu": str(data.get("procelu", "")).strip()[:15],
                 "prostatus": str(data.get("prostatus", "A")).strip().upper()[:1],
-                "prosaldosuc": 0, "prosaldodol": 0, "proesperjur": 0, "proesconesp": 0,
-                "procambiaimp": 0, "prodiacre": 0, "proparterel": "N", "procuo": 1,
-                "protarcre": 0, "procuota": 0, "prodescuento": 0, "prolistaprecio": 1,
-                "proaplicaGar": "0", "progardias": 0, "proaplicaContr": "0", "procontrdias": 0, "proaplicarebate": "0",
-                "profecisys": fecha_pura, "prohorisys": hora_pura, "prousuisys": sUsuario[:10],
-                "profecmsys": fecha_pura, "prohormsys": hora_pura, "prousumsys": sUsuario[:10],
+                "prosaldosuc": 0,
+                "prosaldodol": 0,
+                "proesperjur": 0,
+                "proesconesp": 0,
+                "procambiaimp": 0,
+                "prodiacre": 0,
+                "proparterel": "N",
+                "procuo": 1,
+                "protarcre": 0,
+                "procuota": 0,
+                "prodescuento": 0,
+                "prolistaprecio": 1,
+                "proaplicaGar": "0",
+                "progardias": 0,
+                "proaplicaContr": "0",
+                "procontrdias": 0,
+                "proaplicarebate": "0",
+                "profecisys": fecha_pura,
+                "prohorisys": hora_pura,
+                "prousuisys": sUsuario[:10],
+                "profecmsys": fecha_pura,
+                "prohormsys": hora_pura,
+                "prousumsys": sUsuario[:10],
             }
 
-            insert_query = text("""
+            insert_query = text(
+                """
                 INSERT INTO cxpmprov (
                     ciacodigo, procodigo, procalif, proruc, pronombre, pronommat, prorepres, propais, prociudad,
                     prodirec, proemail, protelef1, procelu, prostatus, prosaldosuc, prosaldodol,
@@ -107,7 +125,8 @@ def createProveedoresDF():
                     :procuota, :prodescuento, :prolistaprecio, :proaplicaGar, :progardias, :proaplicaContr,
                     :procontrdias, :proaplicarebate, :profecisys, :prohorisys, :prousuisys, :profecmsys, :prohormsys, :prousumsys
                 )
-            """)
+            """
+            )
             connection.execute(insert_query, data_insert)
 
             # 6. Actualizar Tabla de Secuencias con el nuevo número

@@ -35,17 +35,16 @@ def eliminarTiposCliente():
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparar parámetros para el borrado (Cia + Código)
-            data_delete = {
-                "ciacodigo": sCodCia,
-                "tipcodigo": str(tipcodigo).strip().upper()
-            }
+            data_delete = {"ciacodigo": sCodCia, "tipcodigo": str(tipcodigo).strip().upper()}
 
             # 5. Sentencia SQL de eliminación con integridad multitenancy
-            delete_query = text("""
+            delete_query = text(
+                """
                 DELETE FROM cxcbtipcli
                 WHERE ciacodigo = :ciacodigo
                   AND tipcodigo = :tipcodigo
-            """)
+            """
+            )
 
             try:
                 # 6. Ejecución del borrado con captura de errores de integridad

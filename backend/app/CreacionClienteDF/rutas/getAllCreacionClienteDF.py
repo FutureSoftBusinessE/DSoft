@@ -66,18 +66,17 @@ def getAllCreacionClienteDF():
 
             result = connection.execute(text(final_query), params).mappings().fetchall()
             total_records = result[0]["total"] if result else 0
-            all_clientes_result = [
-                {**{key: value for key, value in dict(row).items() if key != "total"}}
-                for row in result
-            ]
+            all_clientes_result = [{**{key: value for key, value in dict(row).items() if key != "total"}} for row in result]
 
     return (
-        jsonify({
-            "data": all_clientes_result,
-            "total": total_records,
-            "page": page,
-            "per_page": per_page,
-            "total_pages": (total_records + per_page - 1) // per_page,
-        }),
+        jsonify(
+            {
+                "data": all_clientes_result,
+                "total": total_records,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": (total_records + per_page - 1) // per_page,
+            }
+        ),
         200,
     )

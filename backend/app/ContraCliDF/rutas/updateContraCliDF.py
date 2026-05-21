@@ -24,8 +24,8 @@ def updateContraCliDF():
 
     # 2. Lógica de separación de Fecha y Hora para auditoría en SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
     # 3. Extracción de la Cabecera (cxcccontratos)
@@ -62,11 +62,13 @@ def updateContraCliDF():
     with engine.connect() as connection:
         with connection.begin():
             # 5. Validación Regla de Negocio VB6: Verificar que exista y esté Activo
-            check_exist = text("""
+            check_exist = text(
+                """
                 SELECT constatus, confecfin
                 FROM cxcccontratos
                 WHERE ciacodigo = :ciacodigo AND concodcontrato = :concodcontrato
-            """)
+            """
+            )
             exist = connection.execute(check_exist, {"ciacodigo": sCodCia, "concodcontrato": concodcontrato}).mappings().fetchone()
             if not exist:
                 raise ValidationError(f"El Contrato '{concodcontrato}' no existe o pertenece a otra compañía.")
@@ -74,11 +76,13 @@ def updateContraCliDF():
                 raise ValidationError("Estado de Contrato no permite modificarlo, verifique.")
 
             # 6. Validación Regla de Negocio VB6: No debe tener facturas emitidas (facfac)
-            check_facturas = text("""
+            check_facturas = text(
+                """
                 SELECT facnumfac
                 FROM facfac
                 WHERE ciacodigo = :ciacodigo AND facnumref = :concodcontrato
-            """)
+            """
+            )
             factura = connection.execute(check_facturas, {"ciacodigo": sCodCia, "concodcontrato": concodcontrato}).mappings().fetchone()
             if factura:
                 raise ValidationError("No puede modificar el Contrato porque ya tiene Factura(s) emitida(s), verifique.")
@@ -86,7 +90,8 @@ def updateContraCliDF():
             # ---------------------------------------------------------
             # 7. ACTUALIZACIÓN DE LA CABECERA (cxcccontratos)
             # ---------------------------------------------------------
-            update_cabecera = text("""
+            update_cabecera = text(
+                """
                 UPDATE cxcccontratos SET
                     condescri = :condescri,
                     concodigo = :concodigo,
@@ -102,24 +107,28 @@ def updateContraCliDF():
                     conusumsys = :usumsys,
                     conestmsys = :estmsys
                 WHERE ciacodigo = :ciacodigo AND concodcontrato = :concodcontrato
-            """)
-            connection.execute(update_cabecera, {
-                "ciacodigo": sCodCia,
-                "concodcontrato": concodcontrato,
-                "condescri": condescri,
-                "concodigo": concodigo,
-                "constatus": constatus,
-                "confecinicio": confecinicio,
-                "confecfin": confecfin,
-                "confecfirma": confecfirma,
-                "confecinifac": confecinifac,
-                "confrecuencia": confrecuencia,
-                "convalor": convalor,
-                "fecmsys": fecha_pura,
-                "hormsys": hora_pura,
-                "usumsys": sUsuario,
-                "estmsys": sNomEst
-            })
+            """
+            )
+            connection.execute(
+                update_cabecera,
+                {
+                    "ciacodigo": sCodCia,
+                    "concodcontrato": concodcontrato,
+                    "condescri": condescri,
+                    "concodigo": concodigo,
+                    "constatus": constatus,
+                    "confecinicio": confecinicio,
+                    "confecfin": confecfin,
+                    "confecfirma": confecfirma,
+                    "confecinifac": confecinifac,
+                    "confrecuencia": confrecuencia,
+                    "convalor": convalor,
+                    "fecmsys": fecha_pura,
+                    "hormsys": hora_pura,
+                    "usumsys": sUsuario,
+                    "estmsys": sNomEst,
+                },
+            )
 
             # ---------------------------------------------------------
             # 8. ELIMINACIÓN DE DETALLE Y PERÍODOS (Delete & Re-Insert)
@@ -133,7 +142,8 @@ def updateContraCliDF():
             # ---------------------------------------------------------
             # 9. RE-INSERCIÓN DEL DETALLE DE SERVICIOS (cxctcontratos)
             # ---------------------------------------------------------
-            insert_detalle = text("""
+            insert_detalle = text(
+                """
                 INSERT INTO cxctcontratos (
                     ciacodigo, concodcontrato, consecuen, constatus, invcodigo,
                     artcodigo, artdescri, concantidad, convalor, contotal,
@@ -145,32 +155,37 @@ def updateContraCliDF():
                     :fecisys, :horisys, :usuisys, :estisys,
                     :fecmsys, :hormsys, :usumsys, :estmsys
                 )
-            """)
+            """
+            )
             for index, item in enumerate(servicios, start=1):
-                connection.execute(insert_detalle, {
-                    "ciacodigo": sCodCia,
-                    "concodcontrato": concodcontrato,
-                    "consecuen": index,
-                    "invcodigo": str(item.get("invcodigo", "")).strip().upper()[:2],
-                    "artcodigo": str(item.get("artcodigo", "")).strip().upper()[:15],
-                    "artdescri": str(item.get("artdescri", "")).strip().upper()[:250],
-                    "concantidad": int(item.get("concantidad", 1)),
-                    "convalor": float(item.get("convalor", 0.0)),
-                    "contotal": float(item.get("contotal", 0.0)),
-                    "fecisys": fecha_pura,
-                    "horisys": hora_pura,
-                    "usuisys": sUsuario,
-                    "estisys": sNomEst,
-                    "fecmsys": fecha_pura,
-                    "hormsys": hora_pura,
-                    "usumsys": sUsuario,
-                    "estmsys": sNomEst
-                })
+                connection.execute(
+                    insert_detalle,
+                    {
+                        "ciacodigo": sCodCia,
+                        "concodcontrato": concodcontrato,
+                        "consecuen": index,
+                        "invcodigo": str(item.get("invcodigo", "")).strip().upper()[:2],
+                        "artcodigo": str(item.get("artcodigo", "")).strip().upper()[:15],
+                        "artdescri": str(item.get("artdescri", "")).strip().upper()[:250],
+                        "concantidad": int(item.get("concantidad", 1)),
+                        "convalor": float(item.get("convalor", 0.0)),
+                        "contotal": float(item.get("contotal", 0.0)),
+                        "fecisys": fecha_pura,
+                        "horisys": hora_pura,
+                        "usuisys": sUsuario,
+                        "estisys": sNomEst,
+                        "fecmsys": fecha_pura,
+                        "hormsys": hora_pura,
+                        "usumsys": sUsuario,
+                        "estmsys": sNomEst,
+                    },
+                )
 
             # ---------------------------------------------------------
             # 10. RE-INSERCIÓN DE LOS PERÍODOS A FACTURAR (cxctcontratosperiodos)
             # ---------------------------------------------------------
-            insert_periodos = text("""
+            insert_periodos = text(
+                """
                 INSERT INTO cxctcontratosperiodos (
                     ciacodigo, concodcontrato, consecuen, conmes, conanio, constatus,
                     confecisys, conhorisys, conusuisys, conestisys,
@@ -180,23 +195,27 @@ def updateContraCliDF():
                     :fecisys, :horisys, :usuisys, :estisys,
                     :fecmsys, :hormsys, :usumsys, :estmsys
                 )
-            """)
+            """
+            )
             for index, per in enumerate(periodos, start=1):
-                connection.execute(insert_periodos, {
-                    "ciacodigo": sCodCia,
-                    "concodcontrato": concodcontrato,
-                    "consecuen": index,
-                    "conmes": int(per.get("conmes", 0)),
-                    "conanio": int(per.get("conanio", 0)),
-                    "constatus": str(per.get("constatus", "A")).strip().upper()[:1],
-                    "fecisys": fecha_pura,
-                    "horisys": hora_pura,
-                    "usuisys": sUsuario,
-                    "estisys": sNomEst,
-                    "fecmsys": fecha_pura,
-                    "hormsys": hora_pura,
-                    "usumsys": sUsuario,
-                    "estmsys": sNomEst
-                })
+                connection.execute(
+                    insert_periodos,
+                    {
+                        "ciacodigo": sCodCia,
+                        "concodcontrato": concodcontrato,
+                        "consecuen": index,
+                        "conmes": int(per.get("conmes", 0)),
+                        "conanio": int(per.get("conanio", 0)),
+                        "constatus": str(per.get("constatus", "A")).strip().upper()[:1],
+                        "fecisys": fecha_pura,
+                        "horisys": hora_pura,
+                        "usuisys": sUsuario,
+                        "estisys": sNomEst,
+                        "fecmsys": fecha_pura,
+                        "hormsys": hora_pura,
+                        "usumsys": sUsuario,
+                        "estmsys": sNomEst,
+                    },
+                )
 
     return {"data": "Contrato de Cliente actualizado exitosamente"}

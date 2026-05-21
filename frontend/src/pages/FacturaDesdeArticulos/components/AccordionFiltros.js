@@ -94,8 +94,8 @@ const AccordionFiltros = forwardRef(({ onFilteredProducts, clicodigo, factippag 
     setIsLoading(true)
     try {
       const request = {
-        clicodigo: clicodigo || "000001",
-        factippag: factippag || "",
+        clicodigo,
+        factippag,
         filtros: {
           codigos: getCodesFiltros(filtrosGenerales.articulos, "artcodigo"),
           presentacion: getCodesFiltros(filtrosGenerales.presentaciones, "precodigo"),

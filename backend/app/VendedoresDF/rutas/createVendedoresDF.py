@@ -24,8 +24,8 @@ def createVendedoresDF():
 
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
@@ -62,16 +62,15 @@ def createVendedoresDF():
             vendireccion = str(vendireccion).strip().upper()[:40]
 
             # 5. Verificación de Duplicados (PK: ciacodigo + vencodigo)
-            check_data = {
-                "ciacodigo": sCodCia,
-                "vencodigo": vencodigo
-            }
-            check_query = text("""
+            check_data = {"ciacodigo": sCodCia, "vencodigo": vencodigo}
+            check_query = text(
+                """
                 SELECT vencodigo
                 FROM fapvendedor
                 WHERE ciacodigo = :ciacodigo
                   AND vencodigo = :vencodigo
-            """)
+            """
+            )
             result = connection.execute(check_query, check_data).mappings().fetchone()
 
             if result:
@@ -89,19 +88,16 @@ def createVendedoresDF():
                 "venaplica": str(venaplica).strip().upper()[:1],
                 "venstatus": str(venstatus).strip().upper()[:1],
                 "vencontacto": 0,
-
                 # Auditoría de Inserción
                 "venfecisys": fecha_pura,
                 "venhorisys": hora_pura,
                 "venusuisys": sUsuario[:10],
                 "venestisys": sNomEst[:30] if sNomEst else "WEB",
-
                 # Auditoría de Modificación
                 "venfecmsys": fecha_pura,
                 "venhormsys": hora_pura,
                 "venusumsys": sUsuario[:10],
                 "venestmsys": sNomEst[:30] if sNomEst else "WEB",
-
                 # Otros campos
                 "usrcodigo": str(usrcodigo).strip()[:10] if usrcodigo else None,
                 "vencomisiona": int(vencomisiona),
@@ -109,7 +105,7 @@ def createVendedoresDF():
                 "loccodigo": str(loccodigo).strip()[:2],
                 "pedidossiac": 0,
                 "pedidosweb": 0,
-                "pedidoswebart": 0
+                "pedidoswebart": 0,
             }
 
             insert_query = text(

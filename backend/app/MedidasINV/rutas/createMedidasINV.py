@@ -23,8 +23,8 @@ def createMedidasINV():
 
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
@@ -48,16 +48,15 @@ def createMedidasINV():
             medcodigo = str(medcodigo).strip().upper()[:3]
             meddescri = str(meddescri).strip().upper()[:30]
             # 5. Verificación de Duplicados (PK: ciacodigo + medcodigo)
-            check_data = {
-                "ciacodigo": sCodCia,
-                "medcodigo": medcodigo
-            }
-            check_query = text("""
+            check_data = {"ciacodigo": sCodCia, "medcodigo": medcodigo}
+            check_query = text(
+                """
                 SELECT medcodigo
                 FROM inbmed
                 WHERE ciacodigo = :ciacodigo
                   AND medcodigo = :medcodigo
-            """)
+            """
+            )
             result = connection.execute(check_query, check_data).mappings().fetchone()
             if result:
                 raise ValidationError(f"Ya existe una Unidad de Medida registrada con el código '{medcodigo}'")

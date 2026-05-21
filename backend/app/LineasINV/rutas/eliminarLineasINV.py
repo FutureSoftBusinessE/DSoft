@@ -38,29 +38,30 @@ def eliminarLineasINV():
             # VALIDACIÓN JERÁRQUICA: Evitar borrar un padre si tiene hijos
             # ================================================================
             # Buscamos si existe algún registro donde 'linlindes' (Padre) sea igual al código que queremos borrar
-            check_hijos_query = text("""
+            check_hijos_query = text(
+                """
                 SELECT TOP 1 lincodigo
                 FROM inblin
                 WHERE ciacodigo = :ciacodigo
                   AND linlindes = :lincodigo
-            """)
+            """
+            )
             tiene_hijos = connection.execute(check_hijos_query, {"ciacodigo": sCodCia, "lincodigo": lincodigo}).fetchone()
 
             if tiene_hijos:
                 raise ValidationError(f"No se puede eliminar el Grupo '{lincodigo}' porque tiene sub-niveles (hijos) asociados. Elimine primero los niveles inferiores.")
 
             # 4. Preparar parámetros para el borrado
-            data_delete = {
-                "ciacodigo": sCodCia,
-                "lincodigo": lincodigo
-            }
+            data_delete = {"ciacodigo": sCodCia, "lincodigo": lincodigo}
 
             # 5. Sentencia SQL de eliminación segura
-            delete_query = text("""
+            delete_query = text(
+                """
                 DELETE FROM inblin
                 WHERE ciacodigo = :ciacodigo
                   AND lincodigo = :lincodigo
-            """)
+            """
+            )
 
             try:
                 # Ejecutamos el delete

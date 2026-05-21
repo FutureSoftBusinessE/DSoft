@@ -91,10 +91,15 @@ def getAllAutorizacionesSri():
                     row_dict["sriautnumeroold"] = int(row_dict.get("sriautnumeroold") or 0)
                 data_result.append(row_dict)
     # 8. RETORNO ESTRUCTURADO PARA COMPATIBILIDAD CON CustomConditionalActionsTableServerSide
-    return jsonify({
-        "data": data_result,
-        "total": total_records,
-        "page": page,
-        "per_page": per_page,
-        "total_pages": (total_records + per_page - 1) // per_page,
-    }), 200
+    return (
+        jsonify(
+            {
+                "data": data_result,
+                "total": total_records,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": (total_records + per_page - 1) // per_page,
+            }
+        ),
+        200,
+    )

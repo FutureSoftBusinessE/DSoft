@@ -23,16 +23,16 @@ def createTiposCliente():
 
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
     # 3. Extracción de campos según estructura de tabla cxcbtipcli
     tipcodigo = data.get("tipcodigo")
     tipdescri = data.get("tipdescri")
-    tipcobdir = data.get("tipcobdir", 0)    # Cobro Directo (int)
-    tipdefacr = data.get("tipdefacr", 0)    # Déficit/Acreedor (decimal)
+    tipcobdir = data.get("tipcobdir", 0)  # Cobro Directo (int)
+    tipdefacr = data.get("tipdefacr", 0)  # Déficit/Acreedor (decimal)
     tipstatus = data.get("tipstatus", "A")
 
     # 4. Validaciones de campos obligatorios
@@ -51,16 +51,15 @@ def createTiposCliente():
             tipdescri = str(tipdescri).strip().upper()[:40]
 
             # 5. Verificación de Duplicados (PK: ciacodigo + tipcodigo)
-            check_data = {
-                "ciacodigo": sCodCia,
-                "tipcodigo": tipcodigo
-            }
-            check_query = text("""
+            check_data = {"ciacodigo": sCodCia, "tipcodigo": tipcodigo}
+            check_query = text(
+                """
                 SELECT tipcodigo
                 FROM cxcbtipcli
                 WHERE ciacodigo = :ciacodigo
                   AND tipcodigo = :tipcodigo
-            """)
+            """
+            )
             result = connection.execute(check_query, check_data).mappings().fetchone()
 
             if result:
@@ -74,13 +73,11 @@ def createTiposCliente():
                 "tipcobdir": int(tipcobdir),
                 "tipstatus": str(tipstatus).strip().upper()[:1],
                 "tipdefacr": float(tipdefacr),
-
                 # Auditoría de Inserción
                 "tipfecisys": fecha_pura,
                 "tiphorisys": hora_pura,
                 # varchar(10) en cxcbtipcli
                 "tipusuisys": sUsuario[:10],
-
                 # Auditoría de Modificación
                 "tipfecmsys": fecha_pura,
                 "tiphormsys": hora_pura,

@@ -19,11 +19,7 @@ def get_info_ruc_sri(ruc):
         if len(ruc_clean) != 13:
             raise ValidationError("El RUC debe tener 13 dígitos.")
         sri_url = f"https://srienlinea.sri.gob.ec/sri-catastro-sujeto-servicio-internet/rest/ConsolidadoContribuyente/obtenerPorNumerosRuc?ruc={ruc_clean}"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "Referer": "https://srienlinea.sri.gob.ec/sri-en-linea/SriEnLinea/ConsultaRuc/Consultas/consultaRuc",
-            "X-Requested-With": "XMLHttpRequest"
-        }
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36", "Referer": "https://srienlinea.sri.gob.ec/sri-en-linea/SriEnLinea/ConsultaRuc/Consultas/consultaRuc", "X-Requested-With": "XMLHttpRequest"}
         response = requests.get(sri_url, headers=headers, timeout=15)
         if response.status_code == 200:
             sri_data_list = response.json()
@@ -38,9 +34,7 @@ def get_info_ruc_sri(ruc):
                         "razonSocial": sri_data.get("razonSocial") or sri_data.get("nombreCompleto") or "",
                         "estadoContribuyenteRuc": (sri_data.get("estadoContribuyenteRuc") or sri_data.get("estadoContribuyente") or sri_data.get("descEstado") or "ACTIVO").upper(),
                         "motivoCancelacionSuspension": sri_data.get("motivoCancelacionSuspension") or "",
-                        "actividadEconomicaPrincipal": (
-                            sri_data.get("actividadEconomicaPrincipal") or sri_data.get("actividadEconomicaPpal") or sri_data.get("actividadPrincipal") or sri_data.get("descripcionActividad") or ""
-                        ).upper(),
+                        "actividadEconomicaPrincipal": (sri_data.get("actividadEconomicaPrincipal") or sri_data.get("actividadEconomicaPpal") or sri_data.get("actividadPrincipal") or sri_data.get("descripcionActividad") or "").upper(),
                         "tipoContribuyente": (sri_data.get("tipoContribuyente") or sri_data.get("descTipo") or "PERSONA NATURAL").upper(),
                         "regimen": (sri_data.get("regimen") or sri_data.get("descRegimen") or "GENERAL").upper(),
                         "categoria": (sri_data.get("categoria") or sri_data.get("descCategoria") or "N/A").upper(),
@@ -51,11 +45,11 @@ def get_info_ruc_sri(ruc):
                             "fechaInicioActividades": fechas_raw.get("fechaInicioActividades") or sri_data.get("fechaInicioActividades") or sri_data.get("fecIniAct") or "",
                             "fechaCese": fechas_raw.get("fechaCese") or sri_data.get("fechaCese") or sri_data.get("fecCese") or "",
                             "fechaReinicioActividades": fechas_raw.get("fechaReinicioActividades") or sri_data.get("fechaReinicioActividades") or sri_data.get("fecReinAct") or "",
-                            "fechaActualizacion": fechas_raw.get("fechaActualizacion") or sri_data.get("fechaActualizacion") or sri_data.get("fecAct") or ""
+                            "fechaActualizacion": fechas_raw.get("fechaActualizacion") or sri_data.get("fechaActualizacion") or sri_data.get("fecAct") or "",
                         },
                         "representantesLegales": sri_data.get("representantesLegales") or [],
                         "contribuyenteFantasma": "SI" if (sri_data.get("contribuyenteFantasma") == "S" or sri_data.get("esFantasma")) else "NO",
-                        "transaccionesInexistente": "SI" if (sri_data.get("transaccionesInexistente") == "S" or sri_data.get("esTransaccionInexistente")) else "NO"
+                        "transaccionesInexistente": "SI" if (sri_data.get("transaccionesInexistente") == "S" or sri_data.get("esTransaccionInexistente")) else "NO",
                     }
                 # Verificación SIAC
                 try:

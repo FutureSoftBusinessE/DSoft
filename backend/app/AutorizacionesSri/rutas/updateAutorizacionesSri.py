@@ -39,14 +39,14 @@ def updateAutorizacionesSri():
     # Campos a modificar
     sriautfecemi = data.get("sriautfecemi")
     sriautfecven = data.get("sriautfecven")
-    if not sripreauto or sripreauto not in ['A', 'P', 'E']:
+    if not sripreauto or sripreauto not in ["A", "P", "E"]:
         raise ValidationError("El tipo de autorización es inválido o no fue enviado.")
     if sriautnumero is None or float(sriautnumero) <= 0:
         raise ValidationError("El Número de Autorización es obligatorio para actualizar el registro.")
     if not sriautfecven:
         raise ValidationError("La fecha de caducidad ('Caduca en') es obligatoria.")
     # Regla de Negocio: Si no es electrónica, se exige también la fecha de inicio
-    if sripreauto != 'E' and not sriautfecemi:
+    if sripreauto != "E" and not sriautfecemi:
         raise ValidationError("La fecha de inicio ('Válido desde') es obligatoria para este tipo de autorización.")
     db.session = get_session(clicianonBD)
     engine = db.session.bind
@@ -54,13 +54,14 @@ def updateAutorizacionesSri():
         with connection.begin():
             # Tiempos de Auditoría
             now = datetime.now()
-            fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-            hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+            fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+            hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
             # 3. ACTUALIZAR TABLA CON LÓGICA CONDICIONAL DE NEGOCIO
-            if sripreauto == 'E':
+            if sripreauto == "E":
                 # Electrónica: SOLO se actualiza la fecha de caducidad
-                update_query = text("""
+                update_query = text(
+                    """
                     UPDATE siacsrinumero SET
                         sriautfecven = :ven,
                         srifecmsys = :fec,
@@ -68,15 +69,13 @@ def updateAutorizacionesSri():
                         sriusumsys = :usu,
                         sriestmsys = :est
                     WHERE ciacodigo = :cia AND sripreauto = :preauto AND sriautnumero = :autnum
-                """)
-                params = {
-                    "cia": sCodCia, "preauto": sripreauto, "autnum": float(sriautnumero),
-                    "ven": sriautfecven,
-                    "fec": fecha_pura, "hor": hora_pura, "usu": sUsuario, "est": sNomEst
-                }
+                """
+                )
+                params = {"cia": sCodCia, "preauto": sripreauto, "autnum": float(sriautnumero), "ven": sriautfecven, "fec": fecha_pura, "hor": hora_pura, "usu": sUsuario, "est": sNomEst}
             else:
                 # PreImpresa o AutoImpresores: Se actualizan AMBAS fechas
-                update_query = text("""
+                update_query = text(
+                    """
                     UPDATE siacsrinumero SET
                         sriautfecemi = :emi,
                         sriautfecven = :ven,
@@ -85,12 +84,9 @@ def updateAutorizacionesSri():
                         sriusumsys = :usu,
                         sriestmsys = :est
                     WHERE ciacodigo = :cia AND sripreauto = :preauto AND sriautnumero = :autnum
-                """)
-                params = {
-                    "cia": sCodCia, "preauto": sripreauto, "autnum": float(sriautnumero),
-                    "emi": sriautfecemi, "ven": sriautfecven,
-                    "fec": fecha_pura, "hor": hora_pura, "usu": sUsuario, "est": sNomEst
-                }
+                """
+                )
+                params = {"cia": sCodCia, "preauto": sripreauto, "autnum": float(sriautnumero), "emi": sriautfecemi, "ven": sriautfecven, "fec": fecha_pura, "hor": hora_pura, "usu": sUsuario, "est": sNomEst}
             result = connection.execute(update_query, params)
 
             # 4. Validar si realmente se actualizó algo

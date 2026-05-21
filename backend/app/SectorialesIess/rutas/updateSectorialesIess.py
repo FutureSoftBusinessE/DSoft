@@ -25,8 +25,8 @@ def updateSectorialesIess():
 
     # 2. Lógica de separación de Fecha y Hora para auditoría
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
@@ -63,13 +63,11 @@ def updateSectorialesIess():
                 "seccodigoNew": str(seccodigo_new).strip().upper()[:15],
                 "secanioOld": int(secanio_old),
                 "secanioNew": int(secanio_new),
-
                 "seccargo": str(seccargo).strip().upper()[:200],
                 "secestruc": str(secestruc).strip().upper()[:10] if secestruc else "",
                 "secdetalle": str(secdetalle).strip().upper()[:500] if secdetalle else "",
                 "secsalario": float(secsalario),
                 "secstatus": str(secstatus).strip().upper()[:1],
-
                 # Auditoría de Modificación (msys)
                 "secfecmsys": fecha_pura,
                 "sechormsys": hora_pura,

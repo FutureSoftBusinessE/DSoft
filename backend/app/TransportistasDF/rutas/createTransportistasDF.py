@@ -23,8 +23,8 @@ def createTransportistasDF():
 
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
@@ -67,16 +67,15 @@ def createTransportistasDF():
             transruc = str(transruc).strip()[:20]
 
             # 5. Verificación de Duplicados (PK: ciacodigo + transcodigo)
-            check_data = {
-                "ciacodigo": sCodCia,
-                "transcodigo": transcodigo
-            }
-            check_query = text("""
+            check_data = {"ciacodigo": sCodCia, "transcodigo": transcodigo}
+            check_query = text(
+                """
                 SELECT transcodigo
                 FROM inbtranspor
                 WHERE ciacodigo = :ciacodigo
                   AND transcodigo = :transcodigo
-            """)
+            """
+            )
             result = connection.execute(check_query, check_data).mappings().fetchone()
 
             if result:
@@ -93,22 +92,18 @@ def createTransportistasDF():
                 "transstatus": str(transstatus).strip().upper()[:1],
                 "transtipo": str(transtipo).strip().upper()[:1],
                 "transcuenta": str(transcuenta)[:20] if transcuenta else None,
-
                 # Contacto
                 "transcontacto": str(transcontactonombre).strip().upper()[:100] if transcontactonombre else None,
                 "transcontactonombre": str(transcontactonombre).strip().upper()[:100] if transcontactonombre else None,
                 "transcontactodirec": str(transcontactodirec).strip().upper()[:100] if transcontactodirec else None,
                 "transcontactoemail": str(transcontactoemail).strip().lower()[:100] if transcontactoemail else None,
                 "transcontactotelef": str(transcontactotelef)[:20] if transcontactotelef else None,
-
                 # Placa
                 "transplaca": str(transplaca).strip().upper()[:10] if transplaca else None,
-
                 # Auditoría de Inserción
                 "transfecisys": fecha_pura,
                 "transhorisys": hora_pura,
                 "transusuisys": sUsuario[:10],
-
                 # Auditoría de Modificación
                 "transfecmsys": fecha_pura,
                 "transhormsys": hora_pura,

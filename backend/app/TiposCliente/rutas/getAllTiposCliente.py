@@ -68,7 +68,7 @@ def getAllTiposCliente():
             final_query, params = build_paginated_query(
                 base_query=base_query,
                 order_by=[
-                    "tipdescri ASC",   # Ordenamiento por defecto: Alfabético
+                    "tipdescri ASC",  # Ordenamiento por defecto: Alfabético
                 ],
                 filters=filters,
                 page=page,
@@ -83,10 +83,7 @@ def getAllTiposCliente():
             total_records = result[0]["total"] if result else 0
 
             # Formatear lista excluyendo la columna virtual de conteo 'total'
-            all_tipos_result = [
-                {**{key: value for key, value in dict(row).items() if key != "total"}}
-                for row in result
-            ]
+            all_tipos_result = [{**{key: value for key, value in dict(row).items() if key != "total"}} for row in result]
 
     # 8. Retorno estructurado para el componente de grilla en React
     return (

@@ -29,7 +29,8 @@ def getInitialDataPuntosEmision():
 
         # 2. Combo de Autorizaciones SRI Disponibles
         # Traemos la información y formateamos las fechas para armar la etiqueta solicitada
-        sql_aut = text("""
+        sql_aut = text(
+            """
             SELECT
                 sripreauto,
                 sriautnumero,
@@ -38,7 +39,8 @@ def getInitialDataPuntosEmision():
             FROM siacsrinumero
             WHERE ciacodigo = :cia
             ORDER BY sriautfecemi DESC
-        """)
+        """
+        )
         autorizaciones = connection.execute(sql_aut, {"cia": sCodCia}).mappings().fetchall()
 
     # Formateo de los datos para el frontend
@@ -47,21 +49,11 @@ def getInitialDataPuntosEmision():
     lista_autorizaciones = []
     for r in autorizaciones:
         # Mapeo del tipo para la etiqueta
-        tipo_str = "ELECTRÓNICA" if r["sripreauto"] == 'E' else ("PREIMPRESA" if r["sripreauto"] == 'P' else "AUTOIMPRESORES")
+        tipo_str = "ELECTRÓNICA" if r["sripreauto"] == "E" else ("PREIMPRESA" if r["sripreauto"] == "P" else "AUTOIMPRESORES")
 
         # Etiqueta concatenada: Ej: 9999999999 ELECTRÓNICA VALIDA DESDE 27 Jul 2022 CADUCA EN 31 Dic 2100
         label_str = f"{int(r['sriautnumero'])} {tipo_str} VALIDA DESDE {r['fecemi']} CADUCA EN {r['fecven']}"
         # Llave compuesta artificial para el combo
-        lista_autorizaciones.append({
-            "id": f"{r['sripreauto']}_{int(r['sriautnumero'])}",
-            "sripreauto": r["sripreauto"],
-            "sriautnumero": int(r["sriautnumero"]),
-            "label": label_str
-        })
+        lista_autorizaciones.append({"id": f"{r['sripreauto']}_{int(r['sriautnumero'])}", "sripreauto": r["sripreauto"], "sriautnumero": int(r["sriautnumero"]), "label": label_str})
 
-    return {
-        "data": {
-            "localidades": lista_localidades,
-            "autorizaciones": lista_autorizaciones
-        }
-    }
+    return {"data": {"localidades": lista_localidades, "autorizaciones": lista_autorizaciones}}

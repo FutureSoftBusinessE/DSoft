@@ -26,8 +26,8 @@ def insertarTransportistasDFIMP():
 
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
     columns = data.get("columns")
@@ -71,22 +71,18 @@ def insertarTransportistasDFIMP():
                         "transstatus": str(fila.get("transstatus", "A")).strip().upper()[:1],
                         "transtipo": str(fila.get("transtipo", "L")).strip().upper()[:1],
                         "transcuenta": str(fila.get("transcuenta", ""))[:20] if fila.get("transcuenta") else None,
-
                         # Datos de Contacto
                         "transcontacto": str(fila.get("transcontactonombre", "")).strip().upper()[:100] if fila.get("transcontactonombre") else None,
                         "transcontactonombre": str(fila.get("transcontactonombre", "")).strip().upper()[:100] if fila.get("transcontactonombre") else None,
                         "transcontactodirec": str(fila.get("transcontactodirec", "")).strip().upper()[:100] if fila.get("transcontactodirec") else None,
                         "transcontactoemail": str(fila.get("transcontactoemail", "")).strip().lower()[:100] if fila.get("transcontactoemail") else None,
                         "transcontactotelef": str(fila.get("transcontactotelef", ""))[:20] if fila.get("transcontactotelef") else None,
-
                         # Placa
                         "transplaca": str(fila.get("transplaca", "")).strip().upper()[:10] if fila.get("transplaca") else None,
-
                         # Auditoría de Inserción
                         "transfecisys": fecha_pura,
                         "transhorisys": hora_pura,
                         "transusuisys": sUsuario[:10],
-
                         # Auditoría de Modificación
                         "transfecmsys": fecha_pura,
                         "transhormsys": hora_pura,

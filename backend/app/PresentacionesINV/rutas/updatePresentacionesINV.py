@@ -24,8 +24,8 @@ def updatePresentacionesINV():
 
     # 2. Lógica de separación de Fecha y Hora para auditoría en SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
@@ -54,10 +54,8 @@ def updatePresentacionesINV():
                 "ciacodigo": sCodCia,
                 "precodigoOld": str(precodigo_old).strip().upper()[:2],
                 "precodigoNew": str(precodigo_new).strip().upper()[:2],
-
                 "predescri": str(predescri).strip().upper()[:30],
                 "prestatus": str(prestatus).strip().upper()[:1],
-
                 # Auditoría de Modificación (msys)
                 "prefecmsys": fecha_pura,
                 "prehormsys": hora_pura,

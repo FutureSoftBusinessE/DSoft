@@ -24,8 +24,8 @@ def updateTiposCliente():
 
     # 2. Lógica de separación de Fecha y Hora para auditoría en SQL Server
     now = datetime.now()
-    fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
-    hora_pura = now.strftime('1900-01-01 %H:%M:%S')
+    fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
+    hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
@@ -56,12 +56,10 @@ def updateTiposCliente():
                 "ciacodigo": sCodCia,
                 "tipcodigoOld": str(tipcodigo_old).strip().upper()[:3],
                 "tipcodigoNew": str(tipcodigo_new).strip().upper()[:3],
-
                 "tipdescri": str(tipdescri).strip().upper()[:40],
                 "tipcobdir": int(tipcobdir),
                 "tipstatus": str(tipstatus).strip().upper()[:1],
                 "tipdefacr": float(tipdefacr),
-
                 # Auditoría de Modificación (msys)
                 "tipfecmsys": fecha_pura,
                 "tiphormsys": hora_pura,

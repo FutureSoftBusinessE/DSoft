@@ -9,6 +9,7 @@ from app.db import get_session
 from error_handling import api_endpoint
 from app.LineasINV.rutas.validarLineasINVIMP import validar_lineasinv
 
+
 @bp.route("/insertarLineasINVIMP", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -18,7 +19,6 @@ def insertarLineasINVIMP():
     clicianonBD = claims["seleccion"]["clicianonBD"]
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
     sUsuario = claims["user"]
-    
     now = datetime.now()
     fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
@@ -45,14 +45,13 @@ def insertarLineasINVIMP():
             for fila in rows:
                 raw_code = str(fila.get("lincodigo", "")).replace("-", "").replace(".", "").strip().upper()
                 full_code = raw_code.ljust(total_len, '0')[:total_len]
-                
                 # Cálculo de Jerarquía Automática
                 segments = []
                 idx = 0
-                for l in segs_len:
-                    segments.append(full_code[idx : idx + l])
-                    idx += l
-                
+                for largo in segs_len:
+                    segments.append(full_code[idx: idx + largo])
+                    idx += largo
+
                 linnivel = 1
                 lincodigo1 = ""
                 linlindes = None
@@ -60,10 +59,11 @@ def insertarLineasINVIMP():
                 for i in range(len(segments) - 1, -1, -1):
                     if segments[i] != ("0" * segs_len[i]):
                         linnivel = i + 1
-                        lincodigo1 = "".join(segments[:i+1])
+                        lincodigo1 = "".join(segments[:i + 1])
                         if i > 0:
                             p_segs = segments[:i]
-                            for j in range(i, len(segments)): p_segs.append("0" * segs_len[j])
+                            for j in range(i, len(segments)):
+                                p_segs.append("0" * segs_len[j])
                             linlindes = "".join(p_segs)
                         break
 

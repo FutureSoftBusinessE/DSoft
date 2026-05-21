@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/eliminarCreacionClienteDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -21,7 +22,8 @@ def eliminarCreacionClienteDF():
 
     # 2. Obtener los parámetros de la solicitud
     data = request.get_json()
-    clicodigo = data.get("clicodigo") # Código del Cliente (varchar(6))
+    # Código del Cliente (varchar(6))
+    clicodigo = data.get("clicodigo")
 
     # 3. Validación de campos requeridos para la Clave Primaria
     if not clicodigo:
@@ -29,7 +31,6 @@ def eliminarCreacionClienteDF():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparar parámetros para el borrado (Cia + Código)
@@ -40,8 +41,8 @@ def eliminarCreacionClienteDF():
 
             # 5. Sentencia SQL de eliminación con integridad multitenancy
             delete_query = text("""
-                DELETE FROM cxcmcli 
-                WHERE ciacodigo = :ciacodigo 
+                DELETE FROM cxcmcli
+                WHERE ciacodigo = :ciacodigo
                   AND clicodigo = :clicodigo
             """)
 

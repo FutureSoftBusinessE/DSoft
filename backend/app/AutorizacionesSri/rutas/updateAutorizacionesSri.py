@@ -8,13 +8,13 @@ from sqlalchemy import text
 from datetime import datetime
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/updateAutorizacionesSri", methods=["POST"])
 @cross_origin()
 @jwt_required()
 @api_endpoint
 def updateAutorizacionesSri():
     claims = get_jwt()
-    
     # 1. VALIDACIÓN ESTRICTA DE SEGURIDAD
     try:
         seleccion = claims["seleccion"]
@@ -26,7 +26,6 @@ def updateAutorizacionesSri():
     sUsuario = claims.get("user")
     if not sUsuario:
         raise ValidationError("No se pudo identificar al usuario que intenta realizar la modificación.")
-        
     # Ajustes de longitud para auditoría
     sUsuario = str(sUsuario)[:10]
     sNomEst = request.headers.get("X-Forwarded-For", request.remote_addr) or "FSOFTAPP"
@@ -34,31 +33,23 @@ def updateAutorizacionesSri():
 
     # 2. VALIDACIÓN DE PARÁMETROS DEL FRONTEND
     data = request.get_json()
-    
     # Llaves primarias (Intocables)
     sripreauto = str(data.get("sripreauto", "")).strip().upper()[:1]
     sriautnumero = data.get("sriautnumero")
-    
     # Campos a modificar
     sriautfecemi = data.get("sriautfecemi")
     sriautfecven = data.get("sriautfecven")
-
     if not sripreauto or sripreauto not in ['A', 'P', 'E']:
         raise ValidationError("El tipo de autorización es inválido o no fue enviado.")
-        
     if sriautnumero is None or float(sriautnumero) <= 0:
         raise ValidationError("El Número de Autorización es obligatorio para actualizar el registro.")
-        
     if not sriautfecven:
         raise ValidationError("La fecha de caducidad ('Caduca en') es obligatoria.")
-        
     # Regla de Negocio: Si no es electrónica, se exige también la fecha de inicio
     if sripreauto != 'E' and not sriautfecemi:
         raise ValidationError("La fecha de inicio ('Válido desde') es obligatoria para este tipo de autorización.")
-
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-
     with engine.connect() as connection:
         with connection.begin():
             # Tiempos de Auditoría
@@ -100,7 +91,6 @@ def updateAutorizacionesSri():
                     "emi": sriautfecemi, "ven": sriautfecven,
                     "fec": fecha_pura, "hor": hora_pura, "usu": sUsuario, "est": sNomEst
                 }
-            
             result = connection.execute(update_query, params)
 
             # 4. Validar si realmente se actualizó algo

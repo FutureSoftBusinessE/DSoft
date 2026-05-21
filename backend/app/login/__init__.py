@@ -9,6 +9,7 @@ cors = CORS(bp, resources={r"/*": {"origins": "*", "headers": ["Content-Type", "
 from app.login.rutas import buscar_cliciausu
 from app.login.rutas import usuario_existe
 from app.login.rutas import companias_del_usuario
+from app.login.rutas import companias_del_usuarioSinGrupo
 from app.login.rutas import inicio_sesion
 from app.login.rutas import get_localidad
 

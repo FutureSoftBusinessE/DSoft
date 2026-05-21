@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/createMedidasINV", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -26,7 +27,7 @@ def createMedidasINV():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
+
     # 3. Extracción de campos según la estructura de la tabla inbmed
     medcodigo = data.get("medcodigo")
     meddescri = data.get("meddescri")
@@ -40,26 +41,24 @@ def createMedidasINV():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # Formateo y truncado según la estructura técnica [varchar(3) y varchar(30)]
             medcodigo = str(medcodigo).strip().upper()[:3]
             meddescri = str(meddescri).strip().upper()[:30]
-            
             # 5. Verificación de Duplicados (PK: ciacodigo + medcodigo)
             check_data = {
                 "ciacodigo": sCodCia,
                 "medcodigo": medcodigo
             }
             check_query = text("""
-                SELECT medcodigo 
-                FROM inbmed 
-                WHERE ciacodigo = :ciacodigo 
+                SELECT medcodigo
+                FROM inbmed
+                WHERE ciacodigo = :ciacodigo
                   AND medcodigo = :medcodigo
             """)
             result = connection.execute(check_query, check_data).mappings().fetchone()
-            
             if result:
                 raise ValidationError(f"Ya existe una Unidad de Medida registrada con el código '{medcodigo}'")
 
@@ -69,16 +68,16 @@ def createMedidasINV():
                 "medcodigo": medcodigo,
                 "meddescri": meddescri,
                 "medstatus": str(medstatus).strip().upper()[:1],
-                
                 # Auditoría de Inserción
                 "medfecisys": fecha_pura,
                 "medhorisys": hora_pura,
-                "medusuisys": sUsuario[:10], # varchar(10)
-                
+                # varchar(10)
+                "medusuisys": sUsuario[:10],
                 # Auditoría de Modificación
                 "medfecmsys": fecha_pura,
                 "medhormsys": hora_pura,
-                "medusumsys": sUsuario[:10], # varchar(10)
+                # varchar(10)
+                "medusumsys": sUsuario[:10],
             }
 
             insert_query = text(

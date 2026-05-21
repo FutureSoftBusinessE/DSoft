@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/createTiposCliente", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -26,7 +27,7 @@ def createTiposCliente():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
+
     # 3. Extracción de campos según estructura de tabla cxcbtipcli
     tipcodigo = data.get("tipcodigo")
     tipdescri = data.get("tipdescri")
@@ -42,26 +43,26 @@ def createTiposCliente():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # Formateo y truncado según estructura varchar(3) y varchar(40)
             tipcodigo = str(tipcodigo).strip().upper()[:3]
             tipdescri = str(tipdescri).strip().upper()[:40]
-            
+
             # 5. Verificación de Duplicados (PK: ciacodigo + tipcodigo)
             check_data = {
                 "ciacodigo": sCodCia,
                 "tipcodigo": tipcodigo
             }
             check_query = text("""
-                SELECT tipcodigo 
-                FROM cxcbtipcli 
-                WHERE ciacodigo = :ciacodigo 
+                SELECT tipcodigo
+                FROM cxcbtipcli
+                WHERE ciacodigo = :ciacodigo
                   AND tipcodigo = :tipcodigo
             """)
             result = connection.execute(check_query, check_data).mappings().fetchone()
-            
+
             if result:
                 raise ValidationError(f"Ya existe un Tipo de Cliente registrado con el código '{tipcodigo}'")
 
@@ -73,16 +74,18 @@ def createTiposCliente():
                 "tipcobdir": int(tipcobdir),
                 "tipstatus": str(tipstatus).strip().upper()[:1],
                 "tipdefacr": float(tipdefacr),
-                
+
                 # Auditoría de Inserción
                 "tipfecisys": fecha_pura,
                 "tiphorisys": hora_pura,
-                "tipusuisys": sUsuario[:10], # varchar(10) en cxcbtipcli
-                
+                # varchar(10) en cxcbtipcli
+                "tipusuisys": sUsuario[:10],
+
                 # Auditoría de Modificación
                 "tipfecmsys": fecha_pura,
                 "tiphormsys": hora_pura,
-                "tipusumsys": sUsuario[:10], # varchar(10) en cxcbtipcli
+                # varchar(10) en cxcbtipcli
+                "tipusumsys": sUsuario[:10],
             }
 
             insert_query = text(

@@ -10,6 +10,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/updateMarcasINV", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -27,11 +28,9 @@ def updateMarcasINV():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
     # Identificadores de la Clave Primaria (Old para localizar el registro, New por si se edita el código)
     marcodigo_old = data.get("marcodigoOld", data.get("marcodigo"))
     marcodigo_new = data.get("marcodigoNew", data.get("marcodigo"))
-    
     # Campos a actualizar según la estructura varchar(30) y varchar(1)
     mardescri = data.get("mardescri")
     marstatus = data.get("marstatus", "A")
@@ -44,7 +43,6 @@ def updateMarcasINV():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparación de parámetros con limpieza y truncado según la tabla inbmar
@@ -53,10 +51,8 @@ def updateMarcasINV():
                 "ciacodigo": sCodCia,
                 "marcodigoOld": str(marcodigo_old).strip().upper()[:5],
                 "marcodigoNew": str(marcodigo_new).strip().upper()[:5],
-                
                 "mardescri": str(mardescri).strip().upper()[:30],
                 "marstatus": str(marstatus).strip().upper()[:1],
-                
                 # Auditoría de Modificación (msys)
                 "marfecmsys": fecha_pura,
                 "marhormsys": hora_pura,
@@ -73,7 +69,7 @@ def updateMarcasINV():
                     marfecmsys = :marfecmsys,
                     marhormsys = :marhormsys,
                     marusumsys = :marusumsys
-                WHERE ciacodigo = :ciacodigo 
+                WHERE ciacodigo = :ciacodigo
                   AND marcodigo = :marcodigoOld
             """
             )

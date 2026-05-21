@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/createVendedoresDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -27,17 +28,17 @@ def createVendedoresDF():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
+
     # 3. Extracción de campos según estructura de tabla fapvendedor
     vencodigo = data.get("vencodigo")
     vennombre = data.get("vennombre")
     vendireccion = data.get("vendireccion", "")
     ventelefono = data.get("ventelefono", "")
     vencomision = data.get("vencomision", 0)
-    ventipcom = data.get("ventipcom", "P") # P: Porcentaje (Ejemplo)
-    venaplica = data.get("venaplica", "S") # S: Si (Ejemplo)
-    venstatus = data.get("venstatus", "A") # A: Activo
-    
+    ventipcom = data.get("ventipcom", "P")
+    venaplica = data.get("venaplica", "S")
+    venstatus = data.get("venstatus", "A")
+
     # Campos adicionales con valores por defecto de la tabla
     usrcodigo = data.get("usrcodigo")
     emcodemp = data.get("emcodemp")
@@ -52,27 +53,27 @@ def createVendedoresDF():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # Formateo y truncado según estructura de tabla (PK: varchar(3))
             vencodigo = str(vencodigo).strip().upper()[:3]
             vennombre = str(vennombre).strip().upper()[:30]
             vendireccion = str(vendireccion).strip().upper()[:40]
-            
+
             # 5. Verificación de Duplicados (PK: ciacodigo + vencodigo)
             check_data = {
                 "ciacodigo": sCodCia,
                 "vencodigo": vencodigo
             }
             check_query = text("""
-                SELECT vencodigo 
-                FROM fapvendedor 
-                WHERE ciacodigo = :ciacodigo 
+                SELECT vencodigo
+                FROM fapvendedor
+                WHERE ciacodigo = :ciacodigo
                   AND vencodigo = :vencodigo
             """)
             result = connection.execute(check_query, check_data).mappings().fetchone()
-            
+
             if result:
                 raise ValidationError(f"Ya existe un Vendedor registrado con el código '{vencodigo}'")
 
@@ -87,20 +88,20 @@ def createVendedoresDF():
                 "ventipcom": str(ventipcom).strip().upper()[:1],
                 "venaplica": str(venaplica).strip().upper()[:1],
                 "venstatus": str(venstatus).strip().upper()[:1],
-                "vencontacto": 0, # Se inicializa en 0 según tipo decimal(18,2)
-                
+                "vencontacto": 0,
+
                 # Auditoría de Inserción
                 "venfecisys": fecha_pura,
                 "venhorisys": hora_pura,
                 "venusuisys": sUsuario[:10],
                 "venestisys": sNomEst[:30] if sNomEst else "WEB",
-                
+
                 # Auditoría de Modificación
                 "venfecmsys": fecha_pura,
                 "venhormsys": hora_pura,
                 "venusumsys": sUsuario[:10],
                 "venestmsys": sNomEst[:30] if sNomEst else "WEB",
-                
+
                 # Otros campos
                 "usrcodigo": str(usrcodigo).strip()[:10] if usrcodigo else None,
                 "vencomisiona": int(vencomisiona),

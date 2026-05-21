@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/createMarcasINV", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -26,7 +27,7 @@ def createMarcasINV():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
+
     # 3. Extracción de campos según la estructura de la tabla inbmar
     marcodigo = data.get("marcodigo")
     mardescri = data.get("mardescri")
@@ -40,26 +41,25 @@ def createMarcasINV():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # Formateo y truncado según la estructura técnica [varchar(5) y varchar(30)]
             marcodigo = str(marcodigo).strip().upper()[:5]
             mardescri = str(mardescri).strip().upper()[:30]
-            
+
             # 5. Verificación de Duplicados (PK: ciacodigo + marcodigo)
             check_data = {
                 "ciacodigo": sCodCia,
                 "marcodigo": marcodigo
             }
             check_query = text("""
-                SELECT marcodigo 
-                FROM inbmar 
-                WHERE ciacodigo = :ciacodigo 
+                SELECT marcodigo
+                FROM inbmar
+                WHERE ciacodigo = :ciacodigo
                   AND marcodigo = :marcodigo
             """)
             result = connection.execute(check_query, check_data).mappings().fetchone()
-            
             if result:
                 raise ValidationError(f"Ya existe una Marca registrada con el código '{marcodigo}'")
 
@@ -69,16 +69,16 @@ def createMarcasINV():
                 "marcodigo": marcodigo,
                 "mardescri": mardescri,
                 "marstatus": str(marstatus).strip().upper()[:1],
-                
                 # Auditoría de Inserción
                 "marfecisys": fecha_pura,
                 "marhorisys": hora_pura,
-                "marusuisys": sUsuario[:10], # Truncado a varchar(10)
-                
+                # Truncado a varchar(10)
+                "marusuisys": sUsuario[:10],
                 # Auditoría de Modificación
                 "marfecmsys": fecha_pura,
                 "marhormsys": hora_pura,
-                "marusumsys": sUsuario[:10], # Truncado a varchar(10)
+                # Truncado a varchar(10)
+                "marusumsys": sUsuario[:10],
             }
 
             insert_query = text(

@@ -7,6 +7,7 @@ from app.db import get_session
 from sqlalchemy import text
 import base64
 
+
 # Mantenemos OPTIONS para el preflight de CORS
 @bp.route("/getAllPerfilUsuarioDF", methods=["POST", "OPTIONS"], strict_slashes=False)
 @cross_origin()
@@ -28,18 +29,18 @@ def getAllPerfilUsuarioDF():
             # 1. Obtener datos visuales y logos (Tabla: siaccia)
             query_cia = text("""
                 SELECT cialogo, ciaselloagua, ciatipomenu, ciacolor, ciatipoletra, ciatamanioletra
-                FROM siaccia 
+                FROM siaccia
                 WHERE ciacodigo = :ciacodigo
             """)
             res_cia = connection.execute(query_cia, {"ciacodigo": ciacodigo}).mappings().fetchone()
-            
+
             # Mapeo Defensivo
             if res_cia:
                 data['ciatipomenu'] = int(res_cia.get('ciatipomenu') or 0)
                 data['ciacolor'] = res_cia.get('ciacolor', "") or ""
                 data['ciatipoletra'] = res_cia.get('ciatipoletra', "") or ""
                 data['ciatamanioletra'] = res_cia.get('ciatamanioletra', "") or ""
-                
+
                 # Manejo de Binarios
                 logo = res_cia.get('cialogo')
                 sello = res_cia.get('ciaselloagua')
@@ -49,11 +50,11 @@ def getAllPerfilUsuarioDF():
             # 2. Obtener parámetros de email (Tabla: cgblocal)
             query_loc = text("""
                 SELECT emailsmtp, emailmascara, emailsalida, emailtema, emailmensaje, emailsubject
-                FROM cgblocal 
+                FROM cgblocal
                 WHERE ciacodigo = :ciacodigo AND loccodigo = :loccodigo
             """)
             res_loc = connection.execute(query_loc, {"ciacodigo": ciacodigo, "loccodigo": loccodigo}).mappings().fetchone()
-            
+
             # Mapeo Defensivo
             if res_loc:
                 data['emailsmtp'] = res_loc.get('emailsmtp', "") or ""
@@ -65,7 +66,7 @@ def getAllPerfilUsuarioDF():
 
         # Retorno directo SIN jsonify, tal cual como en getAllSubTiposPPE.py
         return {
-            "success": True, 
+            "success": True,
             "data": data
         }, 200
 

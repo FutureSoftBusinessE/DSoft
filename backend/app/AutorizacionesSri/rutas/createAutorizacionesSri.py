@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/createAutorizacionesSri", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -29,8 +30,8 @@ def createAutorizacionesSri():
 
     # 2. Extracción y Normalización de Parámetros del Frontend
     # sripreauto: A = AutoImpresores, P = PreImpresa, E = Electrónica
-    sripreauto = str(data.get("sripreauto", "E")).strip().upper()[:1]  
-    sritramite = int(data.get("sritramite", 6)) 
+    sripreauto = str(data.get("sripreauto", "E")).strip().upper()[:1]
+    sritramite = int(data.get("sritramite", 6))
     sriautnumeroold = int(data.get("sriautnumeroold", 0))
     sriautfecemi = data.get("sriautfecemi")
 
@@ -97,5 +98,4 @@ def createAutorizacionesSri():
                 "fecisys": fecha_pura, "horisys": hora_pura, "usuisys": sUsuario, "estisys": sNomEst,
                 "fecmsys": fecha_pura, "hormsys": hora_pura, "usumsys": sUsuario, "estmsys": sNomEst
             })
-
     return {"data": f"Autorización SRI {sriautnumero} registrada exitosamente."}

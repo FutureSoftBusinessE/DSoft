@@ -308,7 +308,13 @@ def create_app(config_class=Config):
 
     from app.PuntosEmisionSri import bp as PuntosEmisionSri_bp
 
-    app.register_blueprint(PuntosEmisionSri_bp, url_prefix="/PuntosEmisionSri")  
+    app.register_blueprint(PuntosEmisionSri_bp, url_prefix="/PuntosEmisionSri") 
+
+    from app.Compania import bp as Compania_bp
+
+    app.register_blueprint(Compania_bp, url_prefix="/Compania")  
+
+
 
 
 

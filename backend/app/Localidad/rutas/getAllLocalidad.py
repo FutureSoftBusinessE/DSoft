@@ -16,6 +16,7 @@ from app.utils.build_paginated_query import build_paginated_query
 def getAllLocalidad():
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
+    sCodCia = claims["seleccion"]["cliciaciacodigo"]
 
     data = request.get_json() or {}
     page = int(data.get("page", 1))
@@ -59,7 +60,7 @@ def getAllLocalidad():
                 {"locusumsys": FILTER_VALUE_TYPE.STRING},
             ]
 
-            base_query = """
+            base_query = f"""
             SELECT
                 "ciacodigo",
                 "loccodigo",
@@ -87,6 +88,7 @@ def getAllLocalidad():
                 "lochormsys",
                 "locusumsys"
             FROM cgblocal
+            WHERE ciacodigo = '{sCodCia}'
             """
 
             final_query, params = build_paginated_query(

@@ -10,6 +10,7 @@ from sqlalchemy import text
 from app.utils.build_paginated_query import build_paginated_query
 from app.Clases.FILTER_VALUE_TYPE import FILTER_VALUE_TYPE
 
+
 @bp.route("/getAllSectorialesIess", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -20,7 +21,7 @@ def getAllSectorialesIess():
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
 
     # 2. Obtener parámetros de paginación enviados desde el Frontend
-    data = request.get_json()  
+    data = request.get_json()
     page = int(data.get("page", 1))
     per_page = int(data.get("perPage", 10))
     filters = data.get("filters", {})
@@ -67,7 +68,7 @@ def getAllSectorialesIess():
                 sechormsys,
                 secusumsys,
                 secestmsys
-            FROM nomsectorialiess 
+            FROM nomsectorialiess
             WHERE ciacodigo = '{sCodCia}'
             """
 
@@ -89,10 +90,10 @@ def getAllSectorialesIess():
 
             # 7. Procesamiento de resultados para la grilla
             total_records = result[0]["total"] if result else 0
-            
+
             # Formatear lista excluyendo la columna virtual de conteo
             all_sectoriales_result = [
-                {**{key: value for key, value in dict(row).items() if key != "total"}} 
+                {**{key: value for key, value in dict(row).items() if key != "total"}}
                 for row in result
             ]
 

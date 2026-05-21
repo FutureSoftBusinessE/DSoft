@@ -12,6 +12,7 @@ from error_handling import api_endpoint
 # Importamos la función de validación del módulo Marcas
 from app.MarcasINV.rutas.validarMarcasINVIMP import validar_marcasinv
 
+
 @bp.route("/insertarMarcasINVIMP", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -22,8 +23,8 @@ def insertarMarcasINVIMP():
     clicianonBD = claims["seleccion"]["clicianonBD"]
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
     sUsuario = claims["user"]
-    sNomEst = request.headers.get("X-Forwarded-For", request.remote_addr)
-    
+    # sNomEst = request.headers.get("X-Forwarded-For", request.remote_addr)
+
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
     fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
@@ -66,12 +67,10 @@ def insertarMarcasINVIMP():
                         "marcodigo": str(fila.get("marcodigo", "")).strip().upper()[:5],
                         "mardescri": str(fila.get("mardescri", "")).strip().upper()[:30],
                         "marstatus": str(fila.get("marstatus", "A")).strip().upper()[:1],
-                        
                         # Auditoría de Inserción
                         "marfecisys": fecha_pura,
                         "marhorisys": hora_pura,
                         "marusuisys": sUsuario[:10],
-                        
                         # Auditoría de Modificación
                         "marfecmsys": fecha_pura,
                         "marhormsys": hora_pura,

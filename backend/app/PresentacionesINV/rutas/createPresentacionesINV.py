@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/createPresentacionesINV", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -26,7 +27,7 @@ def createPresentacionesINV():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
+
     # 3. Extracción de campos según estructura de tabla inbpre
     precodigo = data.get("precodigo")
     predescri = data.get("predescri")
@@ -40,26 +41,26 @@ def createPresentacionesINV():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # Formateo y truncado según estructura varchar(2) y varchar(30)
             precodigo = str(precodigo).strip().upper()[:2]
             predescri = str(predescri).strip().upper()[:30]
-            
+
             # 5. Verificación de Duplicados (PK: ciacodigo + precodigo)
             check_data = {
                 "ciacodigo": sCodCia,
                 "precodigo": precodigo
             }
             check_query = text("""
-                SELECT precodigo 
-                FROM inbpre 
-                WHERE ciacodigo = :ciacodigo 
+                SELECT precodigo
+                FROM inbpre
+                WHERE ciacodigo = :ciacodigo
                   AND precodigo = :precodigo
             """)
             result = connection.execute(check_query, check_data).mappings().fetchone()
-            
+
             if result:
                 raise ValidationError(f"Ya existe una Presentación registrada con el código '{precodigo}'")
 
@@ -69,16 +70,18 @@ def createPresentacionesINV():
                 "precodigo": precodigo,
                 "predescri": predescri,
                 "prestatus": str(prestatus).strip().upper()[:1],
-                
+
                 # Auditoría de Inserción
                 "prefecisys": fecha_pura,
                 "prehorisys": hora_pura,
-                "preusuisys": sUsuario[:10], # varchar(10) en inbpre
-                
+                # varchar(10) en inbpre
+                "preusuisys": sUsuario[:10],
+
                 # Auditoría de Modificación
                 "prefecmsys": fecha_pura,
                 "prehormsys": hora_pura,
-                "preusumsys": sUsuario[:10], # varchar(10) en inbpre
+                # varchar(10) en inbpre
+                "preusumsys": sUsuario[:10],
             }
 
             insert_query = text(

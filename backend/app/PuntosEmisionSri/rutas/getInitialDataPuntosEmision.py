@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint
 
+
 @bp.route("/getInitialDataPuntosEmision", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -17,7 +18,7 @@ def getInitialDataPuntosEmision():
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
     sCodCia = str(claims["seleccion"]["cliciaciacodigo"]).strip()[:2]
-    
+
     db.session = get_session(clicianonBD)
     engine = db.session.bind
 
@@ -42,17 +43,17 @@ def getInitialDataPuntosEmision():
 
     # Formateo de los datos para el frontend
     lista_localidades = [{"id": r["loccodigo"], "label": f"{r['loccodigo']} - {r['locdescri']}"} for r in localidades]
-    
+
     lista_autorizaciones = []
     for r in autorizaciones:
         # Mapeo del tipo para la etiqueta
         tipo_str = "ELECTRÓNICA" if r["sripreauto"] == 'E' else ("PREIMPRESA" if r["sripreauto"] == 'P' else "AUTOIMPRESORES")
-        
+
         # Etiqueta concatenada: Ej: 9999999999 ELECTRÓNICA VALIDA DESDE 27 Jul 2022 CADUCA EN 31 Dic 2100
         label_str = f"{int(r['sriautnumero'])} {tipo_str} VALIDA DESDE {r['fecemi']} CADUCA EN {r['fecven']}"
-        
+        # Llave compuesta artificial para el combo
         lista_autorizaciones.append({
-            "id": f"{r['sripreauto']}_{int(r['sriautnumero'])}", # Llave compuesta artificial para el combo
+            "id": f"{r['sripreauto']}_{int(r['sriautnumero'])}",
             "sripreauto": r["sripreauto"],
             "sriautnumero": int(r["sriautnumero"]),
             "label": label_str

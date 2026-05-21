@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/eliminarPresentacionesINV", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -21,7 +22,8 @@ def eliminarPresentacionesINV():
 
     # 2. Obtener los parámetros de la solicitud
     data = request.get_json()
-    precodigo = data.get("precodigo") # Código de la Presentación (varchar(2))
+    # Código de la Presentación (varchar(2))
+    precodigo = data.get("precodigo")
 
     # 3. Validación de campos requeridos para la Clave Primaria
     if not precodigo:
@@ -29,7 +31,7 @@ def eliminarPresentacionesINV():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparar parámetros para el borrado (Cia + Código)
@@ -40,8 +42,8 @@ def eliminarPresentacionesINV():
 
             # 5. Sentencia SQL de eliminación con integridad multitenancy
             delete_query = text("""
-                DELETE FROM inbpre 
-                WHERE ciacodigo = :ciacodigo 
+                DELETE FROM inbpre
+                WHERE ciacodigo = :ciacodigo
                   AND precodigo = :precodigo
             """)
 

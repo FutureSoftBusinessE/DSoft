@@ -8,6 +8,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 # Helper para validar la integridad de las presentaciones antes de la importación
 def validar_presentacionesinv(connection, columns: list, required: list, key_columns: list, rows: list):
     # 1. Validaciones básicas de parámetros de entrada
@@ -60,7 +61,7 @@ def validar_presentacionesinv(connection, columns: list, required: list, key_col
             v = fila.get(k)
             if isinstance(v, str):
                 v = v.strip()
-                fila[k] = v 
+                fila[k] = v
             clave.append("" if v is None else str(v).strip().lower())
 
         clave = tuple(clave)
@@ -75,7 +76,7 @@ def validar_presentacionesinv(connection, columns: list, required: list, key_col
     # 3. Verificación contra Base de Datos (Multitenancy - inbpre)
     cols_sql = ", ".join(key_columns)
     cia_val = rows[0]["ciacodigo"]
-    
+
     # Consultamos las presentaciones ya registradas para la compañía actual
     sql_get_all = text(f"SELECT {cols_sql} FROM inbpre WHERE ciacodigo = :ciacodigo")
     rows_db = connection.execute(sql_get_all, {"ciacodigo": cia_val}).mappings().all()
@@ -100,7 +101,7 @@ def validar_presentacionesinv(connection, columns: list, required: list, key_col
             v = fila.get(k)
             if isinstance(v, str):
                 v = v.strip()
-                fila[k] = v 
+                fila[k] = v
             clave_fila.append("" if v is None else str(v).strip().lower())
 
         if tuple(clave_fila) in existentes:

@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/updatePuntosEmisionSri", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -27,7 +28,7 @@ def updatePuntosEmisionSri():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
+
     # 3. Extracción de parámetros (Llave primaria y campos editables)
     cjacodigo = str(data.get("cjacodigo", "")).strip().upper()[:3]
     cjadescri = str(data.get("cjadescri", "")).strip().upper()[:40]
@@ -41,7 +42,7 @@ def updatePuntosEmisionSri():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparación de variables
@@ -50,7 +51,7 @@ def updatePuntosEmisionSri():
                 "cjacodigo": cjacodigo,
                 "cjadescri": cjadescri,
                 "cjastatus": cjastatus,
-                
+
                 # Asignación de fecha y hora para la auditoría de modificación
                 "cjafecmsys": fecha_pura,
                 "cjahormsys": hora_pura,

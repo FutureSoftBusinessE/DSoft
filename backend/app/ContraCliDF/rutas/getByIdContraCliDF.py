@@ -8,6 +8,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/getByIdContraCliDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -32,7 +33,7 @@ def getByIdContraCliDF():
         # 2. CONSULTA DE CABECERA (JOIN con Clientes y Tipos)
         # ---------------------------------------------------------
         query_cab = text("""
-            SELECT 
+            SELECT
                 c.concodcontrato, c.condescri, c.clicodigo, cl.clinombre,
                 c.concodigo, tc.condescri AS tipcondescri, c.constatus,
                 CONVERT(varchar, c.confecinicio, 23) AS confecinicio,
@@ -45,9 +46,7 @@ def getByIdContraCliDF():
             INNER JOIN cxcbtipcon tc ON c.ciacodigo = tc.ciacodigo AND c.concodigo = tc.concodigo
             WHERE c.ciacodigo = :cia AND c.concodcontrato = :contrato
         """)
-        
         cab_res = connection.execute(query_cab, {"cia": sCodCia, "contrato": concodcontrato}).mappings().fetchone()
-        
         if not cab_res:
             raise ValidationError(f"No se encontró el contrato '{concodcontrato}'.")
 
@@ -59,30 +58,26 @@ def getByIdContraCliDF():
         # 3. CONSULTA DE DETALLE DE SERVICIOS
         # ---------------------------------------------------------
         query_det = text("""
-            SELECT 
-                consecuen, invcodigo, artcodigo, artdescri, 
+            SELECT
+                consecuen, invcodigo, artcodigo, artdescri,
                 concantidad, convalor, contotal
             FROM cxctcontratos
             WHERE ciacodigo = :cia AND concodcontrato = :contrato
             ORDER BY consecuen
         """)
-        
         det_res = connection.execute(query_det, {"cia": sCodCia, "contrato": concodcontrato}).mappings().fetchall()
-        
         servicios_list = []
         for row in det_res:
             item = dict(row)
             item["convalor"] = float(item["convalor"] or 0.0)
             item["contotal"] = float(item["contotal"] or 0.0)
             servicios_list.append(item)
-        
         contrato_data["servicios"] = servicios_list
-
         # ---------------------------------------------------------
         # 4. CONSULTA DE PERÍODOS (Con cruce a Facturación)
         # ---------------------------------------------------------
         query_per = text("""
-            SELECT 
+            SELECT
                 p.consecuen, p.conmes, p.conanio, p.constatus, p.facnumfac,
                 f.facfecemi, f.factotal, f.facsaldo
             FROM cxctcontratosperiodos p
@@ -90,9 +85,7 @@ def getByIdContraCliDF():
             WHERE p.ciacodigo = :cia AND p.concodcontrato = :contrato
             ORDER BY p.consecuen
         """)
-        
         per_res = connection.execute(query_per, {"cia": sCodCia, "contrato": concodcontrato}).mappings().fetchall()
-        
         periodos_list = []
         for row in per_res:
             per = dict(row)
@@ -102,7 +95,6 @@ def getByIdContraCliDF():
             per["factotal"] = float(per["factotal"] or 0.0)
             per["facsaldo"] = float(per["facsaldo"] or 0.0)
             periodos_list.append(per)
-            
         contrato_data["periodos"] = periodos_list
 
     # 5. Retorno estructurado para el estado del formulario en React

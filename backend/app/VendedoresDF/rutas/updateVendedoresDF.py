@@ -10,6 +10,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/updateVendedoresDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -28,11 +29,11 @@ def updateVendedoresDF():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
+
     # Identificadores de la Clave Primaria (Old para localizar, New por si se edita el código)
     vencodigo_old = data.get("vencodigoOld", data.get("vencodigo"))
     vencodigo_new = data.get("vencodigoNew", data.get("vencodigo"))
-    
+
     # Campos a actualizar según estructura de la tabla fapvendedor
     vennombre = data.get("vennombre")
     vendireccion = data.get("vendireccion", "")
@@ -54,7 +55,7 @@ def updateVendedoresDF():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparación de parámetros con limpieza y truncado técnico según fapvendedor
@@ -62,7 +63,7 @@ def updateVendedoresDF():
                 "ciacodigo": sCodCia,
                 "vencodigoOld": str(vencodigo_old).strip().upper()[:3],
                 "vencodigoNew": str(vencodigo_new).strip().upper()[:3],
-                
+
                 "vennombre": str(vennombre).strip().upper()[:30],
                 "vendireccion": str(vendireccion).strip().upper()[:40],
                 "ventelefono": str(ventelefono).strip()[:15],
@@ -70,12 +71,12 @@ def updateVendedoresDF():
                 "ventipcom": str(ventipcom).strip().upper()[:1],
                 "venaplica": str(venaplica).strip().upper()[:1],
                 "venstatus": str(venstatus).strip().upper()[:1],
-                
+
                 "usrcodigo": str(usrcodigo).strip()[:10] if usrcodigo else None,
                 "vencomisiona": int(vencomisiona),
                 "emcodemp": str(emcodemp).strip()[:10] if emcodemp else None,
                 "loccodigo": str(loccodigo).strip()[:2],
-                
+
                 # Auditoría de Modificación (msys)
                 "venfecmsys": fecha_pura,
                 "venhormsys": hora_pura,
@@ -103,7 +104,7 @@ def updateVendedoresDF():
                     venhormsys = :venhormsys,
                     venusumsys = :venusumsys,
                     venestmsys = :venestmsys
-                WHERE ciacodigo = :ciacodigo 
+                WHERE ciacodigo = :ciacodigo
                   AND vencodigo = :vencodigoOld
             """
             )

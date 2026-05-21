@@ -10,6 +10,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/updateTiposCliente", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -27,11 +28,11 @@ def updateTiposCliente():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
+
     # Identificadores de la Clave Primaria (Old para localizar el registro, New por si se edita el código)
     tipcodigo_old = data.get("tipcodigoOld", data.get("tipcodigo"))
     tipcodigo_new = data.get("tipcodigoNew", data.get("tipcodigo"))
-    
+
     # Campos a actualizar según estructura de la tabla cxcbtipcli
     tipdescri = data.get("tipdescri")
     tipcobdir = data.get("tipcobdir", 0)
@@ -46,7 +47,7 @@ def updateTiposCliente():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparación de parámetros con limpieza y truncado técnico
@@ -55,12 +56,12 @@ def updateTiposCliente():
                 "ciacodigo": sCodCia,
                 "tipcodigoOld": str(tipcodigo_old).strip().upper()[:3],
                 "tipcodigoNew": str(tipcodigo_new).strip().upper()[:3],
-                
+
                 "tipdescri": str(tipdescri).strip().upper()[:40],
                 "tipcobdir": int(tipcobdir),
                 "tipstatus": str(tipstatus).strip().upper()[:1],
                 "tipdefacr": float(tipdefacr),
-                
+
                 # Auditoría de Modificación (msys)
                 "tipfecmsys": fecha_pura,
                 "tiphormsys": hora_pura,
@@ -79,7 +80,7 @@ def updateTiposCliente():
                     tipfecmsys = :tipfecmsys,
                     tiphormsys = :tiphormsys,
                     tipusumsys = :tipusumsys
-                WHERE ciacodigo = :ciacodigo 
+                WHERE ciacodigo = :ciacodigo
                   AND tipcodigo = :tipcodigoOld
             """
             )

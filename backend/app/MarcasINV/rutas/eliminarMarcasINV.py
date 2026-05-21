@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/eliminarMarcasINV", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -18,10 +19,10 @@ def eliminarMarcasINV():
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
-
     # 2. Obtener los parámetros de la solicitud
     data = request.get_json()
-    marcodigo = data.get("marcodigo") # Código de la Marca a eliminar
+    # Código de la Marca a eliminar
+    marcodigo = data.get("marcodigo")
 
     # 3. Validación de campos requeridos para la Clave Primaria
     if not marcodigo:
@@ -29,7 +30,6 @@ def eliminarMarcasINV():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparar parámetros para el borrado (Cia + Código)
@@ -40,8 +40,8 @@ def eliminarMarcasINV():
 
             # 5. Sentencia SQL de eliminación con integridad multitenancy
             delete_query = text("""
-                DELETE FROM inbmar 
-                WHERE ciacodigo = :ciacodigo 
+                DELETE FROM inbmar
+                WHERE ciacodigo = :ciacodigo
                   AND marcodigo = :marcodigo
             """)
 

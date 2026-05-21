@@ -8,6 +8,7 @@ from sqlalchemy import text
 from app.utils.build_paginated_query import build_paginated_query
 from app.Clases.FILTER_VALUE_TYPE import FILTER_VALUE_TYPE
 
+
 @bp.route("/getAllCreacionClienteDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -15,8 +16,7 @@ def getAllCreacionClienteDF():
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
-
-    data = request.get_json()  
+    data = request.get_json()
     page = int(data.get("page", 1))
     per_page = int(data.get("perPage", 10))
     filters = data.get("filters", {})
@@ -51,7 +51,7 @@ def getAllCreacionClienteDF():
                 cliintersec,
                 clistatus,
                 cliemail
-            FROM cxcmcli 
+            FROM cxcmcli
             WHERE ciacodigo = '{sCodCia}'
             """
 
@@ -66,9 +66,8 @@ def getAllCreacionClienteDF():
 
             result = connection.execute(text(final_query), params).mappings().fetchall()
             total_records = result[0]["total"] if result else 0
-            
             all_clientes_result = [
-                {**{key: value for key, value in dict(row).items() if key != "total"}} 
+                {**{key: value for key, value in dict(row).items() if key != "total"}}
                 for row in result
             ]
 

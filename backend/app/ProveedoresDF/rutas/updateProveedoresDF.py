@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 def validar_identificacion_ec(tipo, valor):
     if tipo == 'R':
         if len(str(valor).strip()) != 13:
@@ -16,6 +17,7 @@ def validar_identificacion_ec(tipo, valor):
     elif tipo == 'C':
         if len(str(valor).strip()) != 10:
             raise ValidationError("La Cédula debe tener exactamente 10 dígitos")
+
 
 @bp.route("/updateProveedoresDF", methods=["POST"])
 @cross_origin()
@@ -38,13 +40,13 @@ def updateProveedoresDF():
 
     if not procodigo:
         raise ValidationError("El código del proveedor es requerido")
-    
+
     # Validación de identidad en edición
     validar_identificacion_ec(procalif, proruc)
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             data_update = {

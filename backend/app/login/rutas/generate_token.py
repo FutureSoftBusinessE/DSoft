@@ -123,3 +123,56 @@ def verify_token():
     claims = get_jwt()
     response = {"status": "ok", "message": "Token verified", "left_time": claims["exp"] - claims["iat"], "data": claims}
     return jsonify(response)
+
+#cambio de compañia sin necesidad de volver a iniciar sesion 
+@bp.route("/switch_company_token", methods=["POST"])
+@cross_origin()
+@jwt_required() # <- ESTO ES CLAVE: Solo un usuario ya logueado puede ejecutar esto
+def switch_company_token():
+    try:
+        data = request.get_json() if request.is_json else None
+        usuario = data.get("user")
+        seleccion = data.get("seleccion")
+        localidad = data.get("localidad")
+
+        # Seguridad extra: Verificar que quien pide el cambio es el dueño del token actual
+        claims = get_jwt()
+        if claims.get("sub") != usuario and claims.get("user") != usuario:
+            return jsonify({"status": "error", "message": "Operación no autorizada"}), 403
+
+        # Obtener franquicias (Misma lógica que generate_token)
+        db.session = get_session("SiacFSBS")
+        engine = db.session.bind
+        with engine.connect() as connection:
+            with connection.begin():
+                franquicias_query = """
+                    SELECT fsbsmclicia.cliciagrupo,
+                    char(39) + fsbsmclicia.cliciaciacodigo + char(39) +
+                        isNull((STUFF( (SELECT  char(39) +',' + char(39) + fsbsmcliciafranquicia.frcliciaciacodigo
+                                FROM fsbsmcliciafranquicia
+                                WHERE fsbsmcliciafranquicia.cliciaidenti = :cliciaidenti
+                                FOR XML PATH('')) +char(39), 1, 2, ',')),'') As CiaFranqui
+                FROM fsbsmclicia
+                """
+                franquicias_result = connection.execute(text(franquicias_query), {"cliciaidenti": seleccion.get("cliciaidenti")}).mappings().fetchall()
+
+        # Armar el nuevo payload con la NUEVA compañía y localidad
+        payload = {
+            "user": usuario, 
+            "seleccion": seleccion, 
+            "localidad": localidad, 
+            "hasFranquicias": len(franquicias_result) > 0, 
+            "franquicias": [dict(fr) for fr in franquicias_result]
+        }
+        
+        # Generar el nuevo token SIN pedir contraseña
+        access_token = create_access_token(usuario, additional_claims=payload, expires_delta=timedelta(days=1))
+        
+        return jsonify({
+            "status": "ok",
+            "message": "Compañía cambiada exitosamente",
+            "data": payload,
+            "token": access_token,
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})

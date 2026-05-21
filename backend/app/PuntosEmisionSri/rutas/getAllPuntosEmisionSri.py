@@ -10,6 +10,7 @@ from sqlalchemy import text
 from app.utils.build_paginated_query import build_paginated_query
 from app.Clases.FILTER_VALUE_TYPE import FILTER_VALUE_TYPE
 
+
 @bp.route("/getAllPuntosEmisionSri", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -17,10 +18,11 @@ def getAllPuntosEmisionSri():
     # 1. Extracción de sesión
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
-    sCodCia = str(claims["seleccion"]["cliciaciacodigo"]).strip()[:2] # Obligatorio para filtrar la compañía
+    # Obligatorio para filtrar la compañía
+    sCodCia = str(claims["seleccion"]["cliciaciacodigo"]).strip()[:2]
 
     # 2. Obtener los parámetros de la solicitud enviados por la grilla de React
-    data = request.get_json()  
+    data = request.get_json()
     page = int(data.get("page", 1))  # Página actual
     per_page = int(data.get("perPage", 10))  # Registros por página
     filters = data.get("filters", {})  # Filtros de búsqueda
@@ -66,8 +68,9 @@ def getAllPuntosEmisionSri():
             # 5. Construir consulta paginada de forma segura
             final_query, params = build_paginated_query(
                 base_query=base_query,
+                # CORRECCIÓN: Quitamos el C.
                 order_by=[
-                    "cjacodigo ASC", # CORRECCIÓN: Quitamos el C.
+                    "cjacodigo ASC",
                 ],
                 filters=filters,
                 page=page,
@@ -80,19 +83,19 @@ def getAllPuntosEmisionSri():
 
             # 7. Procesar resultado para separar el conteo total de los registros reales
             total_records = result[0]["total"] if result else 0
-            
+
             data_result = []
             for row in result:
                 row_dict = dict(row)
-                
+
                 # Eliminar la columna total particionada
                 if "total" in row_dict:
                     del row_dict["total"]
-                
+
                 # Castear el DECIMAL(18,0) a int para evitar error TypeError en jsonify
                 if "sriautnumero" in row_dict and row_dict["sriautnumero"] is not None:
                     row_dict["sriautnumero"] = int(row_dict["sriautnumero"])
-                    
+
                 data_result.append(row_dict)
 
     # 8. Retorno directo utilizando jsonify (manteniendo tu arquitectura original)

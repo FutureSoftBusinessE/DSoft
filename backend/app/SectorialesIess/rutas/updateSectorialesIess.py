@@ -10,6 +10,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/updateSectorialesIess", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -28,13 +29,13 @@ def updateSectorialesIess():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
+
     # Identificadores de la Clave Primaria (Old para el WHERE, New por si se editan)
     seccodigo_old = data.get("seccodigoOld", data.get("seccodigo"))
     seccodigo_new = data.get("seccodigoNew", data.get("seccodigo"))
     secanio_old = data.get("secanioOld", data.get("secanio"))
     secanio_new = data.get("secanioNew", data.get("secanio"))
-    
+
     # Campos a actualizar
     seccargo = data.get("seccargo")
     secestruc = data.get("secestruc")
@@ -52,7 +53,7 @@ def updateSectorialesIess():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparación de parámetros con limpieza de strings
@@ -62,13 +63,13 @@ def updateSectorialesIess():
                 "seccodigoNew": str(seccodigo_new).strip().upper()[:15],
                 "secanioOld": int(secanio_old),
                 "secanioNew": int(secanio_new),
-                
+
                 "seccargo": str(seccargo).strip().upper()[:200],
                 "secestruc": str(secestruc).strip().upper()[:10] if secestruc else "",
                 "secdetalle": str(secdetalle).strip().upper()[:500] if secdetalle else "",
                 "secsalario": float(secsalario),
                 "secstatus": str(secstatus).strip().upper()[:1],
-                
+
                 # Auditoría de Modificación (msys)
                 "secfecmsys": fecha_pura,
                 "sechormsys": hora_pura,
@@ -91,8 +92,8 @@ def updateSectorialesIess():
                     sechormsys = :sechormsys,
                     secusumsys = :secusumsys,
                     secestmsys = :secestmsys
-                WHERE ciacodigo = :ciacodigo 
-                  AND seccodigo = :seccodigoOld 
+                WHERE ciacodigo = :ciacodigo
+                  AND seccodigo = :seccodigoOld
                   AND secanio = :secanioOld
             """
             )

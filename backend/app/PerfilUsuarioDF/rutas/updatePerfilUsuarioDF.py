@@ -7,6 +7,7 @@ from app.db import get_session
 from sqlalchemy import text
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/updatePerfilUsuarioDF", methods=["POST", "OPTIONS"], strict_slashes=False)
 @cross_origin()
 @jwt_required()
@@ -16,8 +17,7 @@ def updatePerfilUsuarioDF():
         return {"success": True}, 200
 
     claims = get_jwt()
-    
-    
+
     # 1. VALIDACIÓN FLEXIBLE DE SEGURIDAD
     clicianonBD = claims["seleccion"]["clicianonBD"]
     ciacodigo = claims["seleccion"]["cliciaciacodigo"]
@@ -35,11 +35,11 @@ def updatePerfilUsuarioDF():
         ciatipomenu = int(request.form.get("ciatipomenu", 0))
     except ValueError:
         ciatipomenu = 0
-        
+
     ciacolor = str(request.form.get("ciacolor", "")).strip()
     ciatipoletra = str(request.form.get("ciatipoletra", "")).strip()
     ciatamanioletra = str(request.form.get("ciatamanioletra", "")).strip()
-    
+
     emailsmtp = str(request.form.get("emailsmtp", "")).strip()
     emailmascara = str(request.form.get("emailmascara", "")).strip()
     emailsalida = str(request.form.get("emailsalida", "")).strip()
@@ -53,9 +53,9 @@ def updatePerfilUsuarioDF():
     # ==========================================================
     # 🛠️ MODO DEPURACIÓN: IMPRESIÓN EN CONSOLA NEGRA
     # ==========================================================
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("🛠️ INICIANDO UPDATE DE PERFIL DE USUARIO 🛠️")
-    print("="*50)
+    print("=" * 50)
     print(f"🔹 BD apuntada : {clicianonBD}")
     print(f"🔹 Compañía    : {ciacodigo}")
     print(f"🔹 Localidad   : {loccodigo}")
@@ -78,7 +78,7 @@ def updatePerfilUsuarioDF():
     print("🖼️ IMÁGENES RECIBIDAS:")
     print(f"  - Logo principal  : {'✅ Recibido' if cialogo_file else '❌ No se envió archivo'}")
     print(f"  - Marca de agua   : {'✅ Recibido' if ciaselloagua_file else '❌ No se envió archivo'}")
-    print("="*50 + "\n")
+    print("=" * 50 + "\n")
     # ==========================================================
 
     db.session = get_session(clicianonBD)
@@ -94,36 +94,36 @@ def updatePerfilUsuarioDF():
                 "ciatamanioletra": ciatamanioletra,
                 "ciacodigo": ciacodigo
             }
-            
+
             update_cia_sql = """
-                UPDATE siaccia SET 
-                    ciatipomenu = :ciatipomenu, 
-                    ciacolor = :ciacolor, 
-                    ciatipoletra = :ciatipoletra, 
+                UPDATE siaccia SET
+                    ciatipomenu = :ciatipomenu,
+                    ciacolor = :ciacolor,
+                    ciatipoletra = :ciatipoletra,
                     ciatamanioletra = :ciatamanioletra
             """
-            
+
             if cialogo_file:
                 update_cia_sql += ", cialogo = :cialogo"
                 params_cia["cialogo"] = cialogo_file.read()
-                
+
             if ciaselloagua_file:
                 update_cia_sql += ", ciaselloagua = :ciaselloagua"
                 params_cia["ciaselloagua"] = ciaselloagua_file.read()
-                
+
             update_cia_sql += " WHERE ciacodigo = :ciacodigo"
-            
+
             connection.execute(text(update_cia_sql), params_cia)
 
             # --- Tabla: cgblocal ---
             update_loc_sql = """
-                UPDATE cgblocal SET 
-                    emailsmtp = :emailsmtp, 
-                    emailmascara = :emailmascara, 
-                    emailsalida = :emailsalida, 
-                    emailtema = :emailtema, 
-                    emailmensaje = :emailmensaje, 
-                    emailsubject = :emailsubject 
+                UPDATE cgblocal SET
+                    emailsmtp = :emailsmtp,
+                    emailmascara = :emailmascara,
+                    emailsalida = :emailsalida,
+                    emailtema = :emailtema,
+                    emailmensaje = :emailmensaje,
+                    emailsubject = :emailsubject
                 WHERE ciacodigo = :ciacodigo AND loccodigo = :loccodigo
             """
             params_loc = {
@@ -136,7 +136,7 @@ def updatePerfilUsuarioDF():
                 "ciacodigo": ciacodigo,
                 "loccodigo": loccodigo
             }
-            
+
             connection.execute(text(update_loc_sql), params_loc)
 
     return {"data": "Perfil de empresa actualizado con éxito"}

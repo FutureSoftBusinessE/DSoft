@@ -10,6 +10,7 @@ from cryptography.x509.oid import NameOID
 from app.FirmarPDFDF import bp
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/validarFirmaP12", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -31,11 +32,9 @@ def validarFirmaP12():
         # Extracción de atributos específicos
         subject = certificate.subject
         issuer = certificate.issuer
-        
         # Intentar obtener el CN (Common Name) y SerialNumber (donde suele ir la cédula)
         cn = subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
         entidad = issuer.get_attributes_for_oid(NameOID.ORGANIZATION_NAME)[0].value
-        
         # Lógica de expiración
         ahora = datetime.now(timezone.utc)
         expirado = ahora > certificate.not_valid_after_utc
@@ -48,7 +47,7 @@ def validarFirmaP12():
             "expirado": "SÍ" if expirado else "NO",
             "serial": hex(certificate.serial_number),
             # El campo revocado requiere conexión a listas CRL/OCSP (se deja como N/A por ahora)
-            "revocado": "NO (Verificación local)" 
+            "revocado": "NO (Verificación local)"
         }
     except Exception:
         raise ValidationError("Error al leer el certificado. Verifique la contraseña.")

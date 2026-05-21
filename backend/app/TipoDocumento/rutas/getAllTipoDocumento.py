@@ -15,6 +15,7 @@ from app.Clases.FILTER_VALUE_TYPE import FILTER_VALUE_TYPE
 def getAllTipoDocumento():
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
+    sCodCia = claims["seleccion"]["cliciaciacodigo"]
 
     # Obtener los parámetros de la solicitud
     data = request.get_json()  # Esto permite obtener los parámetros de la consulta (URL query parameters)
@@ -43,7 +44,7 @@ def getAllTipoDocumento():
                 {"tipdocestmsys": FILTER_VALUE_TYPE.STRING},
             ]
 
-            base_query = """
+            base_query = f"""
             SELECT
                 tipdoccodigo,
                 tipdocdescri,
@@ -54,7 +55,9 @@ def getAllTipoDocumento():
                 tipdocfechormsys,
                 tipdocusumsys,
                 tipdocestmsys
-            FROM gdocbtipodoc"""
+            FROM gdocbtipodoc
+            WHERE ciacodigo = '{sCodCia}'
+            """
 
             # Construir consulta paginada con filtros usando la función auxiliar
             final_query, params = build_paginated_query(

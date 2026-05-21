@@ -10,6 +10,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/updateMedidasINV", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -27,11 +28,9 @@ def updateMedidasINV():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
     # Identificadores de la Clave Primaria (Old para localizar el registro, New por si se edita el código)
     medcodigo_old = data.get("medcodigoOld", data.get("medcodigo"))
     medcodigo_new = data.get("medcodigoNew", data.get("medcodigo"))
-    
     # Campos a actualizar según estructura varchar(30) y varchar(1)
     meddescri = data.get("meddescri")
     medstatus = data.get("medstatus", "A")
@@ -44,7 +43,7 @@ def updateMedidasINV():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparación de parámetros con limpieza y truncado según la tabla inbmed
@@ -53,10 +52,10 @@ def updateMedidasINV():
                 "ciacodigo": sCodCia,
                 "medcodigoOld": str(medcodigo_old).strip().upper()[:3],
                 "medcodigoNew": str(medcodigo_new).strip().upper()[:3],
-                
+
                 "meddescri": str(meddescri).strip().upper()[:30],
                 "medstatus": str(medstatus).strip().upper()[:1],
-                
+
                 # Auditoría de Modificación (msys)
                 "medfecmsys": fecha_pura,
                 "medhormsys": hora_pura,
@@ -73,7 +72,7 @@ def updateMedidasINV():
                     medfecmsys = :medfecmsys,
                     medhormsys = :medhormsys,
                     medusumsys = :medusumsys
-                WHERE ciacodigo = :ciacodigo 
+                WHERE ciacodigo = :ciacodigo
                   AND medcodigo = :medcodigoOld
             """
             )

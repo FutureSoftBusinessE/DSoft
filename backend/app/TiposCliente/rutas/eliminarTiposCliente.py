@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/eliminarTiposCliente", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -21,7 +22,8 @@ def eliminarTiposCliente():
 
     # 2. Obtener los parámetros de la solicitud
     data = request.get_json()
-    tipcodigo = data.get("tipcodigo") # Código del Tipo de Cliente (varchar(3))
+    # Código del Tipo de Cliente (varchar(3))
+    tipcodigo = data.get("tipcodigo")
 
     # 3. Validación de campos requeridos para la Clave Primaria
     if not tipcodigo:
@@ -29,7 +31,7 @@ def eliminarTiposCliente():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparar parámetros para el borrado (Cia + Código)
@@ -40,8 +42,8 @@ def eliminarTiposCliente():
 
             # 5. Sentencia SQL de eliminación con integridad multitenancy
             delete_query = text("""
-                DELETE FROM cxcbtipcli 
-                WHERE ciacodigo = :ciacodigo 
+                DELETE FROM cxcbtipcli
+                WHERE ciacodigo = :ciacodigo
                   AND tipcodigo = :tipcodigo
             """)
 

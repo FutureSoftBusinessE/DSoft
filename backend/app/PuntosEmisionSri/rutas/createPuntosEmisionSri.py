@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/createPuntosEmisionSri", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -26,19 +27,21 @@ def createPuntosEmisionSri():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
+
     # 2. Extracción de parámetros enviados por el Frontend
     cjacodigo = str(data.get("cjacodigo", "")).strip().upper()[:3]
     cjadescri = str(data.get("cjadescri", "")).strip().upper()[:40]
     loccodigo = str(data.get("loccodigo", "")).strip().upper()[:2]
-    
+
     sripreauto = str(data.get("sripreauto", "")).strip().upper()[:1]
     sriautnumero = data.get("sriautnumero")
-    
-    sriserie01 = str(data.get("sriserie01", "")).strip().zfill(3) # Establecimiento
-    sriserie02 = str(data.get("sriserie02", "")).strip().zfill(3) # Punto Emisión
-    
-    detalles = data.get("detalles", []) # Las secuencias configuradas en la grilla
+
+    # Establecimiento
+    sriserie01 = str(data.get("sriserie01", "")).strip().zfill(3)
+    # Punto Emisión
+    sriserie02 = str(data.get("sriserie02", "")).strip().zfill(3)
+    # Las secuencias configuradas en la grilla
+    detalles = data.get("detalles", [])
 
     # 3. Validaciones iniciales
     if not cjacodigo or not cjadescri:
@@ -52,7 +55,7 @@ def createPuntosEmisionSri():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # A. Validar que no exista la caja (fapcaja PK)
@@ -80,7 +83,7 @@ def createPuntosEmisionSri():
                         WHERE ciacodigo = :cia AND sripreauto = :pre AND sriautnumero = :num"""),
                 {"cia": sCodCia, "pre": sripreauto, "num": sriautnumero}
             ).mappings().fetchone()
-            
+
             if not auth_meta:
                 raise ValidationError("La Autorización seleccionada no se encuentra en la base de datos.")
 
@@ -144,7 +147,7 @@ def createPuntosEmisionSri():
             connection.execute(insert_siacc, {
                 "ciacodigo": sCodCia, "sripreauto": sripreauto, "sriautnumero": sriautnumero,
                 "sritramite": auth_meta["sritramite"], "sriserie01": sriserie01, "sriserie02": sriserie02,
-                "sriautfecemi": auth_meta["sriautfecemi"], "sriautfecven": auth_meta["sriautfecven"], 
+                "sriautfecemi": auth_meta["sriautfecemi"], "sriautfecven": auth_meta["sriautfecven"],
                 "sriautnumeroold": auth_meta["sriautnumeroold"], "cjacodigo": cjacodigo,
                 "fecisys": fecha_pura, "horisys": hora_pura, "usuisys": sUsuario, "estisys": sNomEst,
                 "fecmsys": fecha_pura, "hormsys": hora_pura, "usumsys": sUsuario, "estmsys": sNomEst
@@ -187,13 +190,13 @@ def createPuntosEmisionSri():
                     # Buscamos si el frontend mandó una secuencia final para este tipo de documento
                     match = next((item for item in detalles if str(item.get("srisecdoc")) == doc["sec"]), None)
                     sec_fin = int(match["srisecfin"]) if match and match.get("srisecfin") else 0
-                
+
                 connection.execute(insert_siact, {
                     "ciacodigo": sCodCia, "sripreauto": sripreauto, "sriautnumero": sriautnumero,
                     "sritramite": auth_meta["sritramite"], "sriserie01": sriserie01, "sriserie02": sriserie02,
                     "srisecdoc": doc["sec"], "sridestipo": str(doc["desc"])[:100],
                     "srisecini": 1, "srisecfin": sec_fin, "srisecact": 0,
-                    "sriautfecemi": auth_meta["sriautfecemi"], "sriautfecven": auth_meta["sriautfecven"], 
+                    "sriautfecemi": auth_meta["sriautfecemi"], "sriautfecven": auth_meta["sriautfecven"],
                     "sriautnumeroold": auth_meta["sriautnumeroold"], "cjacodigo": cjacodigo,
                     "fecisys": fecha_pura, "horisys": hora_pura, "usuisys": sUsuario, "estisys": sNomEst,
                     "fecmsys": fecha_pura, "hormsys": hora_pura, "usumsys": sUsuario, "estmsys": sNomEst

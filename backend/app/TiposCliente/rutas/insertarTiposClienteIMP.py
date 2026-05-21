@@ -12,6 +12,7 @@ from error_handling import api_endpoint
 # Importamos la función de validación del módulo Tipos de Cliente
 from app.TiposCliente.rutas.validarTiposClienteIMP import validar_tiposcliente
 
+
 @bp.route("/insertarTiposClienteIMP", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -22,7 +23,7 @@ def insertarTiposClienteIMP():
     clicianonBD = claims["seleccion"]["clicianonBD"]
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
     sUsuario = claims["user"]
-    
+
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
     fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
@@ -67,12 +68,12 @@ def insertarTiposClienteIMP():
                         "tipcobdir": int(fila.get("tipcobdir", 0)),
                         "tipstatus": str(fila.get("tipstatus", "A")).strip().upper()[:1],
                         "tipdefacr": float(fila.get("tipdefacr", 0)),
-                        
+
                         # Auditoría de Inserción (Truncado a varchar(10) según cxcbtipcli)
                         "tipfecisys": fecha_pura,
                         "tiphorisys": hora_pura,
                         "tipusuisys": sUsuario[:10],
-                        
+
                         # Auditoría de Modificación
                         "tipfecmsys": fecha_pura,
                         "tiphormsys": hora_pura,

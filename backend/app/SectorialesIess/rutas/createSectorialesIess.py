@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/createSectorialesIess", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -27,14 +28,20 @@ def createSectorialesIess():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
+
     # 3. Extracción de campos según imagen y requerimiento
-    seccodigo = data.get("seccodigo")  # Código IESS
-    secanio = data.get("secanio")      # Año (Parte de la PK)
-    seccargo = data.get("seccargo")    # Cargo o Actividad
-    secestruc = data.get("secestruc")  # Estructura Ocupacional
-    secdetalle = data.get("secdetalle")# Comentarios / Detalles
-    secsalario = data.get("secsalario", 0) # Salario Mínimo
+    # Código IESS
+    seccodigo = data.get("seccodigo")
+    # Año (Parte de la PK)
+    secanio = data.get("secanio")
+    # Cargo o Actividad
+    seccargo = data.get("seccargo")
+    # Estructura Ocupacional
+    secestruc = data.get("secestruc")
+    # Comentarios / Detalles
+    secdetalle = data.get("secdetalle")
+    # Salario Mínimo
+    secsalario = data.get("secsalario", 0)
     secstatus = data.get("secstatus", "A")
 
     # 4. Validaciones de campos obligatorios para la Clave Primaria
@@ -47,7 +54,7 @@ def createSectorialesIess():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # Formateo de datos
@@ -56,7 +63,7 @@ def createSectorialesIess():
             seccargo = str(seccargo).strip().upper()[:200]
             secestruc = str(secestruc).strip().upper()[:10] if secestruc else ""
             secdetalle = str(secdetalle).strip().upper()[:500] if secdetalle else ""
-            
+
             # 5. Verificación de Duplicados (PK Compuesta: Cia + Código IESS + Año)
             check_data = {
                 "ciacodigo": sCodCia,
@@ -64,14 +71,14 @@ def createSectorialesIess():
                 "secanio": secanio
             }
             check_query = text("""
-                SELECT seccodigo 
-                FROM nomsectorialiess 
-                WHERE ciacodigo = :ciacodigo 
-                  AND seccodigo = :seccodigo 
+                SELECT seccodigo
+                FROM nomsectorialiess
+                WHERE ciacodigo = :ciacodigo
+                  AND seccodigo = :seccodigo
                   AND secanio = :secanio
             """)
             result = connection.execute(check_query, check_data).mappings().fetchone()
-            
+
             if result:
                 raise ValidationError(f"Ya existe un registro para el Código IESS '{seccodigo}' en el año {secanio}")
 
@@ -85,13 +92,13 @@ def createSectorialesIess():
                 "secdetalle": secdetalle,
                 "secsalario": float(secsalario),
                 "secstatus": secstatus,
-                
+
                 # Auditoría de Inserción
                 "secfecisys": fecha_pura,
                 "sechorisys": hora_pura,
                 "secusuisys": sUsuario,
                 "secestisys": sNomEst,
-                
+
                 # Auditoría de Modificación
                 "secfecmsys": fecha_pura,
                 "sechormsys": hora_pura,
@@ -102,12 +109,12 @@ def createSectorialesIess():
             insert_query = text(
                 """
                 INSERT INTO nomsectorialiess (
-                    ciacodigo, seccodigo, secanio, seccargo, secestruc, 
+                    ciacodigo, seccodigo, secanio, seccargo, secestruc,
                     secdetalle, secsalario, secstatus,
                     secfecisys, sechorisys, secusuisys, secestisys,
                     secfecmsys, sechormsys, secusumsys, secestmsys
                 ) VALUES (
-                    :ciacodigo, :seccodigo, :secanio, :seccargo, :secestruc, 
+                    :ciacodigo, :seccodigo, :secanio, :seccargo, :secestruc,
                     :secdetalle, :secsalario, :secstatus,
                     :secfecisys, :sechorisys, :secusuisys, :secestisys,
                     :secfecmsys, :sechormsys, :secusumsys, :secestmsys

@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/eliminarSectorialesIess", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -21,8 +22,10 @@ def eliminarSectorialesIess():
 
     # 2. Obtener los parámetros de la solicitud
     data = request.get_json()
-    seccodigo = data.get("seccodigo") # Código IESS
-    secanio = data.get("secanio")      # Año del registro
+    # Código IESS
+    seccodigo = data.get("seccodigo")
+    # Año del registro
+    secanio = data.get("secanio")
 
     # 3. Validación de campos requeridos para la Clave Primaria Compuesta
     if not seccodigo:
@@ -32,7 +35,7 @@ def eliminarSectorialesIess():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparar parámetros para el borrado (Cia + Código + Año)
@@ -44,9 +47,9 @@ def eliminarSectorialesIess():
 
             # 5. Sentencia SQL de eliminación con integridad multitenancy
             delete_query = text("""
-                DELETE FROM nomsectorialiess 
-                WHERE ciacodigo = :ciacodigo 
-                  AND seccodigo = :seccodigo 
+                DELETE FROM nomsectorialiess
+                WHERE ciacodigo = :ciacodigo
+                  AND seccodigo = :seccodigo
                   AND secanio = :secanio
             """)
 

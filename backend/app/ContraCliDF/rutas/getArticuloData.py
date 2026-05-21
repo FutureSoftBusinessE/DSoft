@@ -8,6 +8,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/getArticuloDataDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -39,13 +40,12 @@ def getArticuloDataDF():
                 artdescri,
                 artprecventa1 AS precio1
             FROM inmart
-            WHERE ciacodigo = :cia 
+            WHERE ciacodigo = :cia
               AND artcodigo = :artcodigo
-              AND artstatus = 'A' 
-              AND artprodven <> 0 
+              AND artstatus = 'A'
+              AND artprodven <> 0
               AND artservicio <> 0
         """
-        
         params = {"cia": sCodCia, "artcodigo": artcodigo}
 
         # Si el frontend envía el código de inventario, refinamos la búsqueda

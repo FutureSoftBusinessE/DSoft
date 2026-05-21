@@ -8,6 +8,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 # Helper para validar la integridad de los proveedores antes de la importación
 def validar_proveedoresdf(connection, columns: list, required: list, key_columns: list, rows: list):
     # 1. Validaciones básicas de parámetros de entrada
@@ -58,7 +59,7 @@ def validar_proveedoresdf(connection, columns: list, required: list, key_columns
 
     # 3. Verificación contra Base de Datos (Multitenancy - cxpmprov)
     cia_val = rows[0]["ciacodigo"]
-    
+
     # Consultamos los RUCs ya registrados para la compañía actual para evitar duplicados de identidad
     sql_get_all = text("SELECT proruc FROM cxpmprov WHERE ciacodigo = :ciacodigo")
     rows_db = connection.execute(sql_get_all, {"ciacodigo": cia_val}).mappings().all()
@@ -97,7 +98,8 @@ def validarProveedoresDFIMP():
     # Parámetros enviados por el componente de carga masiva de React
     columns = data.get("columns")
     required = data.get("required")
-    key_columns = data.get("key_columns", ["Cedula o Ruc"]) # Por defecto validamos por RUC
+    # Por defecto validamos por RUC
+    key_columns = data.get("key_columns", ["Cedula o Ruc"])
     rows_csv = data.get("rows")
 
     db.session = get_session(clicianonBD)

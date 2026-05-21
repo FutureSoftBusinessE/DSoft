@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/updateContraCliDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -27,19 +28,15 @@ def updateContraCliDF():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
     # 3. Extracción de la Cabecera (cxcccontratos)
     # concodcontrato es Intocable en el UPDATE, se usa para el WHERE
     concodcontrato = str(data.get("concodcontrato", "")).strip().upper()[:18]
-    
     concodigo = str(data.get("concodigo", "")).strip().upper()[:3]
     condescri = str(data.get("condescri", "")).strip().upper()[:250]
-    
     confecinicio = data.get("confecinicio")
     confecfin = data.get("confecfin")
     confecfirma = data.get("confecfirma")
     confecinifac = data.get("confecinifac")
-    
     confrecuencia = str(data.get("confrecuencia", "MENSUAL")).strip().upper()[:10]
     convalor = float(data.get("convalor", 0.0))
     constatus = str(data.get("constatus", "A")).strip().upper()[:1]
@@ -62,17 +59,15 @@ def updateContraCliDF():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
     with engine.connect() as connection:
         with connection.begin():
             # 5. Validación Regla de Negocio VB6: Verificar que exista y esté Activo
             check_exist = text("""
-                SELECT constatus, confecfin 
-                FROM cxcccontratos 
+                SELECT constatus, confecfin
+                FROM cxcccontratos
                 WHERE ciacodigo = :ciacodigo AND concodcontrato = :concodcontrato
             """)
             exist = connection.execute(check_exist, {"ciacodigo": sCodCia, "concodcontrato": concodcontrato}).mappings().fetchone()
-            
             if not exist:
                 raise ValidationError(f"El Contrato '{concodcontrato}' no existe o pertenece a otra compañía.")
             if exist["constatus"] != "A":
@@ -80,12 +75,11 @@ def updateContraCliDF():
 
             # 6. Validación Regla de Negocio VB6: No debe tener facturas emitidas (facfac)
             check_facturas = text("""
-                SELECT facnumfac 
-                FROM facfac 
+                SELECT facnumfac
+                FROM facfac
                 WHERE ciacodigo = :ciacodigo AND facnumref = :concodcontrato
             """)
             factura = connection.execute(check_facturas, {"ciacodigo": sCodCia, "concodcontrato": concodcontrato}).mappings().fetchone()
-            
             if factura:
                 raise ValidationError("No puede modificar el Contrato porque ya tiene Factura(s) emitida(s), verifique.")
 
@@ -93,23 +87,22 @@ def updateContraCliDF():
             # 7. ACTUALIZACIÓN DE LA CABECERA (cxcccontratos)
             # ---------------------------------------------------------
             update_cabecera = text("""
-                UPDATE cxcccontratos SET 
-                    condescri = :condescri, 
+                UPDATE cxcccontratos SET
+                    condescri = :condescri,
                     concodigo = :concodigo,
-                    constatus = :constatus, 
-                    confecinicio = :confecinicio, 
-                    confecfin = :confecfin, 
-                    confecfirma = :confecfirma, 
+                    constatus = :constatus,
+                    confecinicio = :confecinicio,
+                    confecfin = :confecfin,
+                    confecfirma = :confecfirma,
                     confecinifac = :confecinifac,
-                    confrecuencia = :confrecuencia, 
-                    convalor = :convalor, 
-                    confecmsys = :fecmsys, 
-                    conhormsys = :hormsys, 
-                    conusumsys = :usumsys, 
+                    confrecuencia = :confrecuencia,
+                    convalor = :convalor,
+                    confecmsys = :fecmsys,
+                    conhormsys = :hormsys,
+                    conusumsys = :usumsys,
                     conestmsys = :estmsys
                 WHERE ciacodigo = :ciacodigo AND concodcontrato = :concodcontrato
             """)
-            
             connection.execute(update_cabecera, {
                 "ciacodigo": sCodCia,
                 "concodcontrato": concodcontrato,
@@ -142,9 +135,9 @@ def updateContraCliDF():
             # ---------------------------------------------------------
             insert_detalle = text("""
                 INSERT INTO cxctcontratos (
-                    ciacodigo, concodcontrato, consecuen, constatus, invcodigo, 
+                    ciacodigo, concodcontrato, consecuen, constatus, invcodigo,
                     artcodigo, artdescri, concantidad, convalor, contotal,
-                    confecisys, conhorisys, conusuisys, conestisys, 
+                    confecisys, conhorisys, conusuisys, conestisys,
                     confecmsys, conhormsys, conusumsys, conestmsys
                 ) VALUES (
                     :ciacodigo, :concodcontrato, :consecuen, 'A', :invcodigo,
@@ -153,7 +146,6 @@ def updateContraCliDF():
                     :fecmsys, :hormsys, :usumsys, :estmsys
                 )
             """)
-            
             for index, item in enumerate(servicios, start=1):
                 connection.execute(insert_detalle, {
                     "ciacodigo": sCodCia,
@@ -181,7 +173,7 @@ def updateContraCliDF():
             insert_periodos = text("""
                 INSERT INTO cxctcontratosperiodos (
                     ciacodigo, concodcontrato, consecuen, conmes, conanio, constatus,
-                    confecisys, conhorisys, conusuisys, conestisys, 
+                    confecisys, conhorisys, conusuisys, conestisys,
                     confecmsys, conhormsys, conusumsys, conestmsys
                 ) VALUES (
                     :ciacodigo, :concodcontrato, :consecuen, :conmes, :conanio, :constatus,
@@ -189,7 +181,6 @@ def updateContraCliDF():
                     :fecmsys, :hormsys, :usumsys, :estmsys
                 )
             """)
-            
             for index, per in enumerate(periodos, start=1):
                 connection.execute(insert_periodos, {
                     "ciacodigo": sCodCia,

@@ -9,6 +9,7 @@ import base64
 from sqlalchemy import text
 from datetime import datetime
 
+
 @bp.route("/getInfoHome", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -28,13 +29,13 @@ def getInfoHome():
 
     # 3. Estructura inicial de respuesta para el Home
     dataInfoHome = {
-        "ciaselloagua": None, 
-        "cialogo": None, 
-        "lastLoginFecisys": None, 
-        "usrnombre": None, 
-        "totalLogins": 0, 
-        "isFirstLoginUser": False, 
-        "passwordChangeNeeded": False, 
+        "ciaselloagua": None,
+        "cialogo": None,
+        "lastLoginFecisys": None,
+        "usrnombre": None,
+        "totalLogins": 0,
+        "isFirstLoginUser": False,
+        "passwordChangeNeeded": False,
         "ciaalias": None,
         "ciatipomenu": 0,
         "ciacolor": "",
@@ -52,7 +53,6 @@ def getInfoHome():
             FROM siaccia
             WHERE ciacodigo = :ciacodigo
             """
-            
             # Consulta del último acceso del usuario
             medauditoria_query = """
             SELECT TOP 1
@@ -62,7 +62,6 @@ def getInfoHome():
                 AND modcodigo = 'WEB'
             ORDER BY fecisys DESC
             """
-            
             siaccia_result = connection.execute(text(siacia_query), {"ciacodigo": ciacodigo}).mappings().fetchone()
             medauditoria_result = connection.execute(text(medauditoria_query), {"usrcodigo": usrcodigo}).mappings().fetchone()
 
@@ -70,12 +69,10 @@ def getInfoHome():
                 siaccia_result = dict(siaccia_result)
                 img = siaccia_result.get("ciaselloagua")
                 imgLogo = siaccia_result.get("cialogo")
-                
                 # Conversión de binarios a Base64 para visualización en React
                 dataInfoHome["ciaselloagua"] = base64.b64encode(img).decode("utf-8") if img else None
                 dataInfoHome["cialogo"] = base64.b64encode(imgLogo).decode("utf-8") if imgLogo else None
                 dataInfoHome["ciaalias"] = siaccia_result.get("ciaalias")
-                
                 # Parámetros de Theming
                 dataInfoHome["ciatipomenu"] = siaccia_result.get("ciatipomenu") or 0
                 dataInfoHome["ciacolor"] = siaccia_result.get("ciacolor") or ""
@@ -93,7 +90,8 @@ def getInfoHome():
             num_total_logins = total_logins_result["totalLogins"] if total_logins_result else 0
 
             dataInfoHome["totalLogins"] = num_total_logins
-            dataInfoHome["isFirstLoginUser"] = (num_total_logins <= 1) # 1 porque el login actual ya generó auditoría
+            # 1 porque el login actual ya generó auditoría
+            dataInfoHome["isFirstLoginUser"] = (num_total_logins <= 1)
 
             # 4. Lógica de seguridad y caducidad de clave
             query_siaccusr = """

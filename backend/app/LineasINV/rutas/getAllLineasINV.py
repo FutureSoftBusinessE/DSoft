@@ -10,6 +10,7 @@ from sqlalchemy import text
 from app.utils.build_paginated_query import build_paginated_query
 from app.Clases.FILTER_VALUE_TYPE import FILTER_VALUE_TYPE
 
+
 @bp.route("/getAllLineasINV", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -17,10 +18,11 @@ def getAllLineasINV():
     # 1. Extracción de sesión y multitenancy
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
-    sCodCia = claims["seleccion"]["cliciaciacodigo"] # Filtro obligatorio por compañía
+    # Filtro obligatorio por compañía
+    sCodCia = claims["seleccion"]["cliciaciacodigo"]
 
     # 2. Obtener parámetros de paginación enviados desde la grilla de React
-    data = request.get_json()  
+    data = request.get_json()
     page = int(data.get("page", 1))
     per_page = int(data.get("perPage", 10))
     filters = data.get("filters", {})
@@ -41,7 +43,8 @@ def getAllLineasINV():
                 {"linstatus": FILTER_VALUE_TYPE.STRING},
                 {"numsecini": FILTER_VALUE_TYPE.NUMBER},
                 {"numseccont": FILTER_VALUE_TYPE.NUMBER},
-                {"lincodigo1": FILTER_VALUE_TYPE.STRING}, # Código limpio para ordenamiento
+                # Código limpio para ordenamiento
+                {"lincodigo1": FILTER_VALUE_TYPE.STRING},
                 {"linfecisys": FILTER_VALUE_TYPE.DATETIME},
                 {"linhorisys": FILTER_VALUE_TYPE.DATETIME},
                 {"linusuisys": FILTER_VALUE_TYPE.STRING},
@@ -69,7 +72,7 @@ def getAllLineasINV():
                 linfecmsys,
                 linhormsys,
                 linusumsys
-            FROM inblin 
+            FROM inblin
             WHERE ciacodigo = '{sCodCia}'
             """
 
@@ -78,7 +81,7 @@ def getAllLineasINV():
                 base_query=base_query,
                 order_by=[
                     # Ordenamiento jerárquico natural para que el árbol se dibuje correctamente
-                    "lincodigo1 ASC", 
+                    "lincodigo1 ASC",
                 ],
                 filters=filters,
                 page=page,
@@ -91,10 +94,9 @@ def getAllLineasINV():
 
             # 7. Procesamiento de resultados para la grilla
             total_records = result[0]["total"] if result else 0
-            
             # Formatear lista excluyendo la columna virtual de conteo 'total'
             all_lineas_result = [
-                {**{key: value for key, value in dict(row).items() if key != "total"}} 
+                {**{key: value for key, value in dict(row).items() if key != "total"}}
                 for row in result
             ]
 

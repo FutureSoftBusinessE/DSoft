@@ -8,6 +8,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint
 
+
 @bp.route("/getConfigLineas", methods=["GET"])
 @cross_origin()
 @jwt_required()
@@ -32,7 +33,9 @@ def getConfigLineas():
             }
         return {"ciaforlin": "##-##-##", "cianiveleslin": 3}
 
-@bp.route("/getLineaByCodigo", methods=["POST"]) # Cambiado a POST para mayor estabilidad
+
+# Cambiado a POST para mayor estabilidad
+@bp.route("/getLineaByCodigo", methods=["POST"])
 @cross_origin()
 @jwt_required()
 @api_endpoint
@@ -42,7 +45,8 @@ def getLineaByCodigo():
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
 
     data = request.get_json()
-    codigo = data.get("codigo") # Recibimos el código crudo (ej: 020700)
+    # Recibimos el código crudo (ej: 020700)
+    codigo = data.get("codigo")
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
@@ -50,9 +54,9 @@ def getLineaByCodigo():
     with engine.connect() as connection:
         # Usamos TRIM para evitar fallos si el campo en SQL es CHAR de longitud fija
         query = text("""
-            SELECT RTRIM(lincodigo) as lincodigo, RTRIM(lindescri) as lindescri 
-            FROM inblin 
-            WHERE ciacodigo = :ciacodigo 
+            SELECT RTRIM(lincodigo) as lincodigo, RTRIM(lindescri) as lindescri
+            FROM inblin
+            WHERE ciacodigo = :ciacodigo
               AND RTRIM(lincodigo) = :codigo
         """)
         res = connection.execute(query, {"ciacodigo": sCodCia, "codigo": str(codigo).strip().upper()}).mappings().fetchone()

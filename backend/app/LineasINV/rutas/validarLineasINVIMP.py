@@ -8,12 +8,12 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 def validar_lineasinv(connection, rows: list, sCodCia: str):
     # 1. Obtener configuración de niveles de la empresa
     res_cia = connection.execute(text("SELECT ciaforlin, cianiveleslin FROM siaccia WHERE ciacodigo = :cia"), {"cia": sCodCia}).mappings().fetchone()
     if not res_cia:
         raise ValidationError("No se encontró configuración de niveles (siaccia) para la empresa.")
-    
     formato = res_cia["ciaforlin"] or "##-##-##"
     max_niveles = int(res_cia["cianiveleslin"] or 3)
     separador = "".join([c for c in formato if c not in "0123456789#X"])[0] if any(c not in "0123456789#X" for c in formato) else "-"
@@ -57,7 +57,7 @@ def validar_lineasinv(connection, rows: list, sCodCia: str):
         idx = 0
         nivel_detectado = 1
         for i, length in enumerate(segs_len):
-            segmento = full_code[idx : idx + length]
+            segmento = full_code[idx: idx + length]
             if segmento != ("0" * length):
                 nivel_detectado = i + 1
             idx += length
@@ -68,6 +68,7 @@ def validar_lineasinv(connection, rows: list, sCodCia: str):
 
     valid_rows = sum(1 for fila in rows if fila["ok"])
     return rows, {"valid_rows": valid_rows, "invalid_rows": len(rows) - valid_rows}
+
 
 @bp.route("/validarLineasINVIMP", methods=["POST"])
 @cross_origin()

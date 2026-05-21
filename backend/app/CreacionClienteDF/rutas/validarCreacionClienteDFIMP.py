@@ -8,33 +8,29 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 # Helper para validar la integridad de los clientes antes de la importación
 def validar_creacionclientedf(connection, columns: list, required: list, key_columns: list, rows: list, sCodCia: str):
     # 1. Validaciones básicas de parámetros
     if not isinstance(rows, list) or len(rows) == 0:
         raise ValidationError("rows requerido")
-    
     # 2. Obtener valores por defecto de la Localidad (cgblocal)
     # Según requerimiento: activicodigo, regcodigo, sectorcodigo, tipcodigo, zoncodigo, procodigo, ciucodigo, parrocodigo
     sql_local = text("""
-        SELECT activicodigo, regcodigo, sectorcodigo, tipcodigo, zoncodigo, procodigo, ciucodigo, parrocodigo 
-        FROM cgblocal 
+        SELECT activicodigo, regcodigo, sectorcodigo, tipcodigo, zoncodigo, procodigo, ciucodigo, parrocodigo
+        FROM cgblocal
         WHERE ciacodigo = :ciacodigo AND loccodigo = '01'
     """)
     localidad = connection.execute(sql_local, {"ciacodigo": sCodCia}).mappings().fetchone()
-    
     if not localidad:
         raise ValidationError("No se encontró la configuración de localidad (01) para obtener códigos por defecto.")
 
     # 3. Consultar secuencia actual de Clientes (siacsec)
     sql_sec = text("SELECT secnumero FROM siacsec WHERE ciacodigo = :ciacodigo AND seccodigo = 'CLI'")
     res_sec = connection.execute(sql_sec, {"ciacodigo": sCodCia}).mappings().fetchone()
-    
     if not res_sec:
         raise ValidationError("No se encontró la secuencia 'CLI' en siacsec para esta compañía.")
-    
     proxima_secuencia = int(res_sec["secnumero"]) + 1
-
     # 4. Obtener RUCs existentes en base de datos para evitar duplicados reales
     sql_existentes = text("SELECT cliruc FROM cxcmcli WHERE ciacodigo = :ciacodigo")
     rows_db = connection.execute(sql_existentes, {"ciacodigo": sCodCia}).mappings().all()
@@ -50,10 +46,10 @@ def validar_creacionclientedf(connection, columns: list, required: list, key_col
         # Mapeo de campos solicitados y limpieza
         cliruc = str(fila.get("cliruc", "")).strip()
         clinombre = str(fila.get("clinombre", "")).strip()
-        cliidentifica = str(fila.get("cliidentifica", "C")).strip().upper()[:1]
+        # cliidentifica = str(fila.get("cliidentifica", "C")).strip().upper()[:1]
 
         # Inyectar valores por defecto de localidad y secuencia
-        fila["clicodigo"] = str(proxima_secuencia + i).zfill(6) # clicodigo varchar(6)
+        fila["clicodigo"] = str(proxima_secuencia + i).zfill(6)
         fila["activicodigo"] = localidad["activicodigo"]
         fila["regcodigo"] = localidad["regcodigo"]
         fila["sectorcodigo"] = localidad["sectorcodigo"]

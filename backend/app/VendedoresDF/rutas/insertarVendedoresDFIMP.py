@@ -12,6 +12,7 @@ from error_handling import api_endpoint
 # Importamos la función de validación del módulo Vendedores
 from app.VendedoresDF.rutas.validarVendedoresDFIMP import validar_vendedoresdf
 
+
 @bp.route("/insertarVendedoresDFIMP", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -23,7 +24,7 @@ def insertarVendedoresDFIMP():
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
     sUsuario = claims["user"]
     sNomEst = request.headers.get("X-Forwarded-For", request.remote_addr)
-    
+
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
     fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
@@ -68,16 +69,16 @@ def insertarVendedoresDFIMP():
                         "vendireccion": str(fila.get("vendireccion", "")).strip().upper()[:40],
                         "ventelefono": str(fila.get("ventelefono", "")).strip()[:15],
                         "venstatus": str(fila.get("venstatus", "A")).strip().upper()[:1],
-                        
+
                         # Valores por defecto para campos técnicos
                         "vencomision": 0.0,
-                        "ventipcom": "P", # Porcentaje
-                        "venaplica": "S", # Sí
+                        "ventipcom": "P",
+                        "venaplica": "S",
                         "vencontacto": 0.0,
                         "usrcodigo": None,
                         "vencomisiona": 0,
                         "emcodemp": None,
-                        "loccodigo": "01", # Localidad por defecto
+                        "loccodigo": "01",
                         "pedidossiac": 0,
                         "pedidosweb": 0,
                         "pedidoswebart": 0,
@@ -87,7 +88,7 @@ def insertarVendedoresDFIMP():
                         "venhorisys": hora_pura,
                         "venusuisys": sUsuario[:10],
                         "venestisys": sNomEst[:30] if sNomEst else "WEB",
-                        
+
                         # Auditoría de Modificación
                         "venfecmsys": fecha_pura,
                         "venhormsys": hora_pura,

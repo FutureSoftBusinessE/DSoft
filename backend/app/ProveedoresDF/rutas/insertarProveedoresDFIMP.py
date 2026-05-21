@@ -12,6 +12,7 @@ from error_handling import api_endpoint, ValidationError
 # Importamos la función de validación
 from app.ProveedoresDF.rutas.validarProveedoresDFIMP import validar_proveedoresdf
 
+
 @bp.route("/insertarProveedoresDFIMP", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -21,7 +22,7 @@ def insertarProveedoresDFIMP():
     clicianonBD = claims["seleccion"]["clicianonBD"]
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
     sUsuario = claims["user"]
-    
+
     now = datetime.now()
     fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
@@ -53,10 +54,10 @@ def insertarProveedoresDFIMP():
             # 2. Obtener secuencia inicial
             sql_sec = text("SELECT secnumero FROM siacsec WHERE ciacodigo = :cia AND seccodigo = 'PRO'")
             res_sec = connection.execute(sql_sec, {"cia": sCodCia}).mappings().fetchone()
-            
+
             if not res_sec:
                 raise ValidationError("No se encontró la configuración de secuencia 'PRO'.")
-            
+
             sec_actual = int(res_sec["secnumero"])
 
             # 3. Preparación del lote masivo
@@ -65,7 +66,7 @@ def insertarProveedoresDFIMP():
                 # Incrementamos antes de asignar
                 sec_actual += 1
                 pro_codigo_gen = str(sec_actual).zfill(6)
-                
+
                 to_insert.append({
                     "ciacodigo": sCodCia,
                     "procodigo": pro_codigo_gen,
@@ -91,7 +92,7 @@ def insertarProveedoresDFIMP():
             # 4. Ejecución del lote masivo
             insert_sql = text("""
                 INSERT INTO cxpmprov (
-                    ciacodigo, procodigo, procalif, proruc, pronombre, pronommat, 
+                    ciacodigo, procodigo, procalif, proruc, pronombre, pronommat,
                     prodirec, proemail, protelef1, procelu, prostatus,
                     prorepres, propais, prociudad, prosaldosuc, prosaldodol,
                     proesperjur, proesconesp, procambiaimp, prodiacre,

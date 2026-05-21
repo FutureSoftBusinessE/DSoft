@@ -12,6 +12,7 @@ from error_handling import api_endpoint
 # Importamos la función de validación del módulo Sectoriales
 from app.SectorialesIess.rutas.validarSectorialesIessIMP import validar_sectorialesiess
 
+
 @bp.route("/insertarSectorialesIessIMP", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -23,7 +24,7 @@ def insertarSectorialesIessIMP():
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
     sUsuario = claims["user"]
     sNomEst = request.headers.get("X-Forwarded-For", request.remote_addr)
-    
+
     # 2. Lógica de separación de Fecha y Hora pura
     now = datetime.now()
     fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
@@ -70,13 +71,13 @@ def insertarSectorialesIessIMP():
                         "secdetalle": str(fila.get("secdetalle", "")).strip().upper()[:500],
                         "secsalario": float(fila.get("secsalario", 0)),
                         "secstatus": str(fila.get("secstatus", "A")).strip().upper()[:1],
-                        
+
                         # Auditoría de Inserción
                         "secfecisys": fecha_pura,
                         "sechorisys": hora_pura,
                         "secusuisys": sUsuario,
                         "secestisys": sNomEst,
-                        
+
                         # Auditoría de Modificación
                         "secfecmsys": fecha_pura,
                         "sechormsys": hora_pura,
@@ -89,12 +90,12 @@ def insertarSectorialesIessIMP():
             insert_sql = text(
                 """
                 INSERT INTO nomsectorialiess (
-                    ciacodigo, seccodigo, secanio, seccargo, secestruc, 
+                    ciacodigo, seccodigo, secanio, seccargo, secestruc,
                     secdetalle, secsalario, secstatus,
                     secfecisys, sechorisys, secusuisys, secestisys,
                     secfecmsys, sechormsys, secusumsys, secestmsys
                 ) VALUES (
-                    :ciacodigo, :seccodigo, :secanio, :seccargo, :secestruc, 
+                    :ciacodigo, :seccodigo, :secanio, :seccargo, :secestruc,
                     :secdetalle, :secsalario, :secstatus,
                     :secfecisys, :sechorisys, :secusuisys, :secestisys,
                     :secfecmsys, :sechormsys, :secusumsys, :secestmsys

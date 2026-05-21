@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/eliminarTransportistasDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -21,7 +22,7 @@ def eliminarTransportistasDF():
 
     # 2. Obtener los parámetros de la solicitud
     data = request.get_json()
-    transcodigo = data.get("transcodigo") # Código del Transportista (varchar(3))
+    transcodigo = data.get("transcodigo")
 
     # 3. Validación de campos requeridos para la Clave Primaria
     if not transcodigo:
@@ -29,7 +30,7 @@ def eliminarTransportistasDF():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparar parámetros para el borrado (Cia + Código)
@@ -40,8 +41,8 @@ def eliminarTransportistasDF():
 
             # 5. Sentencia SQL de eliminación con integridad multitenancy sobre inbtranspor
             delete_query = text("""
-                DELETE FROM inbtranspor 
-                WHERE ciacodigo = :ciacodigo 
+                DELETE FROM inbtranspor
+                WHERE ciacodigo = :ciacodigo
                   AND transcodigo = :transcodigo
             """)
 

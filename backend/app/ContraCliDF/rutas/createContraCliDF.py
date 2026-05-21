@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/createContraCliDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -23,13 +24,10 @@ def createContraCliDF():
     now = datetime.now()
     fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
-    
     # Para el código nemotécnico necesitamos el año en 4 y 2 dígitos
     anio_actual = now.year
     anio_2_digitos = now.strftime('%y')
-
     data = request.get_json()
-    
     # Datos de Cabecera
     clicodigo = str(data.get("clicodigo", "")).strip().upper()[:6]
     concodigo = str(data.get("concodigo", "")).strip().upper()[:3]
@@ -40,7 +38,6 @@ def createContraCliDF():
     confecinifac = data.get("confecinifac")
     confrecuencia = str(data.get("confrecuencia", "MENSUAL")).strip().upper()[:10]
     convalor = float(data.get("convalor", 0.0))
-
     # Extracción de Tablas Hijas
     servicios = data.get("servicios", [])
     periodos = data.get("periodos", [])
@@ -54,33 +51,28 @@ def createContraCliDF():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
     with engine.connect() as connection:
         with connection.begin():
             # ---------------------------------------------------------
             # 1. GENERACIÓN DEL CÓDIGO NEMOTÉCNICO (cgpdpto)
             # ---------------------------------------------------------
             seq_query = text("""
-                SELECT dptonumsec 
-                FROM cgpdpto 
-                WHERE ciacodigo = :cia AND dptoanio = :anio 
+                SELECT dptonumsec
+                FROM cgpdpto
+                WHERE ciacodigo = :cia AND dptoanio = :anio
                   AND dptocodigo = 'CXC' AND doccodigo = 'CO'
             """)
             seq_res = connection.execute(seq_query, {"cia": sCodCia, "anio": anio_actual}).mappings().fetchone()
-            
             if not seq_res:
                 raise ValidationError(f"No existe una secuencia configurada en cgpdpto para el año {anio_actual} (CXC-CO).")
-            
             nuevo_secuencial = int(seq_res["dptonumsec"]) + 1
-            
             # Construcción estricta: doccodigo(CO) + locservidor(A) + dptoanio(26) + dptonumsec(000001) + localidad(01)
             doccodigo = "CO"
             locservidor = "A"
-            localidad = "01" # Default según su requerimiento
+            # Default según su requerimiento
+            localidad = "01"
             secuencia_formateada = str(nuevo_secuencial).zfill(6)
-            
             concodcontrato = f"{doccodigo}{locservidor}{anio_2_digitos}{secuencia_formateada}{localidad}"
-
             # Validación de duplicidad por si acaso hubo un salto manual en la tabla
             check_exist = connection.execute(
                 text("SELECT concodcontrato FROM cxcccontratos WHERE ciacodigo = :cia AND concodcontrato = :con"),
@@ -96,16 +88,15 @@ def createContraCliDF():
                 INSERT INTO cxcccontratos (
                     ciacodigo, concodcontrato, condescri, clicodigo, concodigo,
                     constatus, confecinicio, confecfin, confecfirma, confecinifac,
-                    confrecuencia, convalor, confecisys, conhorisys, conusuisys, 
+                    confrecuencia, convalor, confecisys, conhorisys, conusuisys,
                     conestisys, confecmsys, conhormsys, conusumsys, conestmsys
                 ) VALUES (
                     :ciacodigo, :concodcontrato, :condescri, :clicodigo, :concodigo,
                     'A', :confecinicio, :confecfin, :confecfirma, :confecinifac,
-                    :confrecuencia, :convalor, :fecisys, :horisys, :usuisys, 
+                    :confrecuencia, :convalor, :fecisys, :horisys, :usuisys,
                     :estisys, :fecmsys, :hormsys, :usumsys, :estmsys
                 )
             """)
-            
             connection.execute(insert_cabecera, {
                 "ciacodigo": sCodCia, "concodcontrato": concodcontrato, "condescri": condescri,
                 "clicodigo": clicodigo, "concodigo": concodigo, "confecinicio": confecinicio,
@@ -119,8 +110,8 @@ def createContraCliDF():
             # 3. ACTUALIZACIÓN DEL SECUENCIAL EN (cgpdpto)
             # ---------------------------------------------------------
             connection.execute(text("""
-                UPDATE cgpdpto SET dptonumsec = :nuevo 
-                WHERE ciacodigo = :cia AND dptoanio = :anio 
+                UPDATE cgpdpto SET dptonumsec = :nuevo
+                WHERE ciacodigo = :cia AND dptoanio = :anio
                   AND dptocodigo = 'CXC' AND doccodigo = 'CO'
             """), {"nuevo": nuevo_secuencial, "cia": sCodCia, "anio": anio_actual})
 
@@ -129,9 +120,9 @@ def createContraCliDF():
             # ---------------------------------------------------------
             insert_detalle = text("""
                 INSERT INTO cxctcontratos (
-                    ciacodigo, concodcontrato, consecuen, constatus, invcodigo, 
+                    ciacodigo, concodcontrato, consecuen, constatus, invcodigo,
                     artcodigo, artdescri, concantidad, convalor, contotal,
-                    confecisys, conhorisys, conusuisys, conestisys, 
+                    confecisys, conhorisys, conusuisys, conestisys,
                     confecmsys, conhormsys, conusumsys, conestmsys
                 ) VALUES (
                     :ciacodigo, :concodcontrato, :consecuen, 'A', :invcodigo,
@@ -140,7 +131,6 @@ def createContraCliDF():
                     :fecmsys, :hormsys, :usumsys, :estmsys
                 )
             """)
-            
             for index, item in enumerate(servicios, start=1):
                 connection.execute(insert_detalle, {
                     "ciacodigo": sCodCia,
@@ -164,7 +154,7 @@ def createContraCliDF():
             insert_periodos = text("""
                 INSERT INTO cxctcontratosperiodos (
                     ciacodigo, concodcontrato, consecuen, conmes, conanio, constatus,
-                    confecisys, conhorisys, conusuisys, conestisys, 
+                    confecisys, conhorisys, conusuisys, conestisys,
                     confecmsys, conhormsys, conusumsys, conestmsys
                 ) VALUES (
                     :ciacodigo, :concodcontrato, :consecuen, :conmes, :conanio, :constatus,
@@ -172,7 +162,6 @@ def createContraCliDF():
                     :fecmsys, :hormsys, :usumsys, :estmsys
                 )
             """)
-            
             for index, per in enumerate(periodos, start=1):
                 connection.execute(insert_periodos, {
                     "ciacodigo": sCodCia,

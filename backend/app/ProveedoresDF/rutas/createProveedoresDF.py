@@ -9,14 +9,18 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 def validar_identificacion_ec(tipo, valor):
-    """Validador de longitud de identificación estándar SIAC"""
-    if tipo == 'R': # R.U.C.
+    """Validador de longitud de identificación estándar """
+    # R.U.C.
+    if tipo == 'R':
         if len(str(valor).strip()) != 13:
             raise ValidationError("El R.U.C. debe tener exactamente 13 dígitos")
-    elif tipo == 'C': # Cédula
+        # Cédula
+    elif tipo == 'C':
         if len(str(valor).strip()) != 10:
             raise ValidationError("La Cédula debe tener exactamente 10 dígitos")
+
 
 @bp.route("/createProveedoresDF", methods=["POST"])
 @cross_origin()
@@ -35,7 +39,7 @@ def createProveedoresDF():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
+
     # Extracción de campos
     procalif = data.get("procalif", "R")
     proruc = data.get("proruc")
@@ -51,16 +55,16 @@ def createProveedoresDF():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # 4. Lógica de Secuencia: Obtener -> Incrementar -> Usar
             sql_sec = text("SELECT secnumero FROM siacsec WHERE ciacodigo = :cia AND seccodigo = 'PRO'")
             res_sec = connection.execute(sql_sec, {"cia": sCodCia}).mappings().fetchone()
-            
+
             if not res_sec:
                 raise ValidationError("No se encontró la secuencia 'PRO' en siacsec para esta compañía.")
-            
+
             # Incrementamos antes de usar
             nuevo_numero = int(res_sec["secnumero"]) + 1
             procodigo_gen = str(nuevo_numero).zfill(6)
@@ -93,14 +97,14 @@ def createProveedoresDF():
                 INSERT INTO cxpmprov (
                     ciacodigo, procodigo, procalif, proruc, pronombre, pronommat, prorepres, propais, prociudad,
                     prodirec, proemail, protelef1, procelu, prostatus, prosaldosuc, prosaldodol,
-                    proesperjur, proesconesp, procambiaimp, prodiacre, proparterel, procuo, protarcre, 
-                    procuota, prodescuento, prolistaprecio, proaplicaGar, progardias, proaplicaContr, 
+                    proesperjur, proesconesp, procambiaimp, prodiacre, proparterel, procuo, protarcre,
+                    procuota, prodescuento, prolistaprecio, proaplicaGar, progardias, proaplicaContr,
                     procontrdias, proaplicarebate, profecisys, prohorisys, prousuisys, profecmsys, prohormsys, prousumsys
                 ) VALUES (
                     :ciacodigo, :procodigo, :procalif, :proruc, :pronombre, :pronommat, :prorepres, :propais, :prociudad,
                     :prodirec, :proemail, :protelef1, :procelu, :prostatus, :prosaldosuc, :prosaldodol,
-                    :proesperjur, :proesconesp, :procambiaimp, :prodiacre, :proparterel, :procuo, :protarcre, 
-                    :procuota, :prodescuento, :prolistaprecio, :proaplicaGar, :progardias, :proaplicaContr, 
+                    :proesperjur, :proesconesp, :procambiaimp, :prodiacre, :proparterel, :procuo, :protarcre,
+                    :procuota, :prodescuento, :prolistaprecio, :proaplicaGar, :progardias, :proaplicaContr,
                     :procontrdias, :proaplicarebate, :profecisys, :prohorisys, :prousuisys, :profecmsys, :prohormsys, :prousumsys
                 )
             """)

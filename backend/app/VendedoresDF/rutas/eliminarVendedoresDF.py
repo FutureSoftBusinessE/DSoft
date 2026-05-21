@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/eliminarVendedoresDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -21,15 +22,14 @@ def eliminarVendedoresDF():
 
     # 2. Obtener los parámetros de la solicitud
     data = request.get_json()
-    vencodigo = data.get("vencodigo") # Código del Vendedor (varchar(3))
-
+    vencodigo = data.get("vencodigo")
     # 3. Validación de campos requeridos para la Clave Primaria
     if not vencodigo:
         raise ValidationError("El código del vendedor es requerido para la eliminación")
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # 4. Preparar parámetros para el borrado (Cia + Código)
@@ -40,8 +40,8 @@ def eliminarVendedoresDF():
 
             # 5. Sentencia SQL de eliminación sobre fapvendedor
             delete_query = text("""
-                DELETE FROM fapvendedor 
-                WHERE ciacodigo = :ciacodigo 
+                DELETE FROM fapvendedor
+                WHERE ciacodigo = :ciacodigo
                   AND vencodigo = :vencodigo
             """)
 

@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/createCreacionClienteDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -26,16 +27,14 @@ def createCreacionClienteDF():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
     with engine.connect() as connection:
         with connection.begin():
             # 1. Validación de Duplicados
             check_ruc_sql = text("""
-                SELECT clinombre FROM cxcmcli 
+                SELECT clinombre FROM cxcmcli
                 WHERE ciacodigo = :ciacodigo AND cliruc = :cliruc
             """)
             cliente_existente = connection.execute(check_ruc_sql, {"ciacodigo": sCodCia, "cliruc": cliruc}).mappings().fetchone()
-            
             if cliente_existente:
                 # El mensaje se envía sin el prefijo 'APIError' para que el modal lo muestre limpio
                 raise ValidationError(f"Advertencia: El número de identificación '{cliruc}' ya está registrado bajo el nombre: {cliente_existente['clinombre']}")
@@ -43,8 +42,8 @@ def createCreacionClienteDF():
             # 2. Lógica de Localidad y Secuencia (siacsec)
             sql_sec = text("SELECT secnumero FROM siacsec WHERE ciacodigo = :ciacodigo AND seccodigo = 'CLI'")
             res_sec = connection.execute(sql_sec, {"ciacodigo": sCodCia}).mappings().fetchone()
-            if not res_sec: raise ValidationError("Secuencia 'CLI' no configurada")
-            
+            if not res_sec:
+                raise ValidationError("Secuencia 'CLI' no configurada")
             nuevo_secnumero = int(res_sec["secnumero"]) + 1
             clicodigo = str(nuevo_secnumero).zfill(6)
 
@@ -76,8 +75,12 @@ def createCreacionClienteDF():
             }
 
             connection.execute(text("""
-                INSERT INTO cxcmcli (ciacodigo, clicodigo, clinombre, cliruc, clidirec, cliidentifica, cliemail, clitelef1, cliintersec, clistatus, activicodigo, regcodigo, sectorcodigo, tipcodigo, zoncodigo, procodigo, ciucodigo, parrocodigo, cliapliiva, clibloqueo, clipersona, cliorigening, calificacion, cliidenrep, cliidencon, cliconespecial, tarenviosta, clicuotaven, clidiapago, clinommatriz, clidiasrecibefac1, clidiaentregafac, clidemanda, clicastigada, cliparterel, cliprefac, clifecisys, clihorisys, cliusuisys, cliestisys, clifecmsys, clihormsys, cliusumsys, cliestmsys)
-                VALUES (:ciacodigo, :clicodigo, :clinombre, :cliruc, :clidirec, :cliidentifica, :cliemail, :clitelef1, :cliintersec, :clistatus, :activicodigo, :regcodigo, :sectorcodigo, :tipcodigo, :zoncodigo, :procodigo, :ciucodigo, :parrocodigo, :cliapliiva, :clibloqueo, :clipersona, :cliorigening, :calificacion, :cliidenrep, :cliidencon, :cliconespecial, :tarenviosta, :clicuotaven, :clidiapago, :clinommatriz, :clidiasrecibefac1, :clidiaentregafac, :clidemanda, :clicastigada, :cliparterel, :cliprefac, :clifecisys, :clihorisys, :cliusuisys, :cliestisys, :clifecmsys, :clihormsys, :cliusumsys, :cliestmsys)
+                INSERT INTO cxcmcli (ciacodigo, clicodigo, clinombre, cliruc, clidirec, cliidentifica, cliemail, clitelef1, cliintersec, clistatus, activicodigo, regcodigo, sectorcodigo, tipcodigo, zoncodigo, procodigo, ciucodigo, parrocodigo, cliapliiva, clibloqueo, clipersona
+                                    , cliorigening, calificacion, cliidenrep, cliidencon, cliconespecial, tarenviosta, clicuotaven, clidiapago, clinommatriz, clidiasrecibefac1, clidiaentregafac, clidemanda, clicastigada, cliparterel, cliprefac, clifecisys, clihorisys, cliusuisys, cliestisys
+                                    , clifecmsys, clihormsys, cliusumsys, cliestmsys)
+                VALUES (:ciacodigo, :clicodigo, :clinombre, :cliruc, :clidirec, :cliidentifica, :cliemail, :clitelef1, :cliintersec, :clistatus, :activicodigo, :regcodigo, :sectorcodigo, :tipcodigo, :zoncodigo, :procodigo, :ciucodigo, :parrocodigo, :cliapliiva, :clibloqueo, :clipersona,
+                                    :cliorigening, :calificacion, :cliidenrep, :cliidencon, :cliconespecial, :tarenviosta, :clicuotaven, :clidiapago, :clinommatriz, :clidiasrecibefac1, :clidiaentregafac, :clidemanda, :clicastigada, :cliparterel, :cliprefac, :clifecisys, :clihorisys, :cliusuisys,
+                                    :cliestisys, :clifecmsys, :clihormsys, :cliusumsys, :cliestmsys)
             """), insert_data)
 
             # Actualizar Secuencia

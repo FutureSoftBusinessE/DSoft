@@ -7,6 +7,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint
 
+
 @bp.route("/getInitialDataDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -22,16 +23,16 @@ def getInitialDataDF():
     with engine.connect() as connection:
         # Clientes Activos
         clientes = connection.execute(text("""
-            SELECT clicodigo, clinombre 
-            FROM cxcmcli 
+            SELECT clicodigo, clinombre
+            FROM cxcmcli
             WHERE ciacodigo = :cia AND clistatus = 'A'
             ORDER BY clinombre
         """), {"cia": sCodCia}).mappings().fetchall()
 
         # Tipos de Contrato y sus frecuencias
         tipos = connection.execute(text("""
-            SELECT concodigo, condescri, confrecuencia 
-            FROM cxcbtipcon 
+            SELECT concodigo, condescri, confrecuencia
+            FROM cxcbtipcon
             WHERE ciacodigo = :cia
             ORDER BY condescri
         """), {"cia": sCodCia}).mappings().fetchall()
@@ -40,9 +41,9 @@ def getInitialDataDF():
         articulos = connection.execute(text("""
             SELECT invcodigo, artcodigo, artdescri, artprecventa1 AS precio1
             FROM inmart
-            WHERE ciacodigo = :cia 
-              AND artstatus = 'A' 
-              AND artprodven <> 0 
+            WHERE ciacodigo = :cia
+              AND artstatus = 'A'
+              AND artprodven <> 0
               AND artservicio <> 0
             ORDER BY artdescri
         """), {"cia": sCodCia}).mappings().fetchall()

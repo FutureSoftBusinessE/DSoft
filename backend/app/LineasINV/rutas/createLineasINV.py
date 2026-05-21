@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/createLineasINV", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -30,7 +31,6 @@ def createLineasINV():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
     with engine.connect() as connection:
         with connection.begin():
             # 1. Obtener formato dinámico de siaccia
@@ -40,7 +40,6 @@ def createLineasINV():
             separador = "".join([c for c in formato if c not in "0123456789#X"])[0] if any(c not in "0123456789#X" for c in formato) else "-"
             segmentos_len = [len(s) for s in formato.split(separador)]
             total_len = sum(segmentos_len)
-            
             # 2. Rellenar código con ceros a la derecha (Capa de Datos)
             lincodigo_full = lincodigo_raw.ljust(total_len, '0')[:total_len]
 
@@ -48,7 +47,7 @@ def createLineasINV():
             segments = []
             curr = 0
             for length in segmentos_len:
-                segments.append(lincodigo_full[curr:curr+length])
+                segments.append(lincodigo_full[curr: curr + length])
                 curr += length
 
             linnivel = 1
@@ -59,8 +58,7 @@ def createLineasINV():
                 if segments[i] != ("0" * segmentos_len[i]):
                     linnivel = i + 1
                     # lincodigo1: Código truncado al nivel actual (Ej: 0201)
-                    lincodigo1 = "".join(segments[:i+1])
-                    
+                    lincodigo1 = "".join(segments[:i + 1])
                     # linlindes: Si no es nivel 1, el padre es el nivel anterior completo (Ej: 020000)
                     if i > 0:
                         parent_segs = segments[:i]
@@ -74,10 +72,11 @@ def createLineasINV():
                 "ciacodigo": sCodCia,
                 "lincodigo": lincodigo_full,
                 "lindescri": lindescri,
-                "linlindes": linlindes, # NULL para Nivel 1
+                # NULL para Nivel 1
+                "linlindes": linlindes,
                 "coscodigo": data.get("coscodigo"),
                 "linnivel": linnivel,
-                "lintipo": data.get("lintipo", "T").upper()[:1], 
+                "lintipo": data.get("lintipo", "T").upper()[:1],
                 "linstatus": data.get("linstatus", "A").upper()[:1],
                 "numsecini": data.get("numsecini"),
                 "numseccont": data.get("numseccont"),

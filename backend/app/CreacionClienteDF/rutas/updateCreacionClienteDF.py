@@ -10,6 +10,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/updateCreacionClienteDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -28,22 +29,20 @@ def updateCreacionClienteDF():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
     with engine.connect() as connection:
         with connection.begin():
             # 1. Validación de Duplicados (Excluyendo al cliente actual)
             check_ruc_sql = text("""
-                SELECT clinombre FROM cxcmcli 
-                WHERE ciacodigo = :ciacodigo 
-                  AND cliruc = :cliruc 
+                SELECT clinombre FROM cxcmcli
+                WHERE ciacodigo = :ciacodigo
+                  AND cliruc = :cliruc
                   AND clicodigo <> :clicodigo
             """)
             cliente_existente = connection.execute(check_ruc_sql, {
-                "ciacodigo": sCodCia, 
-                "cliruc": cliruc, 
+                "ciacodigo": sCodCia,
+                "cliruc": cliruc,
                 "clicodigo": clicodigo_old
             }).mappings().fetchone()
-            
             if cliente_existente:
                 raise ValidationError(f"Advertencia: El número de identificación '{cliruc}' ya está registrado bajo el nombre: {cliente_existente['clinombre']}")
 

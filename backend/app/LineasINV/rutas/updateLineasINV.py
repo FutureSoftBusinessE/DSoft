@@ -8,6 +8,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/updateLineasINV", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -28,7 +29,6 @@ def updateLineasINV():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
     with engine.connect() as connection:
         with connection.begin():
             res_cia = connection.execute(text("SELECT ciaforlin FROM siaccia WHERE ciacodigo = :cia"), {"cia": sCodCia}).mappings().fetchone()
@@ -36,14 +36,13 @@ def updateLineasINV():
             separador = "".join([c for c in formato if c not in "0123456789#X"])[0] if any(c not in "0123456789#X" for c in formato) else "-"
             segmentos_len = [len(s) for s in formato.split(separador)]
             total_len = sum(segmentos_len)
-            
             lincodigo_new_full = lincodigo_new_raw.ljust(total_len, '0')[:total_len]
 
             segments = []
             curr = 0
-            for l in segmentos_len:
-                segments.append(lincodigo_new_full[curr:curr+l])
-                curr += l
+            for largo in segmentos_len:
+                segments.append(lincodigo_new_full[curr: curr + largo])
+                curr += largo
 
             linnivel = 1
             lincodigo1 = ""
@@ -51,10 +50,11 @@ def updateLineasINV():
             for i in range(len(segments) - 1, -1, -1):
                 if segments[i] != ("0" * segmentos_len[i]):
                     linnivel = i + 1
-                    lincodigo1 = "".join(segments[:i+1])
+                    lincodigo1 = "".join(segments[:i + 1])
                     if i > 0:
                         p_segs = segments[:i]
-                        for j in range(i, len(segments)): p_segs.append("0" * segmentos_len[j])
+                        for j in range(i, len(segments)):
+                            p_segs.append("0" * segmentos_len[j])
                         linlindes = "".join(p_segs)
                     break
 
@@ -68,9 +68,9 @@ def updateLineasINV():
             }
 
             query = text("""
-                UPDATE inblin SET 
-                    lincodigo = :new, lindescri = :desc, linlindes = :padre, 
-                    linnivel = :nivel, lintipo = :tipo, linstatus = :status, 
+                UPDATE inblin SET
+                    lincodigo = :new, lindescri = :desc, linlindes = :padre,
+                    linnivel = :nivel, lintipo = :tipo, linstatus = :status,
                     lincodigo1 = :l1, linfecmsys = :f, linhormsys = :h, linusumsys = :u
                 WHERE ciacodigo = :cia AND lincodigo = :old
             """)

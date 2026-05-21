@@ -12,6 +12,7 @@ from error_handling import api_endpoint
 # Importamos la función de validación del módulo Transportistas
 from app.TransportistasDF.rutas.validarTransportistasDFIMP import validar_transportistasdf
 
+
 @bp.route("/insertarTransportistasDFIMP", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -22,7 +23,7 @@ def insertarTransportistasDFIMP():
     clicianonBD = claims["seleccion"]["clicianonBD"]
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
     sUsuario = claims["user"]
-    
+
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
     fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
@@ -70,14 +71,14 @@ def insertarTransportistasDFIMP():
                         "transstatus": str(fila.get("transstatus", "A")).strip().upper()[:1],
                         "transtipo": str(fila.get("transtipo", "L")).strip().upper()[:1],
                         "transcuenta": str(fila.get("transcuenta", ""))[:20] if fila.get("transcuenta") else None,
-                        
+
                         # Datos de Contacto
                         "transcontacto": str(fila.get("transcontactonombre", "")).strip().upper()[:100] if fila.get("transcontactonombre") else None,
                         "transcontactonombre": str(fila.get("transcontactonombre", "")).strip().upper()[:100] if fila.get("transcontactonombre") else None,
                         "transcontactodirec": str(fila.get("transcontactodirec", "")).strip().upper()[:100] if fila.get("transcontactodirec") else None,
                         "transcontactoemail": str(fila.get("transcontactoemail", "")).strip().lower()[:100] if fila.get("transcontactoemail") else None,
                         "transcontactotelef": str(fila.get("transcontactotelef", ""))[:20] if fila.get("transcontactotelef") else None,
-                        
+
                         # Placa
                         "transplaca": str(fila.get("transplaca", "")).strip().upper()[:10] if fila.get("transplaca") else None,
 
@@ -85,7 +86,7 @@ def insertarTransportistasDFIMP():
                         "transfecisys": fecha_pura,
                         "transhorisys": hora_pura,
                         "transusuisys": sUsuario[:10],
-                        
+
                         # Auditoría de Modificación
                         "transfecmsys": fecha_pura,
                         "transhormsys": hora_pura,
@@ -98,13 +99,13 @@ def insertarTransportistasDFIMP():
                 """
                 INSERT INTO inbtranspor (
                     ciacodigo, transcodigo, transdescri, transdirec, transruc, transtelef1,
-                    transstatus, transtipo, transcuenta, transcontacto, 
+                    transstatus, transtipo, transcuenta, transcontacto,
                     transcontactonombre, transcontactodirec, transcontactoemail, transcontactotelef,
                     transplaca, transfecisys, transhorisys, transusuisys,
                     transfecmsys, transhormsys, transusumsys
                 ) VALUES (
                     :ciacodigo, :transcodigo, :transdescri, :transdirec, :transruc, :transtelef1,
-                    :transstatus, :transtipo, :transcuenta, :transcontacto, 
+                    :transstatus, :transtipo, :transcuenta, :transcontacto,
                     :transcontactonombre, :transcontactodirec, :transcontactoemail, :transcontactotelef,
                     :transplaca, :transfecisys, :transhorisys, :transusuisys,
                     :transfecmsys, :transhormsys, :transusumsys

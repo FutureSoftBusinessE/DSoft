@@ -12,6 +12,7 @@ from error_handling import api_endpoint
 # Importamos la función de validación del módulo Medidas
 from app.MedidasINV.rutas.validarMedidasINVIMP import validar_medidasinv
 
+
 @bp.route("/insertarMedidasINVIMP", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -22,7 +23,6 @@ def insertarMedidasINVIMP():
     clicianonBD = claims["seleccion"]["clicianonBD"]
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
     sUsuario = claims["user"]
-    
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
     fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
@@ -65,12 +65,10 @@ def insertarMedidasINVIMP():
                         "medcodigo": str(fila.get("medcodigo", "")).strip().upper()[:3],
                         "meddescri": str(fila.get("meddescri", "")).strip().upper()[:30],
                         "medstatus": str(fila.get("medstatus", "A")).strip().upper()[:1],
-                        
                         # Auditoría de Inserción (Truncado a varchar(10) según inbmed)
                         "medfecisys": fecha_pura,
                         "medhorisys": hora_pura,
                         "medusuisys": sUsuario[:10],
-                        
                         # Auditoría de Modificación
                         "medfecmsys": fecha_pura,
                         "medhormsys": hora_pura,

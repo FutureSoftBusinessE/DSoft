@@ -8,6 +8,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 # Helper para validar la integridad de los datos antes de la importación
 def validar_sectorialesiess(connection, columns: list, required: list, key_columns: list, rows: list):
     # 1. Validaciones básicas de parámetros de entrada
@@ -64,7 +65,7 @@ def validar_sectorialesiess(connection, columns: list, required: list, key_colum
             v = fila.get(k)
             if isinstance(v, str):
                 v = v.strip()
-                fila[k] = v 
+                fila[k] = v
             clave.append("" if v is None else str(v).strip().lower())
 
         clave = tuple(clave)
@@ -103,7 +104,7 @@ def validar_sectorialesiess(connection, columns: list, required: list, key_colum
             v = fila.get(k)
             if isinstance(v, str):
                 v = v.strip()
-                fila[k] = v 
+                fila[k] = v
             clave_fila.append("" if v is None else str(v).strip().lower())
 
         if tuple(clave_fila) in existentes:

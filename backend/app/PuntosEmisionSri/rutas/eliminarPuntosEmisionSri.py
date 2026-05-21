@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/eliminarPuntosEmisionSri", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -26,12 +27,12 @@ def eliminarPuntosEmisionSri():
     # 3. Validación de campos requeridos
     if not cjacodigo or str(cjacodigo).strip() == "":
         raise ValidationError("El código de la caja (Punto de Emisión) es requerido para la eliminación.")
-        
+
     cjacodigo = str(cjacodigo).strip().upper()[:3]
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             params = {
@@ -41,16 +42,16 @@ def eliminarPuntosEmisionSri():
 
             try:
                 # 4. ELIMINACIÓN EN CASCADA MANUAL (Para no violar Foreign Keys)
-                
+
                 # A. Eliminar detalle de documentos fijos (siactsriseries)
                 connection.execute(text("DELETE FROM siactsriseries WHERE ciacodigo = :cia AND cjacodigo = :cja"), params)
-                
+
                 # B. Eliminar cabecera de series SRI (siaccsriseries)
                 connection.execute(text("DELETE FROM siaccsriseries WHERE ciacodigo = :cia AND cjacodigo = :cja"), params)
-                
+
                 # C. Eliminar relación Caja - Autorización (fatcaja)
                 connection.execute(text("DELETE FROM fatcaja WHERE ciacodigo = :cia AND cjacodigo = :cja"), params)
-                
+
                 # D. Eliminar la Caja maestra (fapcaja)
                 result = connection.execute(text("DELETE FROM fapcaja WHERE ciacodigo = :cia AND cjacodigo = :cja"), params)
 

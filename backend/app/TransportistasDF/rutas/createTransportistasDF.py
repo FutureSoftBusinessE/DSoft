@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/createTransportistasDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -26,23 +27,23 @@ def createTransportistasDF():
     hora_pura = now.strftime('1900-01-01 %H:%M:%S')
 
     data = request.get_json()
-    
+
     # 3. Extracción de campos según estructura de tabla inbtranspor y diseño visual
     transcodigo = data.get("transcodigo")
-    transdescri = data.get("transdescri") # Nombre
-    transdirec = data.get("transdirec")   # Dirección
-    transruc = data.get("transruc")       # Cédula/R.U.C.
-    transtelef1 = data.get("transtelef1") # Teléfono
-    transtipo = data.get("transtipo", "L") # Local (L) / Internacional (I)
+    transdescri = data.get("transdescri")
+    transdirec = data.get("transdirec")
+    transruc = data.get("transruc")
+    transtelef1 = data.get("transtelef1")
+    transtipo = data.get("transtipo", "L")
     transstatus = data.get("transstatus", "A")
-    transcuenta = data.get("transcuenta") # Número de Cuenta
-    
+    transcuenta = data.get("transcuenta")
+
     # Sección de Contacto
     transcontactonombre = data.get("transcontactonombre")
     transcontactodirec = data.get("transcontactodirec")
     transcontactoemail = data.get("transcontactoemail")
     transcontactotelef = data.get("transcontactotelef")
-    
+
     # Guía de Remisión
     transplaca = data.get("transplaca")
 
@@ -56,7 +57,7 @@ def createTransportistasDF():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
+
     with engine.connect() as connection:
         with connection.begin():
             # Formateo y truncado según estructura de tabla varchar
@@ -64,20 +65,20 @@ def createTransportistasDF():
             transdescri = str(transdescri).strip().upper()[:100]
             transdirec = str(transdirec).strip().upper()[:100]
             transruc = str(transruc).strip()[:20]
-            
+
             # 5. Verificación de Duplicados (PK: ciacodigo + transcodigo)
             check_data = {
                 "ciacodigo": sCodCia,
                 "transcodigo": transcodigo
             }
             check_query = text("""
-                SELECT transcodigo 
-                FROM inbtranspor 
-                WHERE ciacodigo = :ciacodigo 
+                SELECT transcodigo
+                FROM inbtranspor
+                WHERE ciacodigo = :ciacodigo
                   AND transcodigo = :transcodigo
             """)
             result = connection.execute(check_query, check_data).mappings().fetchone()
-            
+
             if result:
                 raise ValidationError(f"Ya existe un Transportista registrado con el código '{transcodigo}'")
 
@@ -92,22 +93,22 @@ def createTransportistasDF():
                 "transstatus": str(transstatus).strip().upper()[:1],
                 "transtipo": str(transtipo).strip().upper()[:1],
                 "transcuenta": str(transcuenta)[:20] if transcuenta else None,
-                
+
                 # Contacto
                 "transcontacto": str(transcontactonombre).strip().upper()[:100] if transcontactonombre else None,
                 "transcontactonombre": str(transcontactonombre).strip().upper()[:100] if transcontactonombre else None,
                 "transcontactodirec": str(transcontactodirec).strip().upper()[:100] if transcontactodirec else None,
                 "transcontactoemail": str(transcontactoemail).strip().lower()[:100] if transcontactoemail else None,
                 "transcontactotelef": str(transcontactotelef)[:20] if transcontactotelef else None,
-                
+
                 # Placa
                 "transplaca": str(transplaca).strip().upper()[:10] if transplaca else None,
-                
+
                 # Auditoría de Inserción
                 "transfecisys": fecha_pura,
                 "transhorisys": hora_pura,
                 "transusuisys": sUsuario[:10],
-                
+
                 # Auditoría de Modificación
                 "transfecmsys": fecha_pura,
                 "transhormsys": hora_pura,
@@ -118,13 +119,13 @@ def createTransportistasDF():
                 """
                 INSERT INTO inbtranspor (
                     ciacodigo, transcodigo, transdescri, transdirec, transruc, transtelef1,
-                    transstatus, transtipo, transcuenta, transcontacto, 
+                    transstatus, transtipo, transcuenta, transcontacto,
                     transcontactonombre, transcontactodirec, transcontactoemail, transcontactotelef,
                     transplaca, transfecisys, transhorisys, transusuisys,
                     transfecmsys, transhormsys, transusumsys
                 ) VALUES (
                     :ciacodigo, :transcodigo, :transdescri, :transdirec, :transruc, :transtelef1,
-                    :transstatus, :transtipo, :transcuenta, :transcontacto, 
+                    :transstatus, :transtipo, :transcuenta, :transcontacto,
                     :transcontactonombre, :transcontactodirec, :transcontactoemail, :transcontactotelef,
                     :transplaca, :transfecisys, :transhorisys, :transusuisys,
                     :transfecmsys, :transhormsys, :transusumsys

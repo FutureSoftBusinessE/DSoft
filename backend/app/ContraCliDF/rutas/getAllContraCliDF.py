@@ -10,6 +10,7 @@ from sqlalchemy import text
 from app.utils.build_paginated_query import build_paginated_query
 from app.Clases.FILTER_VALUE_TYPE import FILTER_VALUE_TYPE
 
+
 @bp.route("/getAllContraCliDF", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -18,16 +19,13 @@ def getAllContraCliDF():
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
-
     # 2. Obtener parámetros de paginación y filtros enviados desde el Frontend
-    data = request.get_json()  
+    data = request.get_json()
     page = int(data.get("page", 1))
     per_page = int(data.get("perPage", 10))
     filters = data.get("filters", {})
-
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-
     with engine.connect() as connection:
         with connection.begin():
             # 3. Definir columnas permitidas para filtros dinámicos en la grilla
@@ -38,7 +36,6 @@ def getAllContraCliDF():
                 {"condescri": FILTER_VALUE_TYPE.STRING},
                 {"constatus": FILTER_VALUE_TYPE.STRING},
             ]
-
             # 4. Consulta Base filtrada por compañía y formateo seguro de fechas para JSON
             base_query = f"""
             SELECT
@@ -51,7 +48,7 @@ def getAllContraCliDF():
                 CONVERT(varchar, confecfin, 23) AS confecfin,
                 confrecuencia,
                 convalor
-            FROM cxcccontratos 
+            FROM cxcccontratos
             WHERE ciacodigo = '{sCodCia}'
             """
 
@@ -72,7 +69,6 @@ def getAllContraCliDF():
 
             # 7. Procesamiento de resultados para la grilla
             total_records = result[0]["total"] if result else 0
-            
             # Formatear lista excluyendo la columna virtual de conteo 'total'
             # y forzando la conversión de Decimal a Float para que JSON no de error
             all_contratos_result = []
@@ -80,7 +76,6 @@ def getAllContraCliDF():
                 row_dict = dict(row)
                 if "total" in row_dict:
                     del row_dict["total"]
-                
                 # Aseguramos que el valor monetario se serialice correctamente en JSON
                 row_dict["convalor"] = float(row_dict.get("convalor", 0.0))
                 all_contratos_result.append(row_dict)

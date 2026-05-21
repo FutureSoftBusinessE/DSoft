@@ -9,6 +9,7 @@ from app.extensions import db
 from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
+
 @bp.route("/eliminarLineasINV", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -29,7 +30,6 @@ def eliminarLineasINV():
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
-    
     with engine.connect() as connection:
         with connection.begin():
             lincodigo = str(lincodigo).strip().upper()
@@ -39,9 +39,9 @@ def eliminarLineasINV():
             # ================================================================
             # Buscamos si existe algún registro donde 'linlindes' (Padre) sea igual al código que queremos borrar
             check_hijos_query = text("""
-                SELECT TOP 1 lincodigo 
-                FROM inblin 
-                WHERE ciacodigo = :ciacodigo 
+                SELECT TOP 1 lincodigo
+                FROM inblin
+                WHERE ciacodigo = :ciacodigo
                   AND linlindes = :lincodigo
             """)
             tiene_hijos = connection.execute(check_hijos_query, {"ciacodigo": sCodCia, "lincodigo": lincodigo}).fetchone()
@@ -57,8 +57,8 @@ def eliminarLineasINV():
 
             # 5. Sentencia SQL de eliminación segura
             delete_query = text("""
-                DELETE FROM inblin 
-                WHERE ciacodigo = :ciacodigo 
+                DELETE FROM inblin
+                WHERE ciacodigo = :ciacodigo
                   AND lincodigo = :lincodigo
             """)
 

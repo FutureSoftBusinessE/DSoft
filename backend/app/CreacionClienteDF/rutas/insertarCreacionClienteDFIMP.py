@@ -12,6 +12,7 @@ from error_handling import api_endpoint
 # Importamos la función de validación del módulo Creación de Clientes
 from app.CreacionClienteDF.rutas.validarCreacionClienteDFIMP import validar_creacionclientedf
 
+
 @bp.route("/insertarCreacionClienteDFIMP", methods=["POST"])
 @cross_origin()
 @jwt_required()
@@ -23,7 +24,6 @@ def insertarCreacionClienteDFIMP():
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
     sUsuario = claims["user"]
     sNomEst = request.headers.get("X-Forwarded-For", request.remote_addr)
-    
     # 2. Lógica de separación de Fecha y Hora pura para SQL Server
     now = datetime.now()
     fecha_pura = now.strftime('%Y-%m-%d 00:00:00')
@@ -64,16 +64,17 @@ def insertarCreacionClienteDFIMP():
                 to_insert.append(
                     {
                         "ciacodigo": sCodCia,
-                        "clicodigo": fila["clicodigo"], # Generado en validación
+                        # Generado en validación
+                        "clicodigo": fila["clicodigo"],
                         "clinombre": str(fila.get("clinombre", "")).strip().upper()[:200],
                         "cliruc": str(fila.get("cliruc", "")).strip().upper()[:15],
                         "clidirec": str(fila.get("clidirec", "")).strip().upper()[:200],
                         "cliemail": str(fila.get("cliemail", "")).strip().lower()[:100],
                         "clitelef1": str(fila.get("clitelef1", "")).strip()[:15],
-                        "cliintersec": str(fila.get("cliintersec", "")).strip().upper()[:60], # Celular
+                        # Celular
+                        "cliintersec": str(fila.get("cliintersec", "")).strip().upper()[:60],
                         "clistatus": str(fila.get("clistatus", "A")).strip().upper()[:1],
                         "cliidentifica": str(fila.get("cliidentifica", "C")).strip().upper()[:1],
-                        
                         # Campos de Localidad (obtenidos de cgblocal)
                         "activicodigo": fila["activicodigo"],
                         "regcodigo": fila["regcodigo"],
@@ -120,22 +121,22 @@ def insertarCreacionClienteDFIMP():
             insert_sql = text(
                 """
                 INSERT INTO cxcmcli (
-                    ciacodigo, clicodigo, clinombre, cliruc, clidirec, cliemail, clitelef1, cliintersec, 
-                    clistatus, cliidentifica, activicodigo, regcodigo, sectorcodigo, tipcodigo, 
-                    zoncodigo, procodigo, ciucodigo, parrocodigo, cliapliiva, clibloqueo, 
-                    clipersona, cliorigening, calificacion, cliidenrep, cliidencon, 
-                    cliconespecial, tarenviosta, clicuotaven, clidiapago, clinommatriz, 
-                    clidiasrecibefac1, clidiaentregafac, clidemanda, clicastigada, 
-                    cliparterel, cliprefac, clifecisys, clihorisys, cliusuisys, cliestisys, 
+                    ciacodigo, clicodigo, clinombre, cliruc, clidirec, cliemail, clitelef1, cliintersec,
+                    clistatus, cliidentifica, activicodigo, regcodigo, sectorcodigo, tipcodigo,
+                    zoncodigo, procodigo, ciucodigo, parrocodigo, cliapliiva, clibloqueo,
+                    clipersona, cliorigening, calificacion, cliidenrep, cliidencon,
+                    cliconespecial, tarenviosta, clicuotaven, clidiapago, clinommatriz,
+                    clidiasrecibefac1, clidiaentregafac, clidemanda, clicastigada,
+                    cliparterel, cliprefac, clifecisys, clihorisys, cliusuisys, cliestisys,
                     clifecmsys, clihormsys, cliusumsys, cliestmsys
                 ) VALUES (
-                    :ciacodigo, :clicodigo, :clinombre, :cliruc, :clidirec, :cliemail, :clitelef1, :cliintersec, 
-                    :clistatus, :cliidentifica, :activicodigo, :regcodigo, :sectorcodigo, :tipcodigo, 
-                    :zoncodigo, :procodigo, :ciucodigo, :parrocodigo, :cliapliiva, :clibloqueo, 
-                    :clipersona, :cliorigening, :calificacion, :cliidenrep, :cliidencon, 
-                    :cliconespecial, :tarenviosta, :clicuotaven, :clidiapago, :clinommatriz, 
-                    :clidiasrecibefac1, :clidiaentregafac, :clidemanda, :clicastigada, 
-                    :cliparterel, :cliprefac, :clifecisys, :clihorisys, :cliusuisys, :cliestisys, 
+                    :ciacodigo, :clicodigo, :clinombre, :cliruc, :clidirec, :cliemail, :clitelef1, :cliintersec,
+                    :clistatus, :cliidentifica, :activicodigo, :regcodigo, :sectorcodigo, :tipcodigo,
+                    :zoncodigo, :procodigo, :ciucodigo, :parrocodigo, :cliapliiva, :clibloqueo,
+                    :clipersona, :cliorigening, :calificacion, :cliidenrep, :cliidencon,
+                    :cliconespecial, :tarenviosta, :clicuotaven, :clidiapago, :clinommatriz,
+                    :clidiasrecibefac1, :clidiaentregafac, :clidemanda, :clicastigada,
+                    :cliparterel, :cliprefac, :clifecisys, :clihorisys, :cliusuisys, :cliestisys,
                     :clifecmsys, :clihormsys, :cliusumsys, :cliestmsys
                 )
                 """
@@ -146,8 +147,8 @@ def insertarCreacionClienteDFIMP():
             # Se incrementa la secuencia según la cantidad de registros insertados
             nueva_secuencia = int(to_insert[-1]["clicodigo"])
             update_sec_sql = text("""
-                UPDATE siacsec 
-                SET secnumero = :nueva_secuencia 
+                UPDATE siacsec
+                SET secnumero = :nueva_secuencia
                 WHERE ciacodigo = :ciacodigo AND seccodigo = 'CLI'
             """)
             connection.execute(update_sec_sql, {"ciacodigo": sCodCia, "nueva_secuencia": nueva_secuencia})

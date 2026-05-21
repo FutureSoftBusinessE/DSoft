@@ -4,12 +4,14 @@ from flask_jwt_extended import jwt_required
 # Importamos PdfFileReader en lugar del Writer para una validación segura
 from pyhanko.pdf_utils.reader import PdfFileReader
 from pyhanko.sign.validation import validate_pdf_signature
-from error_handling import api_endpoint, ValidationError
+from error_handling import api_endpoint, APIError, ValidationError
 from app.FirmarPDFDF import bp
 import re
 
+
 def formatear_fecha_pdf(fecha_pdf):
-    if not fecha_pdf: return "N/A"
+    if not fecha_pdf:
+        return "N/A"
     try:
         if isinstance(fecha_pdf, bytes):
             fecha_pdf = fecha_pdf.decode('utf-8', 'ignore')
@@ -19,19 +21,22 @@ def formatear_fecha_pdf(fecha_pdf):
         if match:
             return f"{match.group(1)}-{match.group(2)}-{match.group(3)}\n{match.group(4)}:{match.group(5)}:{match.group(6)}"
         return str(fecha_pdf)
-    except:
-        return "N/A"
+    except Exception as e:
+        raise APIError(str(e))
+
 
 def decodificar_texto_pdf(texto):
-    if not texto: return "null"
+    if not texto:
+        return "null"
     try:
         if isinstance(texto, bytes):
-            if texto.startswith(b'\xfe\xff'): 
+            if texto.startswith(b'\xfe\xff'):
                 return texto.decode('utf-16')
             return texto.decode('utf-8', 'ignore')
         return str(texto)
-    except:
-        return "null"
+    except Exception as e:
+        raise APIError(str(e))
+
 
 @bp.route("/verificarFirmaPDF", methods=["POST"])
 @cross_origin()
@@ -44,7 +49,7 @@ def verificarFirmaPDF():
         raise ValidationError("Debe cargar un archivo PDF para validar.")
 
     try:
-        # SOLUCIÓN AL ERROR HYBRID-REFERENCE: 
+        # SOLUCIÓN AL ERROR HYBRID-REFERENCE:
         # Usamos PdfFileReader con strict=False para tolerar el formato
         r = PdfFileReader(pdf_file, strict=False)
         firmas_encontradas = []
@@ -53,13 +58,12 @@ def verificarFirmaPDF():
         for sig in r.embedded_signatures:
             status = validate_pdf_signature(sig)
             cert = sig.signer_cert
-            
             # Navegar atributos nativos del certificado
             subject_dict = cert.subject.native
             issuer_dict = cert.issuer.native
 
             nombres = subject_dict.get('common_name', subject_dict.get('description', 'Desconocido'))
-            cedula = subject_dict.get('serial_number', '') 
+            cedula = subject_dict.get('serial_number', '')
 
             entidad = issuer_dict.get('organization_name', issuer_dict.get('common_name', 'Desconocida'))
 
@@ -70,7 +74,6 @@ def verificarFirmaPDF():
             reason = decodificar_texto_pdf(pdf_dict.get('/Reason'))
             location = decodificar_texto_pdf(pdf_dict.get('/Location'))
             fecha_firma = formatear_fecha_pdf(pdf_dict.get('/M'))
-            
             firmas_encontradas.append({
                 "nombres": f"{cedula}\n{nombres}".strip(),
                 "razon_loc": f"{reason}\n{location}".strip(),
@@ -79,7 +82,7 @@ def verificarFirmaPDF():
                 "emision": f"{emision}\nhora de Ecuador",
                 "expiracion": f"{expiracion}\nhora de Ecuador",
                 "revocacion": "No revocado",
-                "sellado": "No", 
+                "sellado": "No",
                 "valido": status.valid and status.intact
             })
 

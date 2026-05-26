@@ -97,20 +97,25 @@ const TabArchivosFisicos = ({
         headers: { "Content-Type": "multipart/form-data" },
       })
 
-      // CORRECCIÓN CLAVE: Extraemos la data del sub-nodo 'data' que envía el backend
-      const { validoDesde, validoHasta } = response.data.data
+      // Validamos que el backend responda con success: true
+      if (response.data && response.data.success) {
+        // CORRECCIÓN CLAVE: Extraemos la data del backend (snake_case) y la asignamos a variables (camelCase)
+        const { valido_desde: validoDesde, valido_hasta: validoHasta } = response.data.data
 
-      const fechaEmiStr = validoDesde.split(" ")[0]
-      const fechaVenStr = validoHasta.split(" ")[0]
+        const fechaEmiStr = validoDesde.split(" ")[0]
+        const fechaVenStr = validoHasta.split(" ")[0]
 
-      // Convertimos a dayjs para que el componente CustomDatePicker los pueda procesar sin romper
-      setDocfecemi(dayjs(fechaEmiStr))
-      setDocfecven(dayjs(fechaVenStr))
+        // Convertimos a dayjs para que el componente CustomDatePicker los pueda procesar sin romper
+        setDocfecemi(dayjs(fechaEmiStr))
+        setDocfecven(dayjs(fechaVenStr))
 
-      // Enviamos el string limpio a la función padre para guardarlo en la base de datos
-      onFirmaCargada({ emision: fechaEmiStr, vencimiento: fechaVenStr })
+        // Enviamos el string limpio a la función padre para guardarlo en la base de datos
+        onFirmaCargada({ emision: fechaEmiStr, vencimiento: fechaVenStr })
 
-      mostrarAlerta("Éxito", "Certificado validado correctamente", "success")
+        mostrarAlerta("Éxito", "Certificado validado correctamente", "success")
+      } else {
+        mostrarAlerta("Error", "No se pudo validar el certificado. Verifique la contraseña.", "error")
+      }
     } catch (error) {
       mostrarAlerta("Error", "No se pudo validar el certificado. Verifique la contraseña.", "error")
     }

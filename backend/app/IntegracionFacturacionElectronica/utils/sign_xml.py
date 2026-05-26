@@ -1,75 +1,58 @@
-from pathlib import Path
-import subprocess
-import tempfile
-import os
+import json
+from lxml import etree
+from cryptography.hazmat.primitives.serialization import pkcs12, Encoding, PrivateFormat, NoEncryption
+from cryptography.hazmat.backends import default_backend
+from signxml.xades import XAdESSigner
+from sqlalchemy import text
+from flask_jwt_extended import get_jwt
+from app.db import get_session
+from services.encrip_desencrip import desencriptar
 
 
-def sign_xml(xml_sin_firmar: str, nombre_certificado: str, clave_certificado: str, directorio_certificados: str = None) -> tuple:
+def sign_xml(xml_sin_firmar: str, *args, **kwargs) -> tuple:
     """
-    Firma documento XML para facturación electrónica del SRI Ecuador
-    usando XAdES-BES via Java
+    Firma documento XML para facturación electrónica del SRI Ecuador.
+    Versión blindada: SHA-256 + Canonicalización SRI + Puntero URI Explícito.
     """
-
-    # 1. Determinar directorio de certificados
-    if directorio_certificados is None:
-        dir_cert = Path(__file__).parent.parent / "firmas"
-    else:
-        dir_cert = Path(directorio_certificados)
-
-    ruta_certificado = dir_cert / nombre_certificado
-
-    if not ruta_certificado.exists():
-        return None, f"Certificado no encontrado: {nombre_certificado}", {"certificado": nombre_certificado, "ruta": str(ruta_certificado), "directorio": str(dir_cert), "error": "CERTIFICADO_NO_ENCONTRADO"}
-
-    # 2. Validar XML no vacío
-    if not xml_sin_firmar or not isinstance(xml_sin_firmar, str) or not xml_sin_firmar.strip():
-        return None, "El XML está vacío o no es un string válido", {"error": "XML_VACIO"}
-
-    # 3. Directorio de Java
-    java_dir = Path(__file__).parent.parent / "xades_signer_java"
-
-    # 4. Guardar XML temporal sin firmar
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix="_sin_firma.xml", mode="w", encoding="utf-8") as f:
-            f.write(xml_sin_firmar)
-            xml_entrada = f.name  # f.name es la ruta que tempfile.NamedTemporaryFile elige del sistema operativo (suele ser el directorio /temp) para guardar el archivo temporal
+        if not xml_sin_firmar:
+            return None, "XML vacío", {"error": "XML_VACIO"}
 
-        xml_salida = xml_entrada.replace("_sin_firma.xml", "_firmado.xml")
+        claims = get_jwt()
+        db_session = get_session(claims["seleccion"]["clicianonBD"])
 
-        # 5. Ejecutar Java para firmar el XML
-        cmd = [
-            "java",  # Ejecutable de Java
-            "-cp",  # -cp = classpath (dónde buscar las clases)
-            f"{java_dir}\\build;{java_dir}\\lib\\*",  # build/ = clases compiladas ; lib/* = todos los .jar
-            "com.futuresoft.comprobantes.util.FirmarXML",  # Clase principal a ejecutar
-            xml_entrada,  # Argumento 1: XML sin firmar (ruta temporal)
-            xml_salida,  # Argumento 2: XML firmado (ruta temporal de salida)
-            str(ruta_certificado),  # Argumento 3: Ruta al certificado .p12
-            clave_certificado,  # Argumento 4: Contraseña del certificado
-        ]
+        with db_session.bind.connect() as conn:
+            locpathxml = conn.execute(text("SELECT locpathxml FROM cgblocal WHERE ciacodigo = :cia"), {"cia": claims["seleccion"]["cliciaciacodigo"]}).scalar()
+            res = conn.execute(text("SELECT COALESCE(d.documento, o.documento), COALESCE(d.doc_datos_sensibles, o.doc_datos_sensibles) FROM gdocmdocumentos d LEFT JOIN gdocmdocumentos o ON d.documento_origen_uuid = o.documentouuid WHERE d.documentouuid = :uuid"), {"uuid": locpathxml}).first()
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
+            p12_bytes, datos_sensibles = res[0], res[1].decode("utf-8").strip()
+            # Limpiamos cualquier padding residual de la base de datos
+            while datos_sensibles and ord(datos_sensibles[-1]) < 32:
+                datos_sensibles = datos_sensibles[:-1]
 
-        if result.returncode != 0:
-            return None, f"Error Java: {result.stderr}", {"error": "ERROR_FIRMA_JAVA", "detalle": result.stderr}
+            clave_p12 = json.loads(desencriptar(datos_sensibles)).get("clave_certificado", "")
 
-        # 6. Leer XML firmado
-        with open(xml_salida, "r", encoding="utf-8") as f:
-            xml_firmado = f.read()
+        private_key, certificate, additional_certificates = pkcs12.load_key_and_certificates(p12_bytes, clave_p12.encode("utf-8"), default_backend())
 
-        # 7. Verificar firma
-        if "<ds:Signature" not in xml_firmado:
-            return None, "La firma no se agregó correctamente al XML", {"error": "FIRMA_NO_AGREGADA"}
+        key_pem = private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
+        cert_pem = certificate.public_bytes(Encoding.PEM)
 
-        return xml_firmado, None, None
+        # Parsear eliminando todo espacio en blanco que pueda romper el Hash
+        parser = etree.XMLParser(remove_blank_text=True)
+        xml_root = etree.fromstring(xml_sin_firmar.encode("utf-8"), parser)
 
-    except FileNotFoundError as e:
-        return None, f"No se encontró Java o el JAR: {str(e)}", {"error": "JAVA_NO_ENCONTRADO"}
+        # Garantizar que el nodo raíz tenga el ID exacto
+        xml_root.set("id", "comprobante")
+
+        # Usamos SHA-256 (Seguridad Moderna) con Canonicalización 1.0 (Regla SRI)
+        signer = XAdESSigner(signature_algorithm="rsa-sha256", digest_algorithm="sha256", c14n_algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315")
+
+        # --- EL SECRETO DEL SRI ---
+        # Le decimos a la librería que apunte la firma estrictamente al id="comprobante"
+        xml_firmado_root = signer.sign(xml_root, key=key_pem, cert=cert_pem, reference_uri="#comprobante")
+
+        xml_final = etree.tostring(xml_firmado_root, encoding="UTF-8", method="xml", xml_declaration=True)
+        return xml_final.decode("utf-8"), None, None
+
     except Exception as e:
-        return None, f"Error al firmar: {str(e)}", {"error": "ERROR_FIRMA", "detalle_tecnico": str(e)}
-    finally:
-        # Limpiar archivos temporales
-        if "xml_entrada" in locals() and os.path.exists(xml_entrada):
-            os.unlink(xml_entrada)
-        if "xml_salida" in locals() and os.path.exists(xml_salida):
-            os.unlink(xml_salida)
+        return None, str(e), {"error": "ERROR_FIRMA_PYTHON"}

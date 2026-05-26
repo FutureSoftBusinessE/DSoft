@@ -425,6 +425,6 @@ def setup_global_error_handlers(app):
 
     # ==================== CONFIRMACIÓN DE CONFIGURACIÓN ====================
 
-    app.logger.info("✅ Global error handlers configured successfully")
+    app.logger.info("[OK] Global error handlers configured successfully")
 
     return app

@@ -68,6 +68,14 @@ import {
   EditarFacturaDesdeArticulos,
 } from "../pages"
 
+// FacturaDesdeArticulosDF
+import {
+  FacturaDesdeArticulosDF,
+  BuscarFacturaDesdeArticulosDF,
+  CrearFacturaDesdeArticulosDF,
+  EditarFacturaDesdeArticulosDF,
+} from "../pages"
+
 // Creacion de usuarios
 import { CreacionUsuarios, CrearCreacionUsuarios, BuscarCreacionUsuarios, EditarCreacionUsuarios } from "../pages"
 
@@ -122,47 +130,56 @@ import { ResumenProductividad } from "../pages"
 // ConsultaDeRuc
 import { ConsultaDeRuc } from "../pages"
 
-//SectorialesIess
+// SectorialesIess
 import { SectorialesIess, CrearSectorialesIess, EditarSectorialesIess } from "../pages"
 
-//LineasINV
+// LineasINV
 import { LineasINV, CrearLineasINV, EditarLineasINV } from "../pages"
 
-//MarcasINV
+// MarcasINV
 import { MarcasINV, CrearMarcasINV, EditarMarcasINV } from "../pages"
 
-//MedidasINV
+// MedidasINV
 import { MedidasINV, CrearMedidasINV, EditarMedidasINV } from "../pages"
 
-//PresentacionesINV
+// PresentacionesINV
 import { PresentacionesINV, CrearPresentacionesINV, EditarPresentacionesINV } from "../pages"
 
-//CreacionClienteDF
+// CreacionClienteDF
 import { CreacionClienteDF, CrearCreacionClienteDF, EditarCreacionClienteDF } from "../pages"
 
-//TransportistasDF
+// TransportistasDF
 import { TransportistasDF, CrearTransportistasDF, EditarTransportistasDF } from "../pages"
 
-//VendedoresDF
+// VendedoresDF
 import { VendedoresDF, CrearVendedoresDF, EditarVendedoresDF } from "../pages"
 
-//ProveedoresDF
+// ProveedoresDF
 import { ProveedoresDF, CrearProveedoresDF, EditarProveedoresDF } from "../pages"
 
-//FirmarPDFDF
+// FirmarPDFDF
 import { FirmarPDFDF } from "../pages"
 
-//PerfilUsuarioDF
+// PerfilUsuarioDF
 import { PerfilUsuarioDF } from "../pages"
 
-//ContraCliDF
+// ContraCliDF
 import { ContraCliDF, CrearContraCliDF, EditarContraCliDF } from "../pages"
 
-//AutorizacionesSri
+// AutorizacionesSri
 import { AutorizacionesSri, CrearAutorizacionesSri, EditarAutorizacionesSri } from "../pages"
 
-//PuntosEmisionSri
+// PuntosEmisionSri
 import { PuntosEmisionSri, CrearPuntosEmisionSri, EditarPuntosEmisionSri } from "../pages"
+
+// TipoDeCredenciales
+import { TipoDeCredenciales, CrearTipoDeCredenciales, EditarTipoDeCredenciales } from "../pages"
+
+// Instituciones
+import { Instituciones, CrearInstituciones, EditarInstituciones } from "../pages"
+
+// SecuenciasInternas
+import { SecuenciasInternas, CrearSecuenciasInternas, EditarSecuenciasInternas } from "../pages"
 
 const protectedRoutes = [
   { path: "Submenu/:label/:id", element: <SubMenu /> },
@@ -206,6 +223,10 @@ const protectedRoutes = [
   { path: "dashboard/FacturaDesdeArticulos/buscar", element: <BuscarFacturaDesdeArticulos /> },
   { path: "dashboard/FacturaDesdeArticulos/crear", element: <CrearFacturaDesdeArticulos /> },
   { path: "dashboard/FacturaDesdeArticulos/editar", element: <EditarFacturaDesdeArticulos /> },
+  { path: "dashboard/FacturaDesdeArticulosDF", element: <FacturaDesdeArticulosDF /> },
+  { path: "dashboard/FacturaDesdeArticulosDF/buscar", element: <BuscarFacturaDesdeArticulosDF /> },
+  { path: "dashboard/FacturaDesdeArticulosDF/crear", element: <CrearFacturaDesdeArticulosDF /> },
+  { path: "dashboard/FacturaDesdeArticulosDF/editar", element: <EditarFacturaDesdeArticulosDF /> },
   { path: "dashboard/CreacionUsuarios", element: <CreacionUsuarios /> },
   { path: "dashboard/CreacionUsuarios/crear", element: <CrearCreacionUsuarios /> },
   { path: "dashboard/CreacionUsuarios/buscar", element: <BuscarCreacionUsuarios /> },
@@ -265,36 +286,45 @@ const protectedRoutes = [
   { path: "dashboard/LineasINV/editar", element: <EditarLineasINV /> },
   { path: "dashboard/MarcasINV", element: <MarcasINV /> },
   { path: "dashboard/MarcasINV/crear", element: <CrearMarcasINV /> },
-  { path: "dashboard/MarcasINV/editar", element: <EditarMarcasINV /> }, 
+  { path: "dashboard/MarcasINV/editar", element: <EditarMarcasINV /> },
   { path: "dashboard/MedidasINV", element: <MedidasINV /> },
   { path: "dashboard/MedidasINV/crear", element: <CrearMedidasINV /> },
-  { path: "dashboard/MedidasINV/editar", element: <EditarMedidasINV /> },  
+  { path: "dashboard/MedidasINV/editar", element: <EditarMedidasINV /> },
   { path: "dashboard/PresentacionesINV", element: <PresentacionesINV /> },
   { path: "dashboard/PresentacionesINV/crear", element: <CrearPresentacionesINV /> },
-  { path: "dashboard/PresentacionesINV/editar", element: <EditarPresentacionesINV /> },  
+  { path: "dashboard/PresentacionesINV/editar", element: <EditarPresentacionesINV /> },
   { path: "dashboard/CreacionClienteDF", element: <CreacionClienteDF /> },
   { path: "dashboard/CreacionClienteDF/crear", element: <CrearCreacionClienteDF /> },
-  { path: "dashboard/CreacionClienteDF/editar", element: <EditarCreacionClienteDF /> }, 
+  { path: "dashboard/CreacionClienteDF/editar", element: <EditarCreacionClienteDF /> },
   { path: "dashboard/TransportistasDF", element: <TransportistasDF /> },
   { path: "dashboard/TransportistasDF/crear", element: <CrearTransportistasDF /> },
-  { path: "dashboard/TransportistasDF/editar", element: <EditarTransportistasDF /> }, 
+  { path: "dashboard/TransportistasDF/editar", element: <EditarTransportistasDF /> },
   { path: "dashboard/VendedoresDF", element: <VendedoresDF /> },
   { path: "dashboard/VendedoresDF/crear", element: <CrearVendedoresDF /> },
-  { path: "dashboard/VendedoresDF/editar", element: <EditarVendedoresDF /> }, 
+  { path: "dashboard/VendedoresDF/editar", element: <EditarVendedoresDF /> },
   { path: "dashboard/ProveedoresDF", element: <ProveedoresDF /> },
   { path: "dashboard/ProveedoresDF/crear", element: <CrearProveedoresDF /> },
-  { path: "dashboard/ProveedoresDF/editar", element: <EditarProveedoresDF /> }, 
+  { path: "dashboard/ProveedoresDF/editar", element: <EditarProveedoresDF /> },
   { path: "dashboard/FirmarPDFDF", element: <FirmarPDFDF /> },
   { path: "dashboard/PerfilUsuarioDF", element: <PerfilUsuarioDF /> },
   { path: "dashboard/ContraCliDF", element: <ContraCliDF /> },
   { path: "dashboard/ContraCliDF/crear", element: <CrearContraCliDF /> },
-  { path: "dashboard/ContraCliDF/editar", element: <EditarContraCliDF /> }, 
+  { path: "dashboard/ContraCliDF/editar", element: <EditarContraCliDF /> },
   { path: "dashboard/AutorizacionesSri", element: <AutorizacionesSri /> },
   { path: "dashboard/AutorizacionesSri/crear", element: <CrearAutorizacionesSri /> },
-  { path: "dashboard/AutorizacionesSri/editar", element: <EditarAutorizacionesSri /> }, 
+  { path: "dashboard/AutorizacionesSri/editar", element: <EditarAutorizacionesSri /> },
   { path: "dashboard/PuntosEmisionSri", element: <PuntosEmisionSri /> },
   { path: "dashboard/PuntosEmisionSri/crear", element: <CrearPuntosEmisionSri /> },
-  { path: "dashboard/PuntosEmisionSri/editar", element: <EditarPuntosEmisionSri /> },  
+  { path: "dashboard/PuntosEmisionSri/editar", element: <EditarPuntosEmisionSri /> },
+  { path: "dashboard/TipoDeCredenciales", element: <TipoDeCredenciales /> },
+  { path: "dashboard/TipoDeCredenciales/crear", element: <CrearTipoDeCredenciales /> },
+  { path: "dashboard/TipoDeCredenciales/editar", element: <EditarTipoDeCredenciales /> },
+  { path: "dashboard/Instituciones", element: <Instituciones /> },
+  { path: "dashboard/Instituciones/crear", element: <CrearInstituciones /> },
+  { path: "dashboard/Instituciones/editar", element: <EditarInstituciones /> },
+  { path: "dashboard/SecuenciasInternas", element: <SecuenciasInternas /> },
+  { path: "dashboard/SecuenciasInternas/crear", element: <CrearSecuenciasInternas /> },
+  { path: "dashboard/SecuenciasInternas/editar", element: <EditarSecuenciasInternas /> },
 ]
 
 export default protectedRoutes

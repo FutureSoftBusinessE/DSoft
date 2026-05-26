@@ -24,12 +24,7 @@ import BackIcon from "../../../components/BackIcon"
 import fetchwrapper from "../../../services/interceptors/fetchwrapper"
 import CustomBackdrop from "../../../components/CustomBackdrop"
 import CrearIcon from "../../../assets/iconos/Crear.ico"
-import DocumentosAsociadosTabla from "../../components/Global/DocumentosAsociadosModal/DocumentosAsociadosTabla"
-import { useQueryClient } from "@tanstack/react-query"
-
-// 1. IMPORTAMOS EL NUEVO MODAL UNIVERSAL Y EL ÍCONO DE ADJUNTO
-import DocumentosAsociadosModal from "../../components/Global/DocumentosAsociadosModal"
-import AttachFileIcon from "@mui/icons-material/AttachFile"
+import DocumentosAsociadosComponent from "../../../components/DocumentosAsociadosComponent/DocumentosAsociadosComponent"
 
 const StyledRoot = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -51,6 +46,7 @@ const theme = createTheme({
   },
 })
 
+// Opciones para tipo de identificación
 const opcionesIdentificacion = [
   { value: "", label: "No seleccionar" },
   { value: "C", label: "Cédula" },
@@ -59,12 +55,14 @@ const opcionesIdentificacion = [
   { value: "O", label: "Consumidor Final" },
 ]
 
+// Opciones para sexo
 const opcionesSexo = [
   { value: "", label: "No seleccionar" },
   { value: "M", label: "Masculino" },
   { value: "F", label: "Femenino" },
 ]
 
+// Opciones para estado civil
 const opcionesEstadoCivil = [
   { value: "", label: "No seleccionar" },
   { value: "SOLTERO", label: "Soltero" },
@@ -74,34 +72,41 @@ const opcionesEstadoCivil = [
   { value: "UNION LIBRE", label: "Unión Libre" },
 ]
 
+// Opciones para tipo de persona (tipcodigo según BD)
 const opcionesTipoPersona = [
   { value: "", label: "No seleccionar" },
   { value: "001", label: "Persona Natural" },
   { value: "002", label: "Persona Jurídica" },
 ]
 
+// Estado inicial con los mismos campos que en crear
 const initialFormState = {
-  tipcodigo: "",
-  cliidentifica: "",
-  cliruc: "",
-  clinombre: "",
-  clidirec: "",
-  cliemail: "",
-  clisexo: "",
-  cliestciv: "",
-  clifecnac: "",
-  clipersona: "",
-  cliintersec: "",
-  clitelef1: "",
-  clitelef2: "",
-  clifax: "",
-  cliprofesion: "",
-  clirepres: "",
+  // Campos principales
+  tipcodigo: "", // 001 para Natural, 002 para Jurídica
+  cliidentifica: "", // C, R, P
+  cliruc: "", // Número de identificación
+  clinombre: "", // Nombre/Razón Social
+  clidirec: "", // Dirección
+  cliemail: "", // Email
+
+  // Campos personales
+  clisexo: "", // M, F
+  cliestciv: "", // Estado civil
+  clifecnac: "", // Fecha de nacimiento (formato YYYY-MM-DD)
+  clipersona: "", // N=Natural, J=Jurídica
+
+  // Campos de contacto
+  cliintersec: "", // Intersección/teléfono celular
+  clitelef1: "", // Teléfono 1
+  clitelef2: "", // Teléfono 2
+  clifax: "", // Fax
+
+  // Campos adicionales
+  cliprofesion: "", // Profesión
+  clirepres: "", // Representante legal
 }
 
 const BuscarCreacionClientes = () => {
-  const [nextSecuencia, setNextSecuencia] = useState(1)
-  const queryClient = useQueryClient()
   const location = useLocation()
   const navigate = useNavigate()
   const { clicodigo } = location.state
@@ -116,15 +121,14 @@ const BuscarCreacionClientes = () => {
     severity: "success",
   })
 
-  // 2. ESTADO PARA CONTROLAR EL MODAL
-  const [modalOpen, setModalOpen] = useState(false)
-
+  // Cargar datos del cliente
   useEffect(() => {
     if (clicodigo) {
       cargarCliente(clicodigo)
     }
   }, [clicodigo])
 
+  // Cargar cliente desde la API
   const cargarCliente = async (clicodigo) => {
     if (!clicodigo) return
 
@@ -143,6 +147,7 @@ const BuscarCreacionClientes = () => {
       if (result.data) {
         const cliente = result.data
 
+        // Mapear datos de la API al estado del formulario
         setFormData({
           tipcodigo: cliente.tipcodigo || "",
           cliidentifica: cliente.cliidentifica || "",
@@ -162,6 +167,7 @@ const BuscarCreacionClientes = () => {
           clirepres: cliente.clirepres || "",
         })
 
+        // Estado del cliente
         setCliestado(cliente.clistatus || "A")
       } else {
         mostrarSnackbar("Cliente no encontrado", "error")
@@ -176,7 +182,9 @@ const BuscarCreacionClientes = () => {
     }
   }
 
+  // Manejar cambio en tipo de persona
   const handleTipoPersonaChange = (value) => {
+    // Determinar clipersona basado en tipcodigo
     let clipersona = ""
     if (value === "001") {
       clipersona = "N"
@@ -191,6 +199,7 @@ const BuscarCreacionClientes = () => {
     }))
   }
 
+  // Manejar cambios en otros campos
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -198,6 +207,7 @@ const BuscarCreacionClientes = () => {
     }))
   }
 
+  // Mostrar snackbar
   const mostrarSnackbar = (message, severity = "success") => {
     setSnackbar({
       open: true,
@@ -206,37 +216,55 @@ const BuscarCreacionClientes = () => {
     })
   }
 
+  // Cerrar snackbar
   const cerrarSnackbar = () => {
     setSnackbar({ ...snackbar, open: false })
   }
 
+  // Actualizar cliente
   const handleActualizarCliente = async () => {
     try {
       setIsUpdating(true)
 
+      // Preparar datos para actualizar
       const datosCliente = {
         clicodigo,
+        // Campos del formulario
         tipcodigo: formData.tipcodigo,
         cliidentifica: formData.cliidentifica,
         cliruc: formData.cliruc,
         clinombre: formData.clinombre,
         clidirec: formData.clidirec,
         cliemail: formData.cliemail,
+
+        // Campos personales
         clisexo: formData.clisexo,
         cliestciv: formData.cliestciv,
         clifecnac: formData.clifecnac,
         clipersona: formData.clipersona,
+
+        // Campos de contacto
         cliintersec: formData.cliintersec,
         clitelef1: formData.clitelef1,
         clitelef2: formData.clitelef2,
         clifax: formData.clifax,
+
+        // Campos adicionales
         cliprofesion: formData.cliprofesion,
         clirepres: formData.clirepres,
+
+        // Campos con valores por defecto
         clidiasrecibefac1: "0",
         cliconespecial: "0",
+
+        // Estado
         clistatus: cliestado,
       }
 
+      console.log("Datos a actualizar:", datosCliente)
+
+      // Necesitarás crear un endpoint updateCliente en tu backend
+      // Por ahora uso saveCliente como ejemplo
       const response = await fetchwrapper(`/CreacionCliente/editSpecificCliente`, {
         method: "POST",
         headers: {
@@ -249,6 +277,7 @@ const BuscarCreacionClientes = () => {
 
       if (result.tipmsg === "Success") {
         mostrarSnackbar("Cliente actualizado exitosamente", "success")
+        // Recargar datos después de actualizar
         await cargarCliente(clicodigo)
       } else {
         mostrarSnackbar(result.msg || "Error al actualizar cliente", "error")
@@ -261,6 +290,7 @@ const BuscarCreacionClientes = () => {
     }
   }
 
+  // Volver a la lista
   const handleVolver = () => {
     navigate(-1)
   }
@@ -270,27 +300,21 @@ const BuscarCreacionClientes = () => {
       <CustomBackdrop isLoading={isLoading || isUpdating} />
       <Header />
       <div className="main main-app p-3 p-lg-4">
-        {/* 3. BARRA DE ACCIONES CON EL NUEVO BOTÓN DE DOCUMENTOS */}
-        <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "20px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
           <BackIcon onClick={handleVolver} />
-
-          <Tooltip title="Actualizar cliente">
-            <Button color="primary" onClick={handleActualizarCliente} disabled={isUpdating || isLoading}>
-              <img src={CrearIcon} alt="Actualizar" style={{ width: "30px", height: "30px" }} />
-            </Button>
-          </Tooltip>
-
-          {/* Botón que despliega nuestro Modal Universal */}
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<AttachFileIcon />}
-            onClick={() => setModalOpen(true)}
-            disabled={isLoading || !clicodigo}
-          >
-            Asociar Documento / Credencial
-          </Button>
         </div>
+        <Tooltip title="Actualizar cliente">
+          <Button
+            color="primary"
+            onClick={handleActualizarCliente}
+            disabled={isUpdating || isLoading}
+            sx={{
+              marginBlock: "15px",
+            }}
+          >
+            <img src={CrearIcon} alt="Actualizar" style={{ width: "30px", height: "30px" }} />
+          </Button>
+        </Tooltip>
 
         <div
           style={{
@@ -555,51 +579,20 @@ const BuscarCreacionClientes = () => {
                       />
                     </Grid>
                   </Grid>
-
-                  {/* (Si a futuro desea agregar una tabla o listado de documentos asociados ya guardados, 
-                      puede crear un componente nuevo que lea el endpoint 'getDocumentosAsociados' 
-                      y colocarlo en esta sección) */}
+                  <DocumentosAsociadosComponent
+                    entidadId={clicodigo} // ID del evento
+                    tipoEntidad="cxcmcli" // Tipo de entidad
+                    readOnly={false} // Solo lectura si es estado terminal
+                    onDocumentoAgregado={(doc) => console.log("Documento agregado:", doc)}
+                    onDocumentoEliminado={(uuid) => console.log("Documento eliminado:", uuid)}
+                  />
                 </CardContent>
               </Card>
-              {/* GRILLA DE VISUALIZACIÓN GLOBAL INYECTADA */}
-              <DocumentosAsociadosTabla
-                qgenero={clicodigo}
-                procqgenero="cxcmcli"
-                onDataLoaded={(proximaSecuencia) => setNextSecuencia(proximaSecuencia)}
-              />
             </Grid>
           </Grid>
         </Box>
 
-        {/* MODAL UNIVERSAL CON ENTRADA DE SECUENCIA CORREGIDA */}
-        <DocumentosAsociadosModal
-          isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
-          contexto={{
-            clicodigo,
-            docsecuen: nextSecuencia, // Envía el valor calculado automáticamente de forma exacta
-          }}
-          onSuccess={() => {
-            // Refresca la grilla al subir un archivo nuevo
-            queryClient.invalidateQueries(["documentosAsociados", clicodigo, "cxcmcli"])
-          }}
-        />
-
-        {/* 4. INYECCIÓN DEL MODAL */}
-        <DocumentosAsociadosModal
-          isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
-          contexto={{
-            docqgenero: clicodigo,
-            docprocqgenero: "CXCMCLI",
-          }}
-          onSuccess={(data) => {
-            console.log("Documento asociado correctamente. UUID:", data.documentouuid)
-            mostrarSnackbar("Documento y/o credencial asociados correctamente", "success")
-            // Si agrega una grilla de documentos en el futuro, aquí puede invocar la función para recargar la tabla
-          }}
-        />
-
+        {/* Snackbar para notificaciones */}
         <Snackbar
           open={snackbar.open}
           autoHideDuration={6000}

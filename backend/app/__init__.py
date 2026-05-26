@@ -118,6 +118,10 @@ def create_app(config_class=Config):
 
     app.register_blueprint(FacturaDesdeArticulos_bp, url_prefix="/FacturaDesdeArticulos")
 
+    from app.FacturaDesdeArticulosDF import bp as FacturaDesdeArticulosDF_bp
+
+    app.register_blueprint(FacturaDesdeArticulosDF_bp, url_prefix="/FacturaDesdeArticulosDF")
+
     from app.Home import bp as Home_bp
 
     app.register_blueprint(Home_bp, url_prefix="/Home")
@@ -317,6 +321,18 @@ def create_app(config_class=Config):
     from app.IntegracionFacturacionElectronica import bp as IntegracionFacturacionElectronica_bp
 
     app.register_blueprint(IntegracionFacturacionElectronica_bp, url_prefix="/IntegracionFacturacionElectronica")
+
+    from app.TipoDeCredenciales import bp as TipoDeCredenciales_bp
+
+    app.register_blueprint(TipoDeCredenciales_bp, url_prefix="/TipoDeCredenciales")
+
+    from app.Instituciones import bp as Instituciones_bp
+
+    app.register_blueprint(Instituciones_bp, url_prefix="/Instituciones")
+
+    from app.SecuenciasInternas import bp as SecuenciasInternas_bp
+
+    app.register_blueprint(SecuenciasInternas_bp, url_prefix="/SecuenciasInternas")
 
     print("---------------ENDPOINTS------------------")
     for rule in app.url_map.iter_rules():

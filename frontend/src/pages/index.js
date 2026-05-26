@@ -77,6 +77,12 @@ import BuscarFacturaDesdeArticulos from "./FacturaDesdeArticulos/Buscar"
 import CrearFacturaDesdeArticulos from "./FacturaDesdeArticulos/Crear"
 import EditarFacturaDesdeArticulos from "./FacturaDesdeArticulos/Editar"
 
+// FacturaDesdeArticulosDF
+import FacturaDesdeArticulosDF from "./FacturaDesdeArticulosDF"
+import BuscarFacturaDesdeArticulosDF from "./FacturaDesdeArticulosDF/Buscar"
+import CrearFacturaDesdeArticulosDF from "./FacturaDesdeArticulosDF/Crear"
+import EditarFacturaDesdeArticulosDF from "./FacturaDesdeArticulosDF/Editar"
+
 // Creacion de usuarios
 import CreacionUsuarios from "./CreacionUsuarios"
 import CrearCreacionUsuarios from "./CreacionUsuarios/Crear"
@@ -105,7 +111,6 @@ import Localidad from "./Localidad/LocalidadMainPage"
 import CrearLocalidad from "./Localidad/Crear/CrearLocalidadPage"
 import EditarLocalidad from "./Localidad/Editar/EditarLocalidadPage"
 import BuscarLocalidad from "./Localidad/Buscar/BuscarLocalidadPage"
-
 
 // TipoDocumento
 import TipoDocumento from "./TipoDocumento"
@@ -193,46 +198,61 @@ import TiposCliente from "./TiposCliente"
 import CrearTiposCliente from "./TiposCliente/Crear"
 import EditarTiposCliente from "./TiposCliente/Editar"
 
-//CreacionClienteDF
+// CreacionClienteDF
 import CreacionClienteDF from "./CreacionClienteDF"
 import CrearCreacionClienteDF from "./CreacionClienteDF/Crear"
 import EditarCreacionClienteDF from "./CreacionClienteDF/Editar"
 
-//TransportistasDF
+// TransportistasDF
 import TransportistasDF from "./TransportistasDF"
 import CrearTransportistasDF from "./TransportistasDF/Crear"
 import EditarTransportistasDF from "./TransportistasDF/Editar"
 
-//VendedoresDF
+// VendedoresDF
 import VendedoresDF from "./VendedoresDF"
 import CrearVendedoresDF from "./VendedoresDF/Crear"
 import EditarVendedoresDF from "./VendedoresDF/Editar"
 
-//ProveedoresDF
+// ProveedoresDF
 import ProveedoresDF from "./ProveedoresDF"
 import CrearProveedoresDF from "./ProveedoresDF/Crear"
 import EditarProveedoresDF from "./ProveedoresDF/Editar"
 
-//FirmarPDFDF
+// FirmarPDFDF
 import FirmarPDFDF from "./FirmarPDFDF"
 
-//PerfilUsuarioDF
+// PerfilUsuarioDF
 import PerfilUsuarioDF from "./PerfilUsuarioDF"
 
-//ContraCliDF
+// ContraCliDF
 import ContraCliDF from "./ContraCliDF"
 import CrearContraCliDF from "./ContraCliDF/Crear"
 import EditarContraCliDF from "./ContraCliDF/Editar"
 
-//AutorizacionesSri
+// AutorizacionesSri
 import AutorizacionesSri from "./AutorizacionesSri"
 import CrearAutorizacionesSri from "./AutorizacionesSri/Crear"
 import EditarAutorizacionesSri from "./AutorizacionesSri/Editar"
 
-//PuntosEmisionSri
+// PuntosEmisionSri
 import PuntosEmisionSri from "./PuntosEmisionSri"
 import CrearPuntosEmisionSri from "./PuntosEmisionSri/Crear"
 import EditarPuntosEmisionSri from "./PuntosEmisionSri/Editar"
+
+// TipoDeCredenciales
+import TipoDeCredenciales from "./TipoDeCredenciales"
+import CrearTipoDeCredenciales from "./TipoDeCredenciales/Crear"
+import EditarTipoDeCredenciales from "./TipoDeCredenciales/Editar"
+
+// Instituciones
+import Instituciones from "./Instituciones"
+import CrearInstituciones from "./Instituciones/Crear"
+import EditarInstituciones from "./Instituciones/Editar"
+
+// SecuenciasInternas
+import SecuenciasInternas from "./SecuenciasInternas"
+import CrearSecuenciasInternas from "./SecuenciasInternas/Crear"
+import EditarSecuenciasInternas from "./SecuenciasInternas/Editar"
 
 export {
   Login,
@@ -280,6 +300,10 @@ export {
   BuscarFacturaDesdeArticulos,
   CrearFacturaDesdeArticulos,
   EditarFacturaDesdeArticulos,
+  FacturaDesdeArticulosDF,
+  BuscarFacturaDesdeArticulosDF,
+  CrearFacturaDesdeArticulosDF,
+  EditarFacturaDesdeArticulosDF,
   CreacionUsuarios,
   CrearCreacionUsuarios,
   BuscarCreacionUsuarios,
@@ -369,4 +393,13 @@ export {
   PuntosEmisionSri,
   CrearPuntosEmisionSri,
   EditarPuntosEmisionSri,
+  TipoDeCredenciales,
+  CrearTipoDeCredenciales,
+  EditarTipoDeCredenciales,
+  Instituciones,
+  CrearInstituciones,
+  EditarInstituciones,
+  SecuenciasInternas,
+  CrearSecuenciasInternas,
+  EditarSecuenciasInternas,
 }

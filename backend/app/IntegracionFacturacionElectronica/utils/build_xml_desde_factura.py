@@ -229,7 +229,7 @@ def build_xml_desde_factura(factura: Factura) -> str:
     # ========================================================================
     # Convertir a string XML formateado
     # ========================================================================
-    xml_string = doc.toprettyxml(indent="  ", encoding="UTF-8")
+    xml_string = doc.toxml(encoding="UTF-8")
 
     # Decodificar bytes a string
     if isinstance(xml_string, bytes):

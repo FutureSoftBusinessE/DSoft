@@ -99,7 +99,7 @@ const ContainerArticulos = styled(Box)(({ theme }) => ({
     "Productos Productos Productos Productos Productos Productos Productos Productos Detalle Detalle Detalle Detalle"
   `,
   gap: "8px",
-  alignItems: "center",
+  alignItems: "flex-start",
 
   [theme.breakpoints.down("sm")]: {
     gridTemplateColumns: "repeat(12, 1fr)",

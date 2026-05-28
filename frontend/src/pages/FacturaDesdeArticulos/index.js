@@ -52,6 +52,7 @@ const ACCIONES = {
   FACTURAR: "FACTURAR",
   AUTORIZAR: "AUTORIZAR",
   RIDE: "RIDE",
+  CLONAR: "CLONAR",
 }
 
 const FacturaDesdeArticulos = () => {
@@ -429,6 +430,9 @@ const FacturaDesdeArticulos = () => {
               const rideAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action?.acccaption === ACCIONES.RIDE,
               )
+              const clonarAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (action) => action?.acccaption === ACCIONES.CLONAR,
+              )
 
               const actions = [
                 {
@@ -528,6 +532,18 @@ const FacturaDesdeArticulos = () => {
                   key: rideAction?.acccaption,
                   icon: getIconComponent(rideAction?.accnameicono, rideAction?.acctipoico),
                   onClick: (row) => generateRIDE(row),
+                })
+              }
+
+              // Botón CLONAR (solo si la proforma está pendiente 'F')
+              if (clonarAction && row.original.pedstatus === "F") {
+                actions.push({
+                  label: clonarAction?.acccaption,
+                  key: clonarAction?.acccaption,
+                  icon: getIconComponent(clonarAction?.accnameicono, clonarAction?.acctipoico),
+                  onClick: (row) => {
+                    navigate("crear", { state: row.original })
+                  },
                 })
               }
 

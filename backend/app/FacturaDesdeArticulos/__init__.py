@@ -22,6 +22,8 @@ from app.FacturaDesdeArticulos import getVendedores
 from app.FacturaDesdeArticulos import getProforma
 from app.FacturaDesdeArticulos import editarProforma
 from app.FacturaDesdeArticulos import deleteProforma
+from app.FacturaDesdeArticulos import getFacturaParaClonar
+from app.FacturaDesdeArticulos import getProformaFacturaBuscar
 
 
 from app.FacturaDesdeArticulos import recuperarPayloadFactura

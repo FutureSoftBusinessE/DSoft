@@ -48,7 +48,7 @@ import AccordionFiltros from "../components/AccordionFiltros"
 import dayjs from "dayjs"
 import BackIcon from "../../../components/BackIcon"
 import CloseIcon from "@mui/icons-material/Close"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 
 const StyledRoot = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -99,7 +99,7 @@ const ContainerArticulos = styled(Box)(({ theme }) => ({
     "Productos Productos Productos Productos Productos Productos Productos Productos Detalle Detalle Detalle Detalle"
   `,
   gap: "8px",
-  alignItems: "center",
+  alignItems: "flex-start",
 
   [theme.breakpoints.down("sm")]: {
     gridTemplateColumns: "repeat(12, 1fr)",
@@ -255,13 +255,44 @@ function useGetCodigoPedidoTemporal() {
   })
 }
 
+// Hook para obtener datos de factura para clonar
+function useGetFacturaParaClonar(facnumfac, ciacodigo, loccodigo) {
+  return useQuery({
+    queryKey: ["facturaParaClonar", facnumfac],
+    queryFn: async () => {
+      const response = await fetchwrapper("/FacturaDesdeArticulos/getFacturaParaClonar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          facnumfac,
+          ciacodigo,
+          loccodigo,
+        }),
+      })
+      const data = await response.json()
+      if (!data.success) {
+        throw new Error(data.message || "Error al cargar factura para clonar")
+      }
+      console.log(data.data, "aquiiiii")
+      return data.data.data
+    },
+    refetchOnWindowFocus: false,
+    enabled: !!facnumfac,
+  })
+}
+
 const CrearFacturaDesdeArticulos = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const datosClonacion = location.state
+  const esClonacion = !!datosClonacion?.facnumfac
+
   const [expandedInfoGeneral, setExpandedInfoGeneral] = useState(true)
   const handleToggleInfoGeneral = () => setExpandedInfoGeneral((prev) => !prev)
   const [expandedInfoCliente, setExpandedInfoCliente] = useState(true)
   const handleToggleInfoCliente = () => setExpandedInfoCliente((prev) => !prev)
-  // Dentro de CrearFacturaDesdeArticulos, agregar estos estados y efectos
 
   const [codigoFactura, setCodigoFactura] = useState("")
 
@@ -273,24 +304,27 @@ const CrearFacturaDesdeArticulos = () => {
     refetch: refetchCodigoPedido,
   } = useGetCodigoPedidoTemporal()
 
-  // Cuando se carga el componente, obtener el código
+  const { data: datosFacturaClonar, isLoading: isLoadingClonacion } = useGetFacturaParaClonar(
+    datosClonacion?.facnumfac,
+    datosClonacion?.ciacodigo,
+    datosClonacion?.loccodigo,
+  )
+
   useEffect(() => {
     refetchCodigoPedido()
   }, [])
 
-  // Actualizar el código cuando llegue la respuesta
   useEffect(() => {
     if (codigoPedidoTemporal) {
       setCodigoFactura(codigoPedidoTemporal)
     }
   }, [codigoPedidoTemporal])
 
-  // Manejar error si no hay secuencia configurada
   useEffect(() => {
     if (codigoPedidoError) {
       Swal.fire({
         icon: "error",
-        title: "Error de configuración",
+        title: "Error de configuracion",
         text: codigoPedidoErrorData?.message || "No se ha configurado la secuencia PED en el sistema",
       })
     }
@@ -301,6 +335,7 @@ const CrearFacturaDesdeArticulos = () => {
     direccion: "",
     ruc: "",
     telefono: "",
+    factippag: "",
     fordescri: "",
     fortipo: "",
     fordias: 0,
@@ -335,6 +370,44 @@ const CrearFacturaDesdeArticulos = () => {
     cabeceraFactura.cliente.clicodigo,
   )
 
+  // Efecto para cargar datos de clonacion
+  useEffect(() => {
+    if (datosFacturaClonar) {
+      const clienteInfo = datosFacturaClonar.cliente || {}
+      const formaPagoInfo = datosFacturaClonar.formaPago || {}
+      const vendedorInfo = datosFacturaClonar.vendedor || {}
+
+      setCabeceraFactura({
+        cliente: {
+          clicodigo: clienteInfo.clicodigo || "",
+          clinombre: clienteInfo.clinombre || "",
+          clidirec: clienteInfo.clidirec || "",
+          cliruc: clienteInfo.cliruc || "",
+          clitelef1: clienteInfo.clitelef1 || "",
+        },
+        direccion: clienteInfo.clidirec || "",
+        ruc: clienteInfo.cliruc || "",
+        telefono: clienteInfo.clitelef1 || "",
+        factippag: formaPagoInfo.factippag || "",
+        fordescri: formaPagoInfo.fordescri || "",
+        fortipo: formaPagoInfo.fortipo || "",
+        fordias: parseFloat(formaPagoInfo.fordias || 0),
+        fordescuento: parseFloat(formaPagoInfo.fordescuento || 0),
+        vendedor: {
+          vencodigo: vendedorInfo.vencodigo || "",
+          vennombre: vendedorInfo.vennombre || "",
+          pedidossiac: "",
+          pedidosweb: "",
+        },
+        observacion: datosFacturaClonar.observacion || "",
+      })
+
+      if (datosFacturaClonar.productos && datosFacturaClonar.productos.length > 0) {
+        setProductosAgregados(datosFacturaClonar.productos)
+      }
+    }
+  }, [datosFacturaClonar])
+
   // Efecto para cargar TOP 30 cuando cambia cliente o forma de pago
   useEffect(() => {
     if (cabeceraFactura.cliente.clicodigo) {
@@ -342,7 +415,7 @@ const CrearFacturaDesdeArticulos = () => {
     }
   }, [cabeceraFactura.cliente.clicodigo, cabeceraFactura.fortipo])
 
-  // Efecto para actualizar productosGrid en pestaña TOP 30
+  // Efecto para actualizar productosGrid en pestana TOP 30
   useEffect(() => {
     if (tabValue === 0 && fetchedArticulos.length > 0) {
       setProductosGrid(fetchedArticulos)
@@ -380,7 +453,6 @@ const CrearFacturaDesdeArticulos = () => {
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue)
     if (newValue === 0) {
-      // Al volver a TOP 30, restaurar los productos
       setProductosGrid(fetchedArticulos)
       setMostrandoFiltros(false)
     }
@@ -399,23 +471,20 @@ const CrearFacturaDesdeArticulos = () => {
       const response = await api.post("/FacturaDesdeArticulos/guardarPedido", payload)
       return response.data
     },
-    showError: "modal", // Muestra errores en modal
-    showSuccess: "toast", // Muestra éxito en toast
+    showError: "modal",
+    showSuccess: "toast",
     onSuccess: (data, variables, context, message) => {
-      // Mostrar mensaje de éxito con detalles del pedido
       Swal.fire({
         icon: "success",
-        title: "¡Proforma realizado!",
+        title: "Proforma realizado!",
         html: `
-        <p>Profroma N°: <strong>${data.pednumped}</strong></p>
+        <p>Profroma N: <strong>${data.pednumped}</strong></p>
         <p>Total: <strong>$${data.total.toFixed(2)}</strong></p>
         <p>Productos: <strong>${data.productos}</strong></p>
       `,
         confirmButtonText: "Aceptar",
       }).then(() => {
-        // Limpiar carrito y resetear estado
         setProductosAgregados([])
-        // Redirigir hacia atrás
         navigate(-1)
       })
     },
@@ -458,7 +527,6 @@ const CrearFacturaDesdeArticulos = () => {
       return
     }
 
-    // Mostrar loading
     Swal.fire({
       title: "Guardando proforma...",
       allowOutsideClick: false,
@@ -467,7 +535,6 @@ const CrearFacturaDesdeArticulos = () => {
       },
     })
 
-    // Preparar payload
     const payload = {
       cliente: cabeceraFactura.cliente,
       productos: productosAgregados.map((p) => ({
@@ -495,7 +562,7 @@ const CrearFacturaDesdeArticulos = () => {
 
   const FloatingMenu = () => {
     const menuItems = [
-      { icon: <DescriptionIcon />, label: "Información", sectionId: "informacion" },
+      { icon: <DescriptionIcon />, label: "Informacion", sectionId: "informacion" },
       { icon: <ShoppingBagIcon />, label: "Productos", sectionId: "productos" },
     ]
 
@@ -579,7 +646,7 @@ const CrearFacturaDesdeArticulos = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <CustomBackdrop isLoading={isLoadingCodigo || isSavingPedido} />
+      <CustomBackdrop isLoading={isLoadingCodigo || isSavingPedido || isLoadingClonacion} />
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
@@ -592,13 +659,13 @@ const CrearFacturaDesdeArticulos = () => {
             fontSize: "25px",
           }}
         >
-          <b>Crear Factura</b>
+          <b>{esClonacion ? "Clonar Factura" : "Crear Factura"}</b>
         </div>
         <FloatingMenu />
 
         <Box className={StyledRoot}>
           <CustomFieldsetAccordion
-            title="Información General"
+            title="Informacion General"
             expanded={expandedInfoGeneral}
             onToggle={handleToggleInfoGeneral}
           >
@@ -644,10 +711,9 @@ const CrearFacturaDesdeArticulos = () => {
 
           <br />
 
-          {/* Accordion de Datos de Cliente */}
           <div style={{ paddingBottom: "10px" }}>
             <CustomFieldsetAccordion
-              title="Información Cliente"
+              title="Informacion Cliente"
               expanded={expandedInfoCliente}
               onToggle={handleToggleInfoCliente}
             >
@@ -667,12 +733,12 @@ const CrearFacturaDesdeArticulos = () => {
                     placeholder=""
                     columnsTable={[
                       { accessorKey: "ciacodigo", header: "Ciacodigo", size: 100 },
-                      { accessorKey: "clicodigo", header: "Código de Cliente", size: 100 },
+                      { accessorKey: "clicodigo", header: "Codigo de Cliente", size: 100 },
                       { accessorKey: "clinombre", header: "Nombre del Cliente", size: 250 },
-                      { accessorKey: "cliruc", header: "Número de identificación", size: 150 },
-                      { accessorKey: "clitelef1", header: "Teléfono", size: 100 },
-                      { accessorKey: "clidirec", header: "Dirección", size: 400 },
-                      { accessorKey: "clireferencia1", header: "Referencia Rápida", size: 120 },
+                      { accessorKey: "cliruc", header: "Numero de identificacion", size: 150 },
+                      { accessorKey: "clitelef1", header: "Telefono", size: 100 },
+                      { accessorKey: "clidirec", header: "Direccion", size: 400 },
+                      { accessorKey: "clireferencia1", header: "Referencia Rapida", size: 120 },
                       { accessorKey: "zoncodigo", header: "Zona", size: 120 },
                       {
                         accessorKey: "clistatus",

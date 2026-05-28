@@ -18,6 +18,8 @@ from error_handling import api_endpoint, ValidationError, APIError
 from datetime import datetime
 import time
 import base64
+from services.encrip_desencrip import desencriptar
+import json
 
 
 @bp.route("/emisionFactura", methods=["POST"])
@@ -45,13 +47,10 @@ def emisionFactura():
     if not tipo_proceso:
         raise ValidationError("Falta dato del tipo de proceso: '0', '1', etc..")
 
-    configuracion = data.get("configuracion", {})
+    # configuracion = data.get("configuracion", {})
     info_tributaria = data.get("info_tributaria", {})
     info_factura = data.get("info_factura", {})
     datos_cliente = data.get("datos_cliente", {})
-
-    nombre_file_p12 = configuracion.get("nombre_certificado")
-    password_file_p12 = configuracion.get("clave_certificado")
 
     dir_base = Path(__file__).parent.parent
     serie = info_tributaria.get("estab", "") + info_tributaria.get("pto_emi", "")
@@ -97,7 +96,14 @@ def emisionFactura():
             raise APIError("Error al guardar XML sin firmar", details={"error": str(e)})
 
         # ========== PASO 5: FIRMAR XML ==========
-        factura_firmada, error_msg, error_details = sign_xml(xml_sin_firmar=factura_xml, nombre_certificado=nombre_file_p12, clave_certificado=password_file_p12)
+        # ========== OBTENER CREDENCIALES UNA SOLA VEZ ==========
+        p12_bytes, clave_p12 = get_certificate_credentials()
+
+        if not p12_bytes or not clave_p12:
+            guardar_error_sri(clicianonBD=clicianonBD, ciacodigo=ciacodigo, facnumfac=facnumfac, loccodigo=loccodigo, clave_acceso=clave_acceso, mensaje="Error obteniendo credenciales del certificado digital", usuario=usrcodigo, ip=ipUser)
+            raise ValidationError("No se pudieron obtener las credenciales del certificado")
+
+        factura_firmada, error_msg, error_details = sign_xml(xml_sin_firmar=factura_xml, p12_bytes=p12_bytes, clave_p12=clave_p12)
 
         if factura_firmada is None:
             guardar_error_sri(clicianonBD=clicianonBD, ciacodigo=ciacodigo, facnumfac=facnumfac, loccodigo=loccodigo, clave_acceso=clave_acceso, mensaje=f"Error firmando XML: {error_msg}", usuario=usrcodigo, ip=ipUser)
@@ -320,6 +326,57 @@ def emisionFactura():
                 raise APIError(f"La factura {facnumfac} no tiene un ride asociado")
 
             return {"msg": "RIDE generado", "ridePDF": base64.b64encode(query_result_ride[0]).decode("utf-8"), "claveAcceso": query_result_ride[1]}
+
+
+def get_certificate_credentials():
+    """
+    Obtiene las credenciales del certificado digital desde la base de datos.
+
+    Returns:
+        tuple: (p12_bytes, clave_p12) o (None, None) si hay error
+    """
+    try:
+        claims = get_jwt()
+        db_session = get_session(claims["seleccion"]["clicianonBD"])
+
+        with db_session.bind.connect() as conn:
+            # Obtener la ruta del certificado en la tabla de documentos
+            locpathxml = conn.execute(text("SELECT locpathxml FROM cgblocal WHERE ciacodigo = :cia"), {"cia": claims["seleccion"]["cliciaciacodigo"]}).scalar()
+
+            # Obtener el certificado y datos sensibles
+            res = conn.execute(
+                text(
+                    """
+                    SELECT
+                        COALESCE(d.documento, o.documento),
+                        COALESCE(d.doc_datos_sensibles, o.doc_datos_sensibles)
+                    FROM gdocmdocumentos d
+                    LEFT JOIN gdocmdocumentos o ON d.documento_origen_uuid = o.documentouuid
+                    WHERE d.documentouuid = :uuid
+                """
+                ),
+                {"uuid": locpathxml},
+            ).first()
+
+            if not res or not res[0]:
+                return None, None
+
+            p12_bytes = res[0]
+            datos_sensibles = res[1].decode("utf-8").strip()
+
+            # Limpiar padding residual
+            while datos_sensibles and ord(datos_sensibles[-1]) < 32:
+                datos_sensibles = datos_sensibles[:-1]
+
+            # Desencriptar y obtener la clave
+            datos_json = json.loads(desencriptar(datos_sensibles))
+            clave_p12 = datos_json.get("clave_certificado", "")
+
+            return p12_bytes, clave_p12
+
+    except Exception as e:
+        print(f"Error obteniendo credenciales del certificado: {str(e)}")
+        return None, None
 
 
 def guardar_error_sri(clicianonBD, ciacodigo, facnumfac, loccodigo, clave_acceso, mensaje, usuario, ip, xml_firmado=None):

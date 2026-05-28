@@ -9,49 +9,48 @@ from app.db import get_session
 from services.encrip_desencrip import desencriptar
 
 
-def sign_xml(xml_sin_firmar: str, *args, **kwargs) -> tuple:
+def sign_xml(xml_sin_firmar: str, p12_bytes: bytes, clave_p12: str) -> tuple:
     """
     Firma documento XML para facturación electrónica del SRI Ecuador.
-    Versión blindada: SHA-256 + Canonicalización SRI + Puntero URI Explícito.
+
+    Args:
+        xml_sin_firmar: XML en string sin firmar
+        p12_bytes: Bytes del certificado P12
+        clave_p12: Clave del certificado
+
+    Returns:
+        tuple: (xml_firmado, mensaje_error, detalles_error)
     """
     try:
         if not xml_sin_firmar:
             return None, "XML vacío", {"error": "XML_VACIO"}
 
-        claims = get_jwt()
-        db_session = get_session(claims["seleccion"]["clicianonBD"])
+        if not p12_bytes or not clave_p12:
+            return None, "Credenciales del certificado no válidas", {"error": "CREDENCIALES_INVALIDAS"}
 
-        with db_session.bind.connect() as conn:
-            locpathxml = conn.execute(text("SELECT locpathxml FROM cgblocal WHERE ciacodigo = :cia"), {"cia": claims["seleccion"]["cliciaciacodigo"]}).scalar()
-            res = conn.execute(text("SELECT COALESCE(d.documento, o.documento), COALESCE(d.doc_datos_sensibles, o.doc_datos_sensibles) FROM gdocmdocumentos d LEFT JOIN gdocmdocumentos o ON d.documento_origen_uuid = o.documentouuid WHERE d.documentouuid = :uuid"), {"uuid": locpathxml}).first()
-
-            p12_bytes, datos_sensibles = res[0], res[1].decode("utf-8").strip()
-            # Limpiamos cualquier padding residual de la base de datos
-            while datos_sensibles and ord(datos_sensibles[-1]) < 32:
-                datos_sensibles = datos_sensibles[:-1]
-
-            clave_p12 = json.loads(desencriptar(datos_sensibles)).get("clave_certificado", "")
-
+        # Cargar certificado
         private_key, certificate, additional_certificates = pkcs12.load_key_and_certificates(p12_bytes, clave_p12.encode("utf-8"), default_backend())
 
+        # Convertir a PEM
         key_pem = private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
         cert_pem = certificate.public_bytes(Encoding.PEM)
 
-        # Parsear eliminando todo espacio en blanco que pueda romper el Hash
+        # Parsear XML eliminando espacios en blanco
         parser = etree.XMLParser(remove_blank_text=True)
         xml_root = etree.fromstring(xml_sin_firmar.encode("utf-8"), parser)
 
-        # Garantizar que el nodo raíz tenga el ID exacto
+        # Asignar ID requerido por SRI
         xml_root.set("id", "comprobante")
 
-        # Usamos SHA-256 (Seguridad Moderna) con Canonicalización 1.0 (Regla SRI)
+        # Configurar firmante con especificaciones SRI
         signer = XAdESSigner(signature_algorithm="rsa-sha256", digest_algorithm="sha256", c14n_algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315")
 
-        # --- EL SECRETO DEL SRI ---
-        # Le decimos a la librería que apunte la firma estrictamente al id="comprobante"
+        # Firmar apuntando al ID del comprobante
         xml_firmado_root = signer.sign(xml_root, key=key_pem, cert=cert_pem, reference_uri="#comprobante")
 
+        # Convertir a string
         xml_final = etree.tostring(xml_firmado_root, encoding="UTF-8", method="xml", xml_declaration=True)
+
         return xml_final.decode("utf-8"), None, None
 
     except Exception as e:

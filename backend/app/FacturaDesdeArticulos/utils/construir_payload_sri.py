@@ -95,7 +95,7 @@ def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, dato
         "tipo_emision": "1",
         "ambiente": "1",  # Pruebas (1=Pruebas, 2=Producción)
         "offline": "N",
-        "configuracion": {"nombre_certificado": "DESIGNSOFT SAS_DESIG2026.p12", "clave_certificado": "DESIG2026", "directorio_raiz": "", "correo_reenvio": ""},
+        "configuracion": {"directorio_raiz": "", "correo_reenvio": ""},
         "info_tributaria": {
             "razon_social": datos_empresa["ciasrirazon"],
             "nombre_comercial": datos_empresa.get("ciadescri", ""),

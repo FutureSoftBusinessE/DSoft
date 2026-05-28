@@ -19,7 +19,11 @@ from app.FacturaDesdeArticulos import guardarPedido
 from app.FacturaDesdeArticulos import get_forma_pago
 from app.FacturaDesdeArticulos import generarCodigoTemporal
 from app.FacturaDesdeArticulos import getVendedores
-from app.FacturaDesdeArticulos import facturarProforma
-from app.FacturaDesdeArticulos import recuperarPayloadFactura
+from app.FacturaDesdeArticulos import getProforma
+from app.FacturaDesdeArticulos import editarProforma
+from app.FacturaDesdeArticulos import deleteProforma
 
+
+from app.FacturaDesdeArticulos import recuperarPayloadFactura
 from app.FacturaDesdeArticulos.utils import construir_payload_sri
+from app.FacturaDesdeArticulos import facturarProforma

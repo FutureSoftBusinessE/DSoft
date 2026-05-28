@@ -753,10 +753,38 @@ const CustomHelperDetail = ({
   const handleOpenModal = () => setOpenModal(true)
   const handleCloseModal = () => setOpenModal(false)
 
-  const [value, setValue] = useState("")
+  const [value, setValue] = useState(valueSearched || "")
   // Selected item in table or id search
   const [itemSelected, setItemSelected] = useState(null)
   const [isLoadingIdSearch, setIsLoadingIdSearch] = useState(false)
+
+  useEffect(() => {
+    if (valueSearched) {
+      setValue(valueSearched)
+      // Buscar el item completo usando el endpoint
+      const fetchItem = async () => {
+        try {
+          const response = await fetchwrapper(`${endpoint}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              typeSearch: SEARCH_TYPE_HELPER.ID_SEARCH,
+              [idSearchField]: valueSearched,
+            }),
+          })
+          const result = await response.json()
+          if (result.data && Object.keys(result.data).length > 0) {
+            setItemSelected(result.data)
+          }
+        } catch (error) {
+          console.error("Error al cargar item inicial:", error)
+        }
+      }
+      fetchItem()
+    }
+  }, [valueSearched])
 
   // This function is used when set the row of the table in modal or when idSearch return a value
   const onItemSelected = (obj) => {

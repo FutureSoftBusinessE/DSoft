@@ -64,6 +64,8 @@ def getAllFacturas():
                 f.pedhorisys,
                 f.pedusuisys,
                 f.pedestisys,
+                f.pedfecmsys,
+                f.pedhormsys,
                 -- NUEVOS CAMPOS: Datos de la factura electrónica
                 fa.facnumfac,
                 fa.audnumxml,
@@ -89,7 +91,7 @@ def getAllFacturas():
 
             final_query, params = build_paginated_query(
                 base_query=base_query,
-                order_by=["pedfecisys DESC", "pedhorisys DESC"],
+                order_by=["pedfecmsys DESC", "pedhormsys DESC"],
                 filters=filters,
                 page=page,
                 per_page=per_page,

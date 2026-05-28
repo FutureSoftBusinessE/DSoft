@@ -481,8 +481,8 @@ const FacturaDesdeArticulos = () => {
                   icon: getIconComponent(eliminarAction?.accnameicono, eliminarAction?.acctipoico),
                   onClick: async (row) => {
                     const result = await Swal.fire({
-                      title: "¿Está seguro que quiere eliminar esta factura?",
-                      text: `Factura: ${row.original.pednumped}`,
+                      title: "¿Está seguro que quiere eliminar esta proforma?",
+                      text: `Proforma: ${row.original.pednumped}`,
                       icon: "warning",
                       showCancelButton: true,
                       confirmButtonText: "Sí, eliminar",
@@ -492,7 +492,7 @@ const FacturaDesdeArticulos = () => {
 
                     if (result.isConfirmed) {
                       try {
-                        await api.post("/FacturaDesdeArticulos/deleteFactura", {
+                        await api.post("/FacturaDesdeArticulos/deleteProforma", {
                           ciacodigo: row.original.ciacodigo,
                           pednumped: row.original.pednumped,
                           loccodigo: row.original.loccodigo,
@@ -500,7 +500,7 @@ const FacturaDesdeArticulos = () => {
 
                         await Swal.fire({
                           title: "¡Eliminado!",
-                          text: "La factura ha sido eliminada correctamente.",
+                          text: "La proforma ha sido eliminada correctamente.",
                           icon: "success",
                           confirmButtonText: "Aceptar",
                           confirmButtonColor: "#196C87",
@@ -511,7 +511,7 @@ const FacturaDesdeArticulos = () => {
                         console.error("Error al eliminar:", error)
                         Swal.fire({
                           title: "Error",
-                          text: error.response?.data?.message || "No se pudo eliminar la factura",
+                          text: error.response?.data?.message || "No se pudo eliminar la proforma",
                           icon: "error",
                           confirmButtonText: "Aceptar",
                         })

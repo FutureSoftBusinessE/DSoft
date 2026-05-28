@@ -5,34 +5,31 @@ import fetchwrapper from "../../../services/interceptors/fetchwrapper"
 import { CircularProgress } from "@mui/material"
 
 function FormaDePagoAutocomplete({ cabeceraProforma, setCabeceraProforma }) {
-  const [clienteSelected, setClienteSelected] = useState("")
   const [options, setOptions] = useState([])
-  const [value, setValue] = useState("") // Establecer el valor inicial
-  const [inputValue, setInputValue] = useState(
-    (cabeceraProforma.factippag ?? "") + "-" + (cabeceraProforma.fordescri ?? "") || "",
-  )
-  const [isLoading, setIsLoading] = useState(true) // Nuevo estado para controlar la carga
+  const [value, setValue] = useState(null)
+  const [inputValue, setInputValue] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
 
   const filterOptions = createFilterOptions({
     limit: 10,
     matchFrom: "any",
   })
-  useEffect(() => {
-    setInputValue((cabeceraProforma.factippag ?? "") + "-" + (cabeceraProforma.fordescri ?? "") || "") // Establecer el valor inicial
-  }, []) // Añadir cabeceraProforma.vennombre a las dependencias
 
+  // Actualizar inputValue cuando cambie factippag o fordescri
   useEffect(() => {
-    setValue()
+    setInputValue((cabeceraProforma.factippag ?? "") + "-" + (cabeceraProforma.fordescri ?? "") || "")
+  }, [cabeceraProforma.factippag, cabeceraProforma.fordescri])
+
+  // Cargar opciones
+  useEffect(() => {
     const getFormaDePago = async () => {
       try {
         setIsLoading(true)
         const response = await fetchwrapper(`/FacturaDesdeArticulos/getFormaPago`)
         const data = await response.json()
-
         setOptions(data)
       } catch (err) {
         console.error("error", err)
-        console.error(err)
       } finally {
         setIsLoading(false)
       }
@@ -40,14 +37,20 @@ function FormaDePagoAutocomplete({ cabeceraProforma, setCabeceraProforma }) {
     getFormaDePago()
   }, [])
 
+  // Establecer valor seleccionado cuando las opciones y factippag esten listos
+  useEffect(() => {
+    if (options.length > 0 && cabeceraProforma.factippag) {
+      const selectedOption = options.find((opt) => opt.factippag === cabeceraProforma.factippag)
+      if (selectedOption) {
+        setValue(selectedOption)
+      }
+    }
+  }, [options, cabeceraProforma.factippag])
+
   const calculateFechaVencimiento = (fechaEmision, dias) => {
     const date = new Date(fechaEmision)
-    console.log(date.toUTCString())
-    console.log("fecha1")
-    date.setDate(date.getDate() + parseInt(dias)) // Sumar los días de vencimiento
-    console.log(date.toUTCString())
-    console.log("fecha2")
-    return date.toUTCString() // Convertir a formato "Sun, 03 Mar 2024 00:00:00 GMT"
+    date.setDate(date.getDate() + parseInt(dias))
+    return date.toUTCString()
   }
 
   return (
@@ -58,11 +61,6 @@ function FormaDePagoAutocomplete({ cabeceraProforma, setCabeceraProforma }) {
         onChange={(event, newValue) => {
           if (newValue) {
             setValue(newValue)
-            console.log(newValue)
-            console.log(newValue.factippag)
-
-            console.log("cabeceradesdeformapago")
-
             setCabeceraProforma((prevState) => ({
               ...prevState,
               factippag: newValue.factippag,
@@ -74,30 +72,35 @@ function FormaDePagoAutocomplete({ cabeceraProforma, setCabeceraProforma }) {
               pedfecven: calculateFechaVencimiento(cabeceraProforma.pedfecemi, newValue.fordias),
             }))
           } else {
-            setValue("")
+            setValue(null)
+            setCabeceraProforma((prevState) => ({
+              ...prevState,
+              factippag: "",
+              fordias: 0,
+              forcuotas: 0,
+              fordescri: "",
+              fortipo: "",
+              fordescuento: 0,
+            }))
           }
         }}
         inputValue={inputValue}
         getOptionLabel={(option) => option.factippag + "-" + option.fordescri || ""}
         onInputChange={(event, newInputValue) => {
-          if (event) {
-            console.log(event.target)
-            setInputValue(newInputValue)
-          }
+          setInputValue(newInputValue)
         }}
         id="controllable-states-demo"
         options={options}
-        loading={isLoading} // Utilizar el estado de carga para bloquear el componente
+        loading={isLoading}
         renderInput={(params) => (
           <TextField
             required
             {...params}
-            key={options.factippag}
             InputProps={{
               ...params.InputProps,
               endAdornment: (
                 <>
-                  {isLoading && <CircularProgress color="inherit" size={20} />} {/* Mostrar animación de carga */}
+                  {isLoading && <CircularProgress color="inherit" size={20} />}
                   {params.InputProps.endAdornment}
                 </>
               ),
@@ -105,6 +108,7 @@ function FormaDePagoAutocomplete({ cabeceraProforma, setCabeceraProforma }) {
           />
         )}
         filterOptions={filterOptions}
+        isOptionEqualToValue={(option, value) => option.factippag === value.factippag}
       />
     </div>
   )

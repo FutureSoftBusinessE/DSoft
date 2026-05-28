@@ -1,4 +1,9 @@
 from datetime import datetime
+from dotenv import load_dotenv
+from decouple import config as config_env
+
+# Cargar variables de entorno
+load_dotenv()  # Carga .env por defecto
 
 
 def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, datos_cliente, forma_pago, ciacodigo, loccodigo, facnumfac):
@@ -93,7 +98,7 @@ def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, dato
         "tipo_proceso": "0",
         "tipo_documento": "01",
         "tipo_emision": "1",
-        "ambiente": "1",  # Pruebas (1=Pruebas, 2=Producción)
+        "ambiente": config_env("INTEGRACION_FACTURACION_ELECTRONICA_AMBIENTE"),  # Pruebas (1=Pruebas, 2=Producción)
         "offline": "N",
         "configuracion": {"directorio_raiz": "", "correo_reenvio": ""},
         "info_tributaria": {

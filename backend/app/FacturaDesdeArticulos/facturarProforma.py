@@ -133,7 +133,7 @@ def facturarProforma():
 
             # ========== PASO 5: OBTENER SECUENCIA SRI (SIN ACTUALIZAR AÚN) ==========
             query_secuencia = """
-                SELECT sriautnumero, sriserie01, sriserie02, srisecini, srisecfin
+                SELECT sriautnumero, sriserie01, sriserie02, srisecini, srisecfin, srisecact
                 FROM siactsriseries
                 WHERE ciacodigo = :ciacodigo
                   AND sripreauto = 'E'
@@ -145,7 +145,7 @@ def facturarProforma():
             if not secuencia_sri:
                 raise APIError("No se encontró la secuencia SRI configurada")
 
-            secuencia_actual = secuencia_sri["srisecini"]
+            secuencia_actual = secuencia_sri["srisecact"]
             nueva_secuencia = secuencia_actual + 1
 
             # Generar número de factura
@@ -298,7 +298,7 @@ def facturarProforma():
                 "facflaglegal": 0,
                 "sriserie01": sriserie01,
                 "sriserie02": sriserie02,
-                "srisecini": secuencia_actual,
+                "srisecini": secuencia_sri["srisecini"],
                 "srisecfin": secuencia_sri["srisecfin"],
                 "sriautfecemi": fecha_con_hora_cero,
                 "sriautfecven": fecha_con_hora_cero,
@@ -482,7 +482,7 @@ def facturarProforma():
             # ========== PASO 8: ACTUALIZAR SECUENCIA SRI (+1) ==========
             update_secuencia = """
                 UPDATE siactsriseries
-                SET srisecini = :nueva_secuencia,
+                SET srisecact = :nueva_secuencia,
                     srifecmsys = :fecha,
                     sriusumsys = :usuario
                 WHERE ciacodigo = :ciacodigo
@@ -507,7 +507,7 @@ def facturarProforma():
     # ========== PASO 10: CONSTRUIR PAYLOAD Y DEVOLVER ==========
     # Usar la secuencia actualizada
     secuencia_sri_actualizada = dict(secuencia_sri)
-    secuencia_sri_actualizada["srisecini"] = secuencia_actual
+    secuencia_sri_actualizada["srisecact"] = secuencia_actual
 
     payload_sri = construir_payload_sri(proforma=proforma, detalles=detalles_proforma, secuencia_sri=secuencia_sri_actualizada, datos_empresa=datos_empresa, datos_cliente=datos_cliente, forma_pago=forma_pago, ciacodigo=ciacodigo, loccodigo=loccodigo, facnumfac=facnumfac)
 

@@ -107,7 +107,7 @@ def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, dato
             "ruc": datos_empresa["ciaruc"],
             "estab": secuencia_sri["sriserie01"],
             "pto_emi": secuencia_sri["sriserie02"],
-            "secuencial": f"{secuencia_sri['srisecini']:09}",
+            "secuencial": f"{secuencia_sri['srisecact']:09}",
             "dir_matriz": datos_empresa.get("ciadirec"),
         },
         "info_factura": {

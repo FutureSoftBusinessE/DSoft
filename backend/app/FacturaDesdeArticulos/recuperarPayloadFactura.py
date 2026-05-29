@@ -170,7 +170,7 @@ def recuperarPayloadFactura():
 
         # PASO 6: Obtener secuencia SRI actual (lo tomo en el facfac campo facnumero porque esa factura ya se guarda y debo usar la misma secuencia)
         query_secuencia = """
-            SELECT sriautnumero, sriserie01, sriserie02, srisecini, srisecfin
+            SELECT sriautnumero, sriserie01, sriserie02, srisecini, srisecfin, srisecact
             FROM siactsriseries
             WHERE ciacodigo = :ciacodigo
             AND sripreauto = 'E'
@@ -187,7 +187,7 @@ def recuperarPayloadFactura():
         secuencia_sri = dict(secuencia_sri)
 
         # Reemplazar por la misma secuencia con la que se guardo la factura
-        secuencia_sri["srisecini"] = factura_raw["facnumero"]
+        secuencia_sri["srisecact"] = factura_raw["facnumero"]
 
     # PASO 7: Construir payload (misma función que usa facturarProforma)
     payload_sri = construir_payload_sri(

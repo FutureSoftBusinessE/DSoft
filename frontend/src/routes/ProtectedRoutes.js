@@ -181,6 +181,9 @@ import { Instituciones, CrearInstituciones, EditarInstituciones } from "../pages
 // SecuenciasInternas
 import { SecuenciasInternas, CrearSecuenciasInternas, EditarSecuenciasInternas } from "../pages"
 
+// SecuenciasDoc
+import { SecuenciasDoc, CrearSecuenciasDoc, EditarSecuenciasDoc } from "../pages"
+
 const protectedRoutes = [
   { path: "Submenu/:label/:id", element: <SubMenu /> },
   { path: "dashboard/AccesoACompañiasYModulos", element: <AccesoACompañiasYModulos /> },
@@ -325,6 +328,9 @@ const protectedRoutes = [
   { path: "dashboard/SecuenciasInternas", element: <SecuenciasInternas /> },
   { path: "dashboard/SecuenciasInternas/crear", element: <CrearSecuenciasInternas /> },
   { path: "dashboard/SecuenciasInternas/editar", element: <EditarSecuenciasInternas /> },
+  { path: "dashboard/SecuenciasDoc", element: <SecuenciasDoc /> },
+  { path: "dashboard/SecuenciasDoc/crear", element: <CrearSecuenciasDoc /> },
+  { path: "dashboard/SecuenciasDoc/editar", element: <EditarSecuenciasDoc /> },
 ]
 
 export default protectedRoutes

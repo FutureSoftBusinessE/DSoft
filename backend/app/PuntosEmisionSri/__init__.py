@@ -17,3 +17,4 @@ from app.PuntosEmisionSri.rutas import updatePuntosEmisionSri
 from app.PuntosEmisionSri.rutas import eliminarPuntosEmisionSri
 from app.PuntosEmisionSri.rutas import getAllPuntosEmisionSri
 from app.PuntosEmisionSri.rutas import getInitialDataPuntosEmision
+from app.PuntosEmisionSri.rutas import getSeriesSriByCaja

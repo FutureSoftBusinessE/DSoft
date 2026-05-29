@@ -334,6 +334,10 @@ def create_app(config_class=Config):
 
     app.register_blueprint(SecuenciasInternas_bp, url_prefix="/SecuenciasInternas")
 
+    from app.SecuenciasDoc import bp as SecuenciasDoc_bp
+
+    app.register_blueprint(SecuenciasDoc_bp, url_prefix="/SecuenciasDoc")
+
     print("---------------ENDPOINTS------------------")
     for rule in app.url_map.iter_rules():
         print(str(rule))

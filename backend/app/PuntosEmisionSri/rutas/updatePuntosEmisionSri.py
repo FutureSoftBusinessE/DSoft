@@ -29,12 +29,14 @@ def updatePuntosEmisionSri():
 
     data = request.get_json()
 
-    # 3. Extracción de parámetros (Llave primaria y campos editables)
+    # 3. Extracción de parámetros
     cjacodigo = str(data.get("cjacodigo", "")).strip().upper()[:3]
     cjadescri = str(data.get("cjadescri", "")).strip().upper()[:40]
     cjastatus = str(data.get("cjastatus", "A")).strip().upper()[:1]
 
-    # Validaciones Estrictas
+    # Nuevos detalles recibidos desde la grilla para actualizar secuencia
+    detalles = data.get("detalles", [])
+
     if not cjacodigo:
         raise ValidationError("El código de la caja es requerido para la actualización.")
     if not cjadescri:
@@ -45,21 +47,19 @@ def updatePuntosEmisionSri():
 
     with engine.connect() as connection:
         with connection.begin():
-            # 4. Preparación de variables
+            # 4. Actualización en la maestra fapcaja
             data_update = {
                 "ciacodigo": sCodCia,
                 "cjacodigo": cjacodigo,
                 "cjadescri": cjadescri,
                 "cjastatus": cjastatus,
-                # Asignación de fecha y hora para la auditoría de modificación
                 "cjafecmsys": fecha_pura,
                 "cjahormsys": hora_pura,
                 "cjausumsys": sUsuario,
                 "cjaestmsys": sNomEst,
             }
 
-            # 5. Ejecutar la actualización solo sobre la tabla maestra fapcaja
-            update_query = text(
+            update_caja = text(
                 """
                 UPDATE fapcaja SET
                     cjadescri = :cjadescri,
@@ -72,10 +72,31 @@ def updatePuntosEmisionSri():
                 """
             )
 
-            result = connection.execute(update_query, data_update)
+            result = connection.execute(update_caja, data_update)
 
-            # 6. Validar si realmente se actualizó algo
             if result.rowcount == 0:
-                raise ValidationError("No se encontró el Punto de Emisión especificado o no pertenece a su compañía.")
+                raise ValidationError("No se encontró el Punto de Emisión especificado.")
 
-    return {"data": "Punto de Emisión actualizado exitosamente."}
+            # 5. Actualización de Secuencias en siactsriseries
+            if detalles:
+                update_series = text(
+                    """
+                    UPDATE siactsriseries SET
+                        srisecact = :secact,
+                        srifecmsys = :fecmsys,
+                        srihormsys = :hormsys,
+                        sriusumsys = :usumsys,
+                        sriestmsys = :estmsys
+                    WHERE ciacodigo = :cia AND cjacodigo = :cja AND srisecdoc = :secdoc
+                    """
+                )
+
+                for doc in detalles:
+                    try:
+                        secact = int(doc.get("srisecact", 0))
+                    except ValueError:
+                        secact = 0
+
+                    connection.execute(update_series, {"secact": secact, "fecmsys": fecha_pura, "hormsys": hora_pura, "usumsys": sUsuario, "estmsys": sNomEst, "cia": sCodCia, "cja": cjacodigo, "secdoc": doc.get("srisecdoc")})
+
+    return {"data": "Punto de Emisión y Secuencias actualizados exitosamente."}

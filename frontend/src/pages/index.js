@@ -254,6 +254,11 @@ import SecuenciasInternas from "./SecuenciasInternas"
 import CrearSecuenciasInternas from "./SecuenciasInternas/Crear"
 import EditarSecuenciasInternas from "./SecuenciasInternas/Editar"
 
+// SecuenciasDoc
+import SecuenciasDoc from "./SecuenciasDoc"
+import CrearSecuenciasDoc from "./SecuenciasDoc/Crear"
+import EditarSecuenciasDoc from "./SecuenciasDoc/Editar"
+
 export {
   Login,
   LoginInner,
@@ -402,4 +407,7 @@ export {
   SecuenciasInternas,
   CrearSecuenciasInternas,
   EditarSecuenciasInternas,
+  SecuenciasDoc,
+  CrearSecuenciasDoc,
+  EditarSecuenciasDoc,
 }

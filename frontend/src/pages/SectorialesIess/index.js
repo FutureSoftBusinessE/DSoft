@@ -143,7 +143,7 @@ const SectorialesIess = () => {
               const importarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action.acccaption === "IMPORTAR",
               )
-              
+
               const toolbarActions = []
               if (crearAction) {
                 toolbarActions.push({
@@ -167,16 +167,27 @@ const SectorialesIess = () => {
                       onClick: ({ columns, data }) => {
                         const title = "Reporte de Salarios Sectoriales IESS"
                         if (device === "sm") {
-                          return handleExportDataPdfSMScreen(columns, data, title, `${title} ${new Date().toLocaleString()}`)
+                          return handleExportDataPdfSMScreen(
+                            columns,
+                            data,
+                            title,
+                            `${title} ${new Date().toLocaleString()}`,
+                          )
                         }
-                        handleExportDataPdfLGScreen(columns, table.getCoreRowModel().rows, title, `${title} ${new Date().toLocaleString()}`)
+                        handleExportDataPdfLGScreen(
+                          columns,
+                          table.getCoreRowModel().rows,
+                          title,
+                          `${title} ${new Date().toLocaleString()}`,
+                        )
                       },
                     },
                     {
                       label: "Exportar CSV",
                       key: "exportarCSV",
                       icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
-                      onClick: ({ data }) => handleAllExportDataCSV(data, `Sectoriales IESS ${new Date().toLocaleString()}`),
+                      onClick: ({ data }) =>
+                        handleAllExportDataCSV(data, `Sectoriales IESS ${new Date().toLocaleString()}`),
                     },
                   ],
                 })
@@ -185,7 +196,10 @@ const SectorialesIess = () => {
                 toolbarActions.push({
                   label: importarAction?.acccaption || "Importar",
                   key: "importarBtn",
-                  icon: getIconComponent(importarAction?.accnameicono || "UploadFile", importarAction?.acctipoico || "MaterialIcons"),
+                  icon: getIconComponent(
+                    importarAction?.accnameicono || "UploadFile",
+                    importarAction?.acctipoico || "MaterialIcons",
+                  ),
                   onClick: () => setOpenModal(true),
                 })
               }

@@ -14,13 +14,18 @@ const theme = createTheme({
 })
 
 const StyledRoot = {
-  width: "100%", maxWidth: "800px", margin: "0 auto", padding: "20px",
-  backgroundColor: "#f5f7fa", borderRadius: "12px", boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+  width: "100%",
+  maxWidth: "800px",
+  margin: "0 auto",
+  padding: "20px",
+  backgroundColor: "#f5f7fa",
+  borderRadius: "12px",
+  boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
 }
 
 const EditarMarcasINV = () => {
   const navigate = useNavigate()
-  const { state } = useLocation() 
+  const { state } = useLocation()
   const { selectedMenuInfo } = useContext(GlobalContext)
 
   // Rescatamos el valor original de la Clave Primaria
@@ -42,13 +47,17 @@ const EditarMarcasINV = () => {
     }
   }, [state])
 
-  const { mutateAsync: SaveEdicionMarca, isPending: isSaving, isError } = useMutation({
+  const {
+    mutateAsync: SaveEdicionMarca,
+    isPending: isSaving,
+    isError,
+  } = useMutation({
     queryKey: ["isEditingMarcaINV"],
     fn: async (data) => {
       const response = await api.post("/MarcasINV/updateMarcasINV", data)
       return response.data
     },
-    showError: "modal", 
+    showError: "modal",
     showSuccess: "toast",
     onSuccess: () => navigate(-1),
   })
@@ -79,24 +88,28 @@ const EditarMarcasINV = () => {
 
   // Buscamos el botón GRABAR en la configuración del menú
   const grabarAction = selectedMenuInfo?.data?.barraAcciones?.find((action) => action?.acccaption === "GRABAR")
-  const toolbarActions = grabarAction ? [{ 
-    label: grabarAction.acccaption, 
-    key: grabarAction.acccaption, 
-    icon: getIconComponent(grabarAction.accnameicono, grabarAction.acctipoico) 
-  }] : []
+  const toolbarActions = grabarAction
+    ? [
+        {
+          label: grabarAction.acccaption,
+          key: grabarAction.acccaption,
+          icon: getIconComponent(grabarAction.accnameicono, grabarAction.acctipoico),
+        },
+      ]
+    : []
 
   return (
     <ThemeProvider theme={theme}>
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
-        
+
         <Box sx={{ mb: 2 }}>
           {toolbarActions.map((action) => (
             <Tooltip title={action.label} key={action.key}>
-              <IconButton 
-                onClick={handleSubmit} 
-                disabled={isSaving} 
+              <IconButton
+                onClick={handleSubmit}
+                disabled={isSaving}
                 sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}
               >
                 {action.icon}
@@ -105,40 +118,59 @@ const EditarMarcasINV = () => {
           ))}
         </Box>
 
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", margin: "0 30px 30px 30px", fontSize: "25px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            margin: "0 30px 30px 30px",
+            fontSize: "25px",
+          }}
+        >
           <b>Editar Marca de Inventario</b>
         </div>
 
         <CustomBackdrop isLoading={isSaving} />
 
         <Box sx={StyledRoot}>
-          <Paper elevation={3} sx={{ p: 4, borderRadius: 3, background: "white" }} component="form" onSubmit={handleSubmit}>
-            <Typography variant="h6" color="primary" gutterBottom sx={{ mb: 3 }}>Datos de la Marca</Typography>
+          <Paper
+            elevation={3}
+            sx={{ p: 4, borderRadius: 3, background: "white" }}
+            component="form"
+            onSubmit={handleSubmit}
+          >
+            <Typography variant="h6" color="primary" gutterBottom sx={{ mb: 3 }}>
+              Datos de la Marca
+            </Typography>
             <Grid container spacing={3}>
               <Grid item xs={12} sm={4}>
-                <TextField 
-                  fullWidth label="Código de Marca *" 
-                  value={formData.marcodigo} 
-                  onChange={(e) => handleInputChange("marcodigo", e.target.value)} 
+                <TextField
+                  fullWidth
+                  label="Código de Marca *"
+                  value={formData.marcodigo}
+                  onChange={(e) => handleInputChange("marcodigo", e.target.value)}
                   error={isError && !formData.marcodigo}
-                  inputProps={{ maxLength: 5 }} 
+                  inputProps={{ maxLength: 5 }}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
               <Grid item xs={12} sm={8}>
-                <TextField 
-                  fullWidth label="Descripción de la Marca *" 
-                  value={formData.mardescri} 
-                  onChange={(e) => handleInputChange("mardescri", e.target.value)} 
+                <TextField
+                  fullWidth
+                  label="Descripción de la Marca *"
+                  value={formData.mardescri}
+                  onChange={(e) => handleInputChange("mardescri", e.target.value)}
                   error={isError && !formData.mardescri}
-                  inputProps={{ maxLength: 30 }} 
+                  inputProps={{ maxLength: 30 }}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <TextField 
-                  select fullWidth label="Estado" 
-                  value={formData.marstatus} 
+                <TextField
+                  select
+                  fullWidth
+                  label="Estado"
+                  value={formData.marstatus}
                   onChange={(e) => handleInputChange("marstatus", e.target.value)}
                   InputLabelProps={{ shrink: true }}
                 >

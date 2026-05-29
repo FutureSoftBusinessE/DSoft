@@ -14,8 +14,13 @@ const theme = createTheme({
 })
 
 const StyledRoot = {
-  width: "100%", maxWidth: "800px", margin: "0 auto", padding: "20px",
-  backgroundColor: "#f5f7fa", borderRadius: "12px", boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+  width: "100%",
+  maxWidth: "800px",
+  margin: "0 auto",
+  padding: "20px",
+  backgroundColor: "#f5f7fa",
+  borderRadius: "12px",
+  boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
 }
 
 const EditarPresentacionesINV = () => {
@@ -45,13 +50,17 @@ const EditarPresentacionesINV = () => {
   }, [state])
 
   // Mutación para actualizar el registro de la Presentación
-  const { mutateAsync: SaveEdicionPresentacion, isPending: isSaving, isError } = useMutation({
+  const {
+    mutateAsync: SaveEdicionPresentacion,
+    isPending: isSaving,
+    isError,
+  } = useMutation({
     queryKey: ["isEditingPresentacionINV"],
     fn: async (data) => {
       const response = await api.post("/PresentacionesINV/updatePresentacionesINV", data)
       return response.data
     },
-    showError: "modal", 
+    showError: "modal",
     showSuccess: "toast",
     onSuccess: () => navigate(-1),
   })
@@ -89,25 +98,29 @@ const EditarPresentacionesINV = () => {
 
   // Buscamos la acción GRABAR configurada en la barra de acciones superior
   const grabarAction = selectedMenuInfo?.data?.barraAcciones?.find((action) => action?.acccaption === "GRABAR")
-  const toolbarActions = grabarAction ? [{ 
-    label: grabarAction.acccaption, 
-    key: grabarAction.acccaption, 
-    icon: getIconComponent(grabarAction.accnameicono, grabarAction.acctipoico) 
-  }] : []
+  const toolbarActions = grabarAction
+    ? [
+        {
+          label: grabarAction.acccaption,
+          key: grabarAction.acccaption,
+          icon: getIconComponent(grabarAction.accnameicono, grabarAction.acctipoico),
+        },
+      ]
+    : []
 
   return (
     <ThemeProvider theme={theme}>
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
-        
+
         {/* Barra de Herramientas Superior */}
         <Box sx={{ mb: 2 }}>
           {toolbarActions.map((action) => (
             <Tooltip title={action.label} key={action.key}>
-              <IconButton 
-                onClick={handleSubmit} 
-                disabled={isSaving} 
+              <IconButton
+                onClick={handleSubmit}
+                disabled={isSaving}
                 sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, mr: 1 }}
               >
                 {action.icon}
@@ -116,23 +129,37 @@ const EditarPresentacionesINV = () => {
           ))}
         </Box>
 
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", margin: "0 30px 30px 30px", fontSize: "25px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            margin: "0 30px 30px 30px",
+            fontSize: "25px",
+          }}
+        >
           <b>Editar Presentación de Inventario</b>
         </div>
 
         <CustomBackdrop isLoading={isSaving} />
 
         <Box sx={StyledRoot}>
-          <Paper elevation={3} sx={{ p: 4, borderRadius: 3, background: "white" }} component="form" onSubmit={handleSubmit}>
-            <Typography variant="h6" color="primary" gutterBottom sx={{ mb: 3 }}>Información de la Presentación</Typography>
+          <Paper
+            elevation={3}
+            sx={{ p: 4, borderRadius: 3, background: "white" }}
+            component="form"
+            onSubmit={handleSubmit}
+          >
+            <Typography variant="h6" color="primary" gutterBottom sx={{ mb: 3 }}>
+              Información de la Presentación
+            </Typography>
             <Grid container spacing={3}>
-              
               <Grid item xs={12} sm={4}>
-                <TextField 
-                  fullWidth 
-                  label="Código de Presentación *" 
-                  value={formData.precodigo} 
-                  onChange={(e) => handleInputChange("precodigo", e.target.value)} 
+                <TextField
+                  fullWidth
+                  label="Código de Presentación *"
+                  value={formData.precodigo}
+                  onChange={(e) => handleInputChange("precodigo", e.target.value)}
                   error={isError && !formData.precodigo}
                   inputProps={{ maxLength: 2 }} // varchar(2)
                   InputLabelProps={{ shrink: true }}
@@ -140,11 +167,11 @@ const EditarPresentacionesINV = () => {
               </Grid>
 
               <Grid item xs={12} sm={8}>
-                <TextField 
-                  fullWidth 
-                  label="Descripción de la Presentación *" 
-                  value={formData.predescri} 
-                  onChange={(e) => handleInputChange("predescri", e.target.value)} 
+                <TextField
+                  fullWidth
+                  label="Descripción de la Presentación *"
+                  value={formData.predescri}
+                  onChange={(e) => handleInputChange("predescri", e.target.value)}
                   error={isError && !formData.predescri}
                   inputProps={{ maxLength: 30 }} // varchar(30)
                   InputLabelProps={{ shrink: true }}
@@ -152,11 +179,11 @@ const EditarPresentacionesINV = () => {
               </Grid>
 
               <Grid item xs={12} sm={4}>
-                <TextField 
-                  select 
-                  fullWidth 
-                  label="Estado" 
-                  value={formData.prestatus} 
+                <TextField
+                  select
+                  fullWidth
+                  label="Estado"
+                  value={formData.prestatus}
                   onChange={(e) => handleInputChange("prestatus", e.target.value)}
                   InputLabelProps={{ shrink: true }}
                 >
@@ -164,7 +191,6 @@ const EditarPresentacionesINV = () => {
                   <MenuItem value="I">INACTIVO</MenuItem>
                 </TextField>
               </Grid>
-
             </Grid>
           </Paper>
         </Box>

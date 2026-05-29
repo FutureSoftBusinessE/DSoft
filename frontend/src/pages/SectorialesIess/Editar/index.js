@@ -14,15 +14,20 @@ const theme = createTheme({
 })
 
 const StyledRoot = {
-  width: "100%", maxWidth: "1200px", margin: "0 auto", padding: "20px",
-  backgroundColor: "#f5f7fa", borderRadius: "12px", boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+  width: "100%",
+  maxWidth: "1200px",
+  margin: "0 auto",
+  padding: "20px",
+  backgroundColor: "#f5f7fa",
+  borderRadius: "12px",
+  boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
 }
 
 // Lista de años para el selector
 const currentYear = new Date().getFullYear()
 const listaAnios = Array.from({ length: 10 }, (_, i) => ({
   id: currentYear + 1 - i,
-  label: (currentYear + 1 - i).toString()
+  label: (currentYear + 1 - i).toString(),
 }))
 
 const EditarSectorialesIess = () => {
@@ -61,13 +66,17 @@ const EditarSectorialesIess = () => {
   }, [state])
 
   // Mutación para actualizar el registro
-  const { mutateAsync: SaveEdicionSectorial, isPending: isSaving, isError } = useMutation({
+  const {
+    mutateAsync: SaveEdicionSectorial,
+    isPending: isSaving,
+    isError,
+  } = useMutation({
     queryKey: ["isEditingSectorialIess"],
     fn: async (data) => {
       const response = await api.post("/SectorialesIess/updateSectorialesIess", data)
       return response.data
     },
-    showError: "modal", 
+    showError: "modal",
     showSuccess: "toast",
     onSuccess: () => navigate(-1),
   })
@@ -109,20 +118,28 @@ const EditarSectorialesIess = () => {
   }
 
   const ejecutarAction = selectedMenuInfo?.data?.barraAcciones?.find((action) => action?.acccaption === "EJECUTAR")
-  const toolbarActions = ejecutarAction ? [{ label: ejecutarAction.acccaption, key: ejecutarAction.acccaption, icon: getIconComponent(ejecutarAction.accnameicono, ejecutarAction.acctipoico) }] : []
+  const toolbarActions = ejecutarAction
+    ? [
+        {
+          label: ejecutarAction.acccaption,
+          key: ejecutarAction.acccaption,
+          icon: getIconComponent(ejecutarAction.accnameicono, ejecutarAction.acctipoico),
+        },
+      ]
+    : []
 
   return (
     <ThemeProvider theme={theme}>
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
-        
+
         <Box sx={{ mb: 2 }}>
           {toolbarActions.map((action) => (
             <Tooltip title={action.label} key={action.key}>
-              <IconButton 
-                onClick={handleSubmit} 
-                disabled={isSaving} 
+              <IconButton
+                onClick={handleSubmit}
+                disabled={isSaving}
                 sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, mr: 1 }}
               >
                 {action.icon}
@@ -131,25 +148,39 @@ const EditarSectorialesIess = () => {
           ))}
         </Box>
 
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", margin: "0 30px 30px 30px", fontSize: "25px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            margin: "0 30px 30px 30px",
+            fontSize: "25px",
+          }}
+        >
           <b>Editar Registro Sectorial IESS</b>
         </div>
 
         <CustomBackdrop isLoading={isSaving} />
 
         <Box sx={StyledRoot}>
-          <Paper elevation={3} sx={{ p: 4, borderRadius: 3, background: "white" }} component="form" onSubmit={handleSubmit}>
-            <Typography variant="h6" color="primary" gutterBottom sx={{ mb: 3 }}>Datos del Salario Sectorial</Typography>
+          <Paper
+            elevation={3}
+            sx={{ p: 4, borderRadius: 3, background: "white" }}
+            component="form"
+            onSubmit={handleSubmit}
+          >
+            <Typography variant="h6" color="primary" gutterBottom sx={{ mb: 3 }}>
+              Datos del Salario Sectorial
+            </Typography>
             <Grid container spacing={3}>
-              
               <Grid item xs={12} sm={3}>
-                <TextField 
-                  fullWidth 
-                  label="Código IESS *" 
-                  value={formData.seccodigo} 
-                  onChange={(e) => handleInputChange("seccodigo", e.target.value)} 
+                <TextField
+                  fullWidth
+                  label="Código IESS *"
+                  value={formData.seccodigo}
+                  onChange={(e) => handleInputChange("seccodigo", e.target.value)}
                   error={isError && !formData.seccodigo}
-                  inputProps={{ maxLength: 15 }} 
+                  inputProps={{ maxLength: 15 }}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
@@ -161,29 +192,34 @@ const EditarSectorialesIess = () => {
                   value={listaAnios.find((a) => a.id === formData.secanio) || null}
                   onChange={(event, newValue) => handleInputChange("secanio", newValue ? newValue.id : "")}
                   renderInput={(params) => (
-                    <TextField {...params} label="Año *" error={isError && !formData.secanio} InputLabelProps={{ shrink: true }} />
+                    <TextField
+                      {...params}
+                      label="Año *"
+                      error={isError && !formData.secanio}
+                      InputLabelProps={{ shrink: true }}
+                    />
                   )}
                 />
               </Grid>
 
               <Grid item xs={12} sm={3}>
-                <TextField 
-                  fullWidth 
-                  label="Salario Sectorial *" 
+                <TextField
+                  fullWidth
+                  label="Salario Sectorial *"
                   type="number"
-                  value={formData.secsalario} 
-                  onChange={(e) => handleInputChange("secsalario", e.target.value, true)} 
+                  value={formData.secsalario}
+                  onChange={(e) => handleInputChange("secsalario", e.target.value, true)}
                   error={isError && !formData.secsalario}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
 
               <Grid item xs={12} sm={3}>
-                <TextField 
-                  select 
-                  fullWidth 
-                  label="Estado" 
-                  value={formData.secstatus} 
+                <TextField
+                  select
+                  fullWidth
+                  label="Estado"
+                  value={formData.secstatus}
                   onChange={(e) => handleInputChange("secstatus", e.target.value)}
                   InputLabelProps={{ shrink: true }}
                 >
@@ -193,41 +229,40 @@ const EditarSectorialesIess = () => {
               </Grid>
 
               <Grid item xs={12} sm={8}>
-                <TextField 
-                  fullWidth 
-                  label="Cargo o Actividad *" 
-                  value={formData.seccargo} 
-                  onChange={(e) => handleInputChange("seccargo", e.target.value)} 
+                <TextField
+                  fullWidth
+                  label="Cargo o Actividad *"
+                  value={formData.seccargo}
+                  onChange={(e) => handleInputChange("seccargo", e.target.value)}
                   error={isError && !formData.seccargo}
-                  inputProps={{ maxLength: 200 }} 
+                  inputProps={{ maxLength: 200 }}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
 
               <Grid item xs={12} sm={4}>
-                <TextField 
-                  fullWidth 
-                  label="Estructura Ocupacional" 
-                  value={formData.secestruc} 
-                  onChange={(e) => handleInputChange("secestruc", e.target.value)} 
-                  inputProps={{ maxLength: 10 }} 
+                <TextField
+                  fullWidth
+                  label="Estructura Ocupacional"
+                  value={formData.secestruc}
+                  onChange={(e) => handleInputChange("secestruc", e.target.value)}
+                  inputProps={{ maxLength: 10 }}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
 
               <Grid item xs={12}>
-                <TextField 
-                  fullWidth 
-                  multiline 
-                  rows={3} 
-                  label="Comentarios / Detalles" 
-                  value={formData.secdetalle} 
-                  onChange={(e) => handleInputChange("secdetalle", e.target.value)} 
-                  inputProps={{ maxLength: 500 }} 
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label="Comentarios / Detalles"
+                  value={formData.secdetalle}
+                  onChange={(e) => handleInputChange("secdetalle", e.target.value)}
+                  inputProps={{ maxLength: 500 }}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
-
             </Grid>
           </Paper>
         </Box>

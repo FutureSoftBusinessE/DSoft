@@ -139,7 +139,7 @@ const MedidasINV = () => {
               const importarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action.acccaption === "IMPORTAR",
               )
-              
+
               const toolbarActions = []
               if (crearAction) {
                 toolbarActions.push({
@@ -163,9 +163,19 @@ const MedidasINV = () => {
                       onClick: ({ columns, data }) => {
                         const title = "Reporte de Unidades de Medida"
                         if (device === "sm") {
-                          return handleExportDataPdfSMScreen(columns, data, title, `${title} ${new Date().toLocaleString()}`)
+                          return handleExportDataPdfSMScreen(
+                            columns,
+                            data,
+                            title,
+                            `${title} ${new Date().toLocaleString()}`,
+                          )
                         }
-                        handleExportDataPdfLGScreen(columns, table.getCoreRowModel().rows, title, `${title} ${new Date().toLocaleString()}`)
+                        handleExportDataPdfLGScreen(
+                          columns,
+                          table.getCoreRowModel().rows,
+                          title,
+                          `${title} ${new Date().toLocaleString()}`,
+                        )
                       },
                     },
                     {
@@ -181,7 +191,10 @@ const MedidasINV = () => {
                 toolbarActions.push({
                   label: importarAction?.acccaption || "Importar",
                   key: "importarBtn",
-                  icon: getIconComponent(importarAction?.accnameicono || "UploadFile", importarAction?.acctipoico || "MaterialIcons"),
+                  icon: getIconComponent(
+                    importarAction?.accnameicono || "UploadFile",
+                    importarAction?.acctipoico || "MaterialIcons",
+                  ),
                   onClick: () => setOpenModal(true),
                 })
               }

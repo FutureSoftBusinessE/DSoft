@@ -14,15 +14,20 @@ const theme = createTheme({
 })
 
 const StyledRoot = {
-  width: "100%", maxWidth: "1000px", margin: "0 auto", padding: "20px",
-  backgroundColor: "#f5f7fa", borderRadius: "12px", boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+  width: "100%",
+  maxWidth: "1000px",
+  margin: "0 auto",
+  padding: "20px",
+  backgroundColor: "#f5f7fa",
+  borderRadius: "12px",
+  boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
 }
 
 const EditarVendedorDF = () => {
   const navigate = useNavigate()
-  const { state } = useLocation() 
+  const { state } = useLocation()
   const { selectedMenuInfo } = useContext(GlobalContext)
-  
+
   // Clave primaria original para la localización en el backend
   const vencodigoViejo = state?.vencodigo ?? ""
 
@@ -32,7 +37,7 @@ const EditarVendedorDF = () => {
     vennombre: "",
     vendireccion: "",
     ventelefono: "",
-    venstatus: "A"
+    venstatus: "A",
   })
 
   useEffect(() => {
@@ -52,39 +57,39 @@ const EditarVendedorDF = () => {
   const { mutateAsync: SaveEdicion, isPending: isSaving } = useMutation({
     queryKey: ["isEditingVendedorDF"],
     fn: async (data) => (await api.post("/VendedoresDF/updateVendedoresDF", data)).data,
-    showError: "modal", 
+    showError: "modal",
     showSuccess: "toast",
     onSuccess: () => navigate(-1),
   })
 
   const handleInputChange = (field, value) => {
     // Conversión a mayúsculas para mantener el estándar visual
-    let val = typeof value === "string" && field !== "venstatus" ? value.toUpperCase() : value;
-    setFormData(prev => ({ ...prev, [field]: val }));
+    const val = typeof value === "string" && field !== "venstatus" ? value.toUpperCase() : value
+    setFormData((prev) => ({ ...prev, [field]: val }))
   }
 
   const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
-    
+    if (e) e.preventDefault()
+
     if (!formData.vennombre.trim()) {
-      return showWarning("El Nombre del Vendedor es un campo obligatorio");
+      return showWarning("El Nombre del Vendedor es un campo obligatorio")
     }
 
     try {
       // Se envía el código original y el nuevo (aunque sea el mismo por estar disabled)
-      await SaveEdicion({ 
-        vencodigoOld: vencodigoViejo, 
-        vencodigoNew: formData.vencodigo, 
-        ...formData 
-      });
+      await SaveEdicion({
+        vencodigoOld: vencodigoViejo,
+        vencodigoNew: formData.vencodigo,
+        ...formData,
+      })
     } catch (error) {
       // Captura controlada para evitar el overlay rojo de desarrollo
-      console.log("Error en actualización de vendedor capturado");
+      console.log("Error en actualización de vendedor capturado")
     }
   }
 
   // Búsqueda del botón GRABAR según configuración de permisos
-  const action = selectedMenuInfo?.data?.barraAcciones?.find(a => a.acccaption === "GRABAR")
+  const action = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "GRABAR")
 
   return (
     <ThemeProvider theme={theme}>
@@ -108,59 +113,61 @@ const EditarVendedorDF = () => {
 
         <Box sx={StyledRoot}>
           <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }} component="form" onSubmit={handleSubmit}>
-            <Typography variant="h6" color="primary">Información del Vendedor</Typography>
+            <Typography variant="h6" color="primary">
+              Información del Vendedor
+            </Typography>
             <Divider sx={{ mb: 3 }} />
 
             <Grid container spacing={3}>
               <Grid item xs={12} sm={4}>
-                <TextField 
+                <TextField
                   disabled // Bloqueado por ser Clave Primaria
-                  fullWidth 
-                  label="Código (No editable) *" 
-                  value={formData.vencodigo} 
+                  fullWidth
+                  label="Código (No editable) *"
+                  value={formData.vencodigo}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
 
               <Grid item xs={12} sm={8}>
-                <TextField 
-                  fullWidth 
-                  label="Nombre del Vendedor *" 
-                  value={formData.vennombre} 
-                  onChange={(e) => handleInputChange("vennombre", e.target.value)} 
-                  inputProps={{ maxLength: 30 }} 
+                <TextField
+                  fullWidth
+                  label="Nombre del Vendedor *"
+                  value={formData.vennombre}
+                  onChange={(e) => handleInputChange("vennombre", e.target.value)}
+                  inputProps={{ maxLength: 30 }}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
 
               <Grid item xs={12}>
-                <TextField 
-                  fullWidth 
-                  label="Dirección" 
-                  value={formData.vendireccion} 
-                  onChange={(e) => handleInputChange("vendireccion", e.target.value)} 
-                  inputProps={{ maxLength: 40 }} 
+                <TextField
+                  fullWidth
+                  label="Dirección"
+                  value={formData.vendireccion}
+                  onChange={(e) => handleInputChange("vendireccion", e.target.value)}
+                  inputProps={{ maxLength: 40 }}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <TextField 
-                  fullWidth 
-                  label="Teléfono" 
-                  value={formData.ventelefono} 
-                  onChange={(e) => handleInputChange("ventelefono", e.target.value)} 
-                  inputProps={{ maxLength: 15 }} 
+                <TextField
+                  fullWidth
+                  label="Teléfono"
+                  value={formData.ventelefono}
+                  onChange={(e) => handleInputChange("ventelefono", e.target.value)}
+                  inputProps={{ maxLength: 15 }}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <TextField 
-                  select 
-                  fullWidth 
-                  label="Estado" 
-                  value={formData.venstatus} 
+                <TextField
+                  select
+                  fullWidth
+                  label="Estado"
+                  value={formData.venstatus}
                   onChange={(e) => handleInputChange("venstatus", e.target.value)}
                   InputLabelProps={{ shrink: true }}
                 >
@@ -176,4 +183,4 @@ const EditarVendedorDF = () => {
   )
 }
 
-export default EditarVendedorDF;
+export default EditarVendedorDF

@@ -60,7 +60,15 @@ const AutorizacionesSri = () => {
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", margin: "0 30px 30px 30px", fontSize: "25px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            margin: "0 30px 30px 30px",
+            fontSize: "25px",
+          }}
+        >
           <b>Ingreso de Números de Autorizaciones del SRI</b>
         </div>
 
@@ -92,8 +100,8 @@ const AutorizacionesSri = () => {
             rowActionsWidthTable={120}
             rowActions={(row) => {
               // Lógica de acciones de fila basada en permisos del menú
-              const editarAction = selectedMenuInfo?.data?.barraAcciones?.find(a => a.acccaption === "EDITAR")
-              const eliminarAction = selectedMenuInfo?.data?.barraAcciones?.find(a => a.acccaption === "ELIMINAR")
+              const editarAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "EDITAR")
+              const eliminarAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "ELIMINAR")
 
               const actions = []
               if (editarAction) {
@@ -114,7 +122,7 @@ const AutorizacionesSri = () => {
                       // Se envía la llave primaria compuesta para eliminar
                       await SaveEliminacionAutorizacion({
                         sripreauto: row.original.sripreauto,
-                        sriautnumero: row.original.sriautnumero
+                        sriautnumero: row.original.sriautnumero,
                       })
                     } catch (err) {}
                   },
@@ -127,7 +135,7 @@ const AutorizacionesSri = () => {
               const acciones = selectedMenuInfo?.data?.barraAcciones || []
               const toolbarActions = []
 
-              const crearAction = acciones.find(a => a.acccaption === "CREAR")
+              const crearAction = acciones.find((a) => a.acccaption === "CREAR")
               if (crearAction) {
                 toolbarActions.push({
                   label: crearAction.acccaption,
@@ -137,7 +145,7 @@ const AutorizacionesSri = () => {
                 })
               }
 
-              const exportarAction = acciones.find(a => a.acccaption === "EXPORTAR")
+              const exportarAction = acciones.find((a) => a.acccaption === "EXPORTAR")
               if (exportarAction) {
                 toolbarActions.push({
                   type: "dropdown",
@@ -165,43 +173,46 @@ const AutorizacionesSri = () => {
                 })
               }
 
-              const importarAction = acciones.find(a => a.acccaption === "IMPORTAR")
+              const importarAction = acciones.find((a) => a.acccaption === "IMPORTAR")
               if (importarAction) {
                 toolbarActions.push({
                   label: importarAction.acccaption,
                   key: "importBtn",
-                  icon: getIconComponent(importarAction.accnameicono || "UploadFile", importarAction.acctipoico || "MaterialIcons"),
+                  icon: getIconComponent(
+                    importarAction.accnameicono || "UploadFile",
+                    importarAction.acctipoico || "MaterialIcons",
+                  ),
                   onClick: () => setOpenModal(true),
                 })
               }
               return toolbarActions
             }}
             columnsTable={[
-              { 
-                accessorKey: "sripreauto", 
-                header: "Tipo", 
+              {
+                accessorKey: "sripreauto",
+                header: "Tipo",
                 size: 130,
                 Cell: ({ cell }) => {
-                  const tipo = cell.getValue();
-                  if (tipo === "E") return "ELECTRÓNICA";
-                  if (tipo === "P") return "PREIMPRESA";
-                  if (tipo === "A") return "AUTOIMPRESORES";
-                  return tipo;
-                }
+                  const tipo = cell.getValue()
+                  if (tipo === "E") return "ELECTRÓNICA"
+                  if (tipo === "P") return "PREIMPRESA"
+                  if (tipo === "A") return "AUTOIMPRESORES"
+                  return tipo
+                },
               },
               { accessorKey: "sriautnumero", header: "Nº Autorización", size: 160 },
-              { 
-                accessorKey: "sritramite", 
-                header: "Tipo Trámite", 
+              {
+                accessorKey: "sritramite",
+                header: "Tipo Trámite",
                 size: 200,
                 Cell: ({ cell }) => {
-                  const tramite = Number(cell.getValue());
-                  if (tramite === 6) return "6 - Solicitud de Autorización";
-                  if (tramite === 7) return "7 - Cambio de Software";
-                  if (tramite === 8) return "8 - Renovación";
-                  if (tramite === 9) return "9 - Baja";
-                  return tramite || "-";
-                }
+                  const tramite = Number(cell.getValue())
+                  if (tramite === 6) return "6 - Solicitud de Autorización"
+                  if (tramite === 7) return "7 - Cambio de Software"
+                  if (tramite === 8) return "8 - Renovación"
+                  if (tramite === 9) return "9 - Baja"
+                  return tramite || "-"
+                },
               },
               {
                 accessorKey: "sriautfecemi",
@@ -215,9 +226,9 @@ const AutorizacionesSri = () => {
                 size: 130,
                 Cell: ({ cell }) => {
                   // Validación visual para la caducidad infinita de comprobantes electrónicos
-                  const dateStr = cell.getValue();
-                  if (dateStr && dateStr.includes("2100")) return "Sin Caducidad";
-                  return normalFormatDate(dateStr);
+                  const dateStr = cell.getValue()
+                  if (dateStr && dateStr.includes("2100")) return "Sin Caducidad"
+                  return normalFormatDate(dateStr)
                 },
               },
               {

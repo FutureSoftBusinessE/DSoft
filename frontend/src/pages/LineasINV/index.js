@@ -86,9 +86,9 @@ const LineasINV = () => {
             templateFileName="PlantillaCargaGruposProductos.csv"
             fieldConfigs={{
               lincodigo: { required: true, key: true }, // Ej: 020706
-              lindescri: { required: true },            // Ej: MARIANO 2
-              lintipo: { required: true },              // M o T
-              linstatus: { required: true },            // A o I    
+              lindescri: { required: true }, // Ej: MARIANO 2
+              lintipo: { required: true }, // M o T
+              linstatus: { required: true }, // A o I
               // Nota: linnivel, linlindes (padre) y lincodigo1 no se piden porque el backend los calcula automáticamente
             }}
             maxFileSize={10 * 1024 * 1024}
@@ -142,7 +142,7 @@ const LineasINV = () => {
               const importarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action.acccaption === "IMPORTAR",
               )
-              
+
               const toolbarActions = []
               if (crearAction) {
                 toolbarActions.push({
@@ -166,16 +166,27 @@ const LineasINV = () => {
                       onClick: ({ columns, data }) => {
                         const title = "Reporte de Grupos y Líneas de Inventario"
                         if (device === "sm") {
-                          return handleExportDataPdfSMScreen(columns, data, title, `${title} ${new Date().toLocaleString()}`)
+                          return handleExportDataPdfSMScreen(
+                            columns,
+                            data,
+                            title,
+                            `${title} ${new Date().toLocaleString()}`,
+                          )
                         }
-                        handleExportDataPdfLGScreen(columns, table.getCoreRowModel().rows, title, `${title} ${new Date().toLocaleString()}`)
+                        handleExportDataPdfLGScreen(
+                          columns,
+                          table.getCoreRowModel().rows,
+                          title,
+                          `${title} ${new Date().toLocaleString()}`,
+                        )
                       },
                     },
                     {
                       label: "Exportar CSV",
                       key: "exportarCSV",
                       icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
-                      onClick: ({ data }) => handleAllExportDataCSV(data, `Grupos_Productos_${new Date().toLocaleString()}`),
+                      onClick: ({ data }) =>
+                        handleAllExportDataCSV(data, `Grupos_Productos_${new Date().toLocaleString()}`),
                     },
                   ],
                 })
@@ -184,7 +195,10 @@ const LineasINV = () => {
                 toolbarActions.push({
                   label: importarAction?.acccaption || "Importar",
                   key: "importarBtn",
-                  icon: getIconComponent(importarAction?.accnameicono || "UploadFile", importarAction?.acctipoico || "MaterialIcons"),
+                  icon: getIconComponent(
+                    importarAction?.accnameicono || "UploadFile",
+                    importarAction?.acctipoico || "MaterialIcons",
+                  ),
                   onClick: () => setOpenModal(true),
                 })
               }
@@ -193,7 +207,12 @@ const LineasINV = () => {
             columnsTable={[
               { accessorKey: "lincodigo", header: "Código Grupo", size: 140 },
               { accessorKey: "lindescri", header: "Descripción", size: 300 },
-              { accessorKey: "linlindes", header: "Padre", size: 120, Cell: ({ cell }) => <span>{cell.getValue() || "-"}</span> },
+              {
+                accessorKey: "linlindes",
+                header: "Padre",
+                size: 120,
+                Cell: ({ cell }) => <span>{cell.getValue() || "-"}</span>,
+              },
               { accessorKey: "linnivel", header: "Nivel", size: 80 },
               {
                 accessorKey: "lintipo",

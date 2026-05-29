@@ -60,7 +60,15 @@ const TransportistasDF = () => {
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", margin: "0 30px 30px 30px", fontSize: "25px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            margin: "0 30px 30px 30px",
+            fontSize: "25px",
+          }}
+        >
           <b>Mantenimiento de Transportistas</b>
         </div>
 
@@ -94,8 +102,8 @@ const TransportistasDF = () => {
             rowActionsWidthTable={120}
             rowActions={(row) => {
               // Lógica de acciones de fila basada en permisos del menú
-              const editarAction = selectedMenuInfo?.data?.barraAcciones?.find(a => a.acccaption === "EDITAR")
-              const eliminarAction = selectedMenuInfo?.data?.barraAcciones?.find(a => a.acccaption === "ELIMINAR")
+              const editarAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "EDITAR")
+              const eliminarAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "ELIMINAR")
 
               const actions = []
               if (editarAction) {
@@ -125,7 +133,7 @@ const TransportistasDF = () => {
               const acciones = selectedMenuInfo?.data?.barraAcciones || []
               const toolbarActions = []
 
-              const crearAction = acciones.find(a => a.acccaption === "CREAR")
+              const crearAction = acciones.find((a) => a.acccaption === "CREAR")
               if (crearAction) {
                 toolbarActions.push({
                   label: crearAction.acccaption,
@@ -135,7 +143,7 @@ const TransportistasDF = () => {
                 })
               }
 
-              const exportarAction = acciones.find(a => a.acccaption === "EXPORTAR")
+              const exportarAction = acciones.find((a) => a.acccaption === "EXPORTAR")
               if (exportarAction) {
                 toolbarActions.push({
                   type: "dropdown",
@@ -163,12 +171,15 @@ const TransportistasDF = () => {
                 })
               }
 
-              const importarAction = acciones.find(a => a.acccaption === "IMPORTAR")
+              const importarAction = acciones.find((a) => a.acccaption === "IMPORTAR")
               if (importarAction) {
                 toolbarActions.push({
                   label: importarAction.acccaption,
                   key: "importBtn",
-                  icon: getIconComponent(importarAction.accnameicono || "UploadFile", importarAction.acctipoico || "MaterialIcons"),
+                  icon: getIconComponent(
+                    importarAction.accnameicono || "UploadFile",
+                    importarAction.acctipoico || "MaterialIcons",
+                  ),
                   onClick: () => setOpenModal(true),
                 })
               }
@@ -178,11 +189,11 @@ const TransportistasDF = () => {
               { accessorKey: "transcodigo", header: "Código", size: 100 },
               { accessorKey: "transdescri", header: "Nombre / Descripción", size: 250 },
               { accessorKey: "transruc", header: "Cédula / R.U.C.", size: 150 },
-              { 
-                accessorKey: "transtipo", 
-                header: "Tipo", 
+              {
+                accessorKey: "transtipo",
+                header: "Tipo",
                 size: 130,
-                Cell: ({ cell }) => <span>{cell.getValue() === "L" ? "LOCAL" : "INTERNACIONAL"}</span>
+                Cell: ({ cell }) => <span>{cell.getValue() === "L" ? "LOCAL" : "INTERNACIONAL"}</span>,
               },
               { accessorKey: "transplaca", header: "Placa Sugerida", size: 130 },
               {

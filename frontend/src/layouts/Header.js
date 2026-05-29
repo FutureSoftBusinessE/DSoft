@@ -16,12 +16,20 @@ export default function Header({ onSkin }) {
   const [isLoading, setIsLoading] = useState(false)
   const [companies, setCompanies] = useState([])
   const [locations, setLocations] = useState([])
-  
+
   const [selectedCia, setSelectedCia] = useState(null)
   const [selectedLoc, setSelectedLoc] = useState("")
 
   const CustomToggle = React.forwardRef(({ children, onClick }, ref) => (
-    <Link to="" ref={ref} onClick={(e) => { e.preventDefault(); onClick(e); }} className="dropdown-link">
+    <Link
+      to=""
+      ref={ref}
+      onClick={(e) => {
+        e.preventDefault()
+        onClick(e)
+      }}
+      className="dropdown-link"
+    >
       {children}
     </Link>
   ))
@@ -47,14 +55,14 @@ export default function Header({ onSkin }) {
     try {
       const user = localStorage.getItem("cliciausu")
       const grupo = localStorage.getItem("cliciagrupo")
-      
+
       const res = await fetchwrapper("/login/companias_del_usuarioSinGrupo", {
         method: "POST",
         headers: { "Content-Type": "application/json" }, // <--- CABECERA AÑADIDA
-        body: JSON.stringify({ cliciausu: user, cliciagrupo: grupo })
+        body: JSON.stringify({ cliciausu: user, cliciagrupo: grupo }),
       })
       const responseData = await res.json()
-      
+
       if (responseData.status === "ok") {
         setCompanies(responseData.data)
       }
@@ -66,9 +74,9 @@ export default function Header({ onSkin }) {
   }
 
   const handleCompanyChange = async (e) => {
-    const [cliciaidenti,ciaCodigo] = e.target.value.split("_")
-    const ciaObj = companies.find(c => c.cliciaidenti === cliciaidenti && c.cliciaciacodigo === ciaCodigo)
-    setSelectedCia({...ciaObj, idCb: e.target.value})
+    const [cliciaidenti, ciaCodigo] = e.target.value.split("_")
+    const ciaObj = companies.find((c) => c.cliciaidenti === cliciaidenti && c.cliciaciacodigo === ciaCodigo)
+    setSelectedCia({ ...ciaObj, idCb: e.target.value })
     setSelectedLoc("")
     setLocations([])
 
@@ -80,11 +88,11 @@ export default function Header({ onSkin }) {
       const res = await fetchwrapper("/login/get_localidad", {
         method: "POST",
         headers: { "Content-Type": "application/json" }, // <--- CABECERA AÑADIDA
-        body: JSON.stringify({ user: user, seleccion: ciaObj })
+        body: JSON.stringify({ user, seleccion: ciaObj }),
       })
       const data = await res.json()
       setLocations(data)
-      
+
       // REGLA DE NEGOCIO: Si solo hay 1 localidad, autoseleccionar
       if (data && data.length === 1) {
         setSelectedLoc(data[0].loccodigo)
@@ -104,17 +112,17 @@ export default function Header({ onSkin }) {
     setIsLoading(true)
     try {
       const user = localStorage.getItem("cliciausu")
-      const locObj = locations.find(l => l.loccodigo === selectedLoc)
+      const locObj = locations.find((l) => l.loccodigo === selectedLoc)
 
       // 1. Obtener el nuevo Token (Sin pedir clave)
       const resToken = await fetchwrapper("/login/switch_company_token", {
         method: "POST",
         headers: { "Content-Type": "application/json" }, // <--- CABECERA AÑADIDA
         body: JSON.stringify({
-          user: user,
+          user,
           seleccion: selectedCia,
-          localidad: locObj
-        })
+          localidad: locObj,
+        }),
       })
       const dataToken = await resToken.json()
 
@@ -123,7 +131,7 @@ export default function Header({ onSkin }) {
         localStorage.setItem("jwt", JSON.stringify(dataToken.data))
         localStorage.setItem("token", dataToken.token)
         localStorage.setItem("accessToken", JSON.stringify(dataToken.token))
-        
+
         // Limpiamos el caché del menú viejo
         localStorage.removeItem("menuAcciones")
 
@@ -133,11 +141,11 @@ export default function Header({ onSkin }) {
         const dataMenu = await resMenu.json()
         localStorage.setItem("menuAcciones", JSON.stringify(dataMenu.data || dataMenu))
 
-       // 4. "Hard Reload" para limpiar toda la memoria RAM/Context de React y aplicar los cambios
+        // 4. "Hard Reload" para limpiar toda la memoria RAM/Context de React y aplicar los cambios
         // Usamos reload() para que se quede en la misma pantalla (o cambie a la ruta de su dashboard si prefiere)
-        window.location.reload(); 
-        
-        // NOTA: Si al recargar la página actual le da problemas porque la nueva compañía no tiene 
+        window.location.reload()
+
+        // NOTA: Si al recargar la página actual le da problemas porque la nueva compañía no tiene
         // permisos para esa pantalla, use la ruta base de su dashboard, por ejemplo:
         // window.location.href = "/home/dashboard";
       } else {
@@ -212,15 +220,34 @@ export default function Header({ onSkin }) {
           <Dropdown.Menu className="mt-10-f">
             <label>Skin Mode</label>
             <nav className="nav nav-skin">
-              <Link onClick={skinMode} className={localStorage.getItem("skin-mode") ? "nav-link" : "nav-link active"}>Light</Link>
-              <Link onClick={skinMode} className={localStorage.getItem("skin-mode") ? "nav-link active" : "nav-link"}>Dark</Link>
+              <Link onClick={skinMode} className={localStorage.getItem("skin-mode") ? "nav-link" : "nav-link active"}>
+                Light
+              </Link>
+              <Link onClick={skinMode} className={localStorage.getItem("skin-mode") ? "nav-link active" : "nav-link"}>
+                Dark
+              </Link>
             </nav>
             <hr />
             <label>Sidebar Skin</label>
             <nav id="sidebarSkin" className="nav nav-skin">
-              <Link onClick={sidebarSkin} className={!localStorage.getItem("sidebar-skin") ? "nav-link active" : "nav-link"}>Default</Link>
-              <Link onClick={sidebarSkin} className={localStorage.getItem("sidebar-skin") === "prime" ? "nav-link active" : "nav-link"}>Prime</Link>
-              <Link onClick={sidebarSkin} className={localStorage.getItem("sidebar-skin") === "dark" ? "nav-link active" : "nav-link"}>Dark</Link>
+              <Link
+                onClick={sidebarSkin}
+                className={!localStorage.getItem("sidebar-skin") ? "nav-link active" : "nav-link"}
+              >
+                Default
+              </Link>
+              <Link
+                onClick={sidebarSkin}
+                className={localStorage.getItem("sidebar-skin") === "prime" ? "nav-link active" : "nav-link"}
+              >
+                Prime
+              </Link>
+              <Link
+                onClick={sidebarSkin}
+                className={localStorage.getItem("sidebar-skin") === "dark" ? "nav-link active" : "nav-link"}
+              >
+                Dark
+              </Link>
             </nav>
           </Dropdown.Menu>
         </Dropdown>
@@ -241,15 +268,35 @@ export default function Header({ onSkin }) {
                 {JSON.parse(localStorage.getItem("jwt")).seleccion.cliciacianombre}
               </p>
               <p className="fs-sm text-secondary">{JSON.parse(localStorage.getItem("jwt")).localidad.locdescri}</p>
-              
+
               <hr />
               <nav className="nav">
                 {/* NUEVO BOTÓN PARA CAMBIO DE COMPAÑÍA */}
-                <Button variant="link" onClick={handleOpenSwitchModal} style={{ textAlign: "left", paddingLeft: 0, textDecoration: "none", color: "#4f5d73", fontWeight: 500, display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+                <Button
+                  variant="link"
+                  onClick={handleOpenSwitchModal}
+                  style={{
+                    textAlign: "left",
+                    paddingLeft: 0,
+                    textDecoration: "none",
+                    color: "#4f5d73",
+                    fontWeight: 500,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    marginBottom: "10px",
+                  }}
+                >
                   <i className="ri-exchange-box-line" style={{ fontSize: "1.2rem" }}></i> Cambiar Entorno
                 </Button>
-                
-                <Button onClick={() => { if (window.confirm("¿Desea cerrar sesión?")) { cleanSession() } }}>
+
+                <Button
+                  onClick={() => {
+                    if (window.confirm("¿Desea cerrar sesión?")) {
+                      cleanSession()
+                    }
+                  }}
+                >
                   <i className="ri-logout-box-r-line"></i> Log Out
                 </Button>
               </nav>
@@ -261,7 +308,9 @@ export default function Header({ onSkin }) {
       {/* ---- MODAL PARA CAMBIAR COMPAÑÍA / LOCALIDAD ---- */}
       <Modal show={showSwitchModal} onHide={() => !isLoading && setShowSwitchModal(false)} centered backdrop="static">
         <Modal.Header closeButton={!isLoading}>
-          <Modal.Title><i className="ri-building-4-line"></i> Cambiar Compañía / Localidad</Modal.Title>
+          <Modal.Title>
+            <i className="ri-building-4-line"></i> Cambiar Compañía / Localidad
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {isLoading ? (
@@ -275,8 +324,11 @@ export default function Header({ onSkin }) {
                 <Form.Label className="fw-bold">Compañía</Form.Label>
                 <Form.Select onChange={handleCompanyChange} value={selectedCia?.idCb || ""}>
                   <option value="">-- Seleccione Compañía --</option>
-                  {companies.map(cia => (
-                    <option key={cia.cliciaidenti + "_" + cia.cliciaciacodigo} value={cia.cliciaidenti + "_" + cia.cliciaciacodigo}>
+                  {companies.map((cia) => (
+                    <option
+                      key={cia.cliciaidenti + "_" + cia.cliciaciacodigo}
+                      value={cia.cliciaidenti + "_" + cia.cliciaciacodigo}
+                    >
                       {cia.cliciaidenti} - {cia.cliciaciacodigo} - {cia.cliciacianombre}
                     </option>
                   ))}
@@ -285,13 +337,13 @@ export default function Header({ onSkin }) {
 
               <Form.Group className="mb-3">
                 <Form.Label className="fw-bold">Localidad</Form.Label>
-                <Form.Select 
-                  disabled={locations.length === 0} 
-                  value={selectedLoc} 
+                <Form.Select
+                  disabled={locations.length === 0}
+                  value={selectedLoc}
                   onChange={(e) => setSelectedLoc(e.target.value)}
                 >
                   <option value="">-- Seleccione Localidad --</option>
-                  {locations.map(loc => (
+                  {locations.map((loc) => (
                     <option key={loc.loccodigo} value={loc.loccodigo}>
                       {loc.locdescri}
                     </option>

@@ -28,19 +28,21 @@ import ExpandMore from "@mui/icons-material/ExpandMore"
 // Conversor Hexadecimal a RGBA para transparencias
 // --------------------------------------------------
 const hexToRgba = (hex, alpha) => {
-  let r = 0, g = 0, b = 0;
-  if (!hex || !hex.startsWith("#")) return `rgba(25, 108, 135, ${alpha})`; // Fallback color SIAC
+  let r = 0
+  let g = 0
+  let b = 0
+  if (!hex || !hex.startsWith("#")) return `rgba(25, 108, 135, ${alpha})` // Fallback color SIAC
   if (hex.length === 4) {
-    r = parseInt(hex[1] + hex[1], 16);
-    g = parseInt(hex[2] + hex[2], 16);
-    b = parseInt(hex[3] + hex[3], 16);
+    r = parseInt(hex[1] + hex[1], 16)
+    g = parseInt(hex[2] + hex[2], 16)
+    b = parseInt(hex[3] + hex[3], 16)
   } else if (hex.length === 7) {
-    r = parseInt(hex.substring(1, 3), 16);
-    g = parseInt(hex.substring(3, 5), 16);
-    b = parseInt(hex.substring(5, 7), 16);
+    r = parseInt(hex.substring(1, 3), 16)
+    g = parseInt(hex.substring(3, 5), 16)
+    b = parseInt(hex.substring(5, 7), 16)
   }
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
 
 // --------------------------------------------------
 // PaginationActions
@@ -131,7 +133,7 @@ const LargeScreenTable = ({
       sx: {
         minWidth: "100%",
         maxWidth: "100%",
-        maxHeight: "600px", 
+        maxHeight: "600px",
         overflowY: "auto",
         overflowX: "auto",
       },
@@ -141,7 +143,7 @@ const LargeScreenTable = ({
       sx: {
         fontSize: visualConfig.fontSizeHeader,
         fontFamily: visualConfig.fontFamily,
-        color: visualConfig.color, 
+        color: visualConfig.color,
         fontWeight: "bold",
       },
     },
@@ -191,22 +193,22 @@ const LargeScreenTable = ({
         sx={{
           fontFamily: visualConfig.fontFamily, // Aplica tipografía a la paginación
           "& .MuiTablePagination-toolbar": {
-            minHeight: "64px", 
+            minHeight: "64px",
             display: "flex",
-            alignItems: "center", 
-            justifyContent: "center", 
-            gap: 1, 
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 1,
           },
           "& .MuiTablePagination-displayedRows": {
-            margin: "auto 0", 
+            margin: "auto 0",
           },
         }}
         component="div"
-        count={totalPages * perPage} 
+        count={totalPages * perPage}
         rowsPerPage={perPage}
-        page={currentPage - 1} 
+        page={currentPage - 1}
         onPageChange={(_, newPage) => {
-          onPageChange(newPage + 1) 
+          onPageChange(newPage + 1)
         }}
         ActionsComponent={PaginationActions}
         labelDisplayedRows={({ from, to, count }) =>
@@ -251,7 +253,7 @@ const SmallScreenTable = ({
             onClick={refetch}
             sx={{
               bgcolor: visualConfig.rowColor, // Color de fondo dinámico
-              color: visualConfig.color,      // Ícono de color dinámico
+              color: visualConfig.color, // Ícono de color dinámico
               borderRadius: 1,
               p: 1,
             }}
@@ -259,7 +261,7 @@ const SmallScreenTable = ({
             <Refresh fontSize="small" />
           </IconButton>
         </Box>
-        
+
         {isError && (
           <Alert severity="error" sx={{ mb: 2, "& .MuiAlert-icon": { alignItems: "center" }, borderRadius: 1 }}>
             {errorMsgFilterSearch || FilterSearchErrorMsg}
@@ -271,13 +273,21 @@ const SmallScreenTable = ({
           expanded={filtersOpen}
           onChange={() => setFiltersOpen(!filtersOpen)}
           sx={{
-            mb: 2, border: "1px solid", borderColor: "divider", borderRadius: "8px !important", boxShadow: "none",
-            bgcolor: "background.paper", "&:before": { display: "none" },
+            mb: 2,
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: "8px !important",
+            boxShadow: "none",
+            bgcolor: "background.paper",
+            "&:before": { display: "none" },
             "& .MuiAccordionSummary-root": { borderRadius: "8px", bgcolor: (theme) => theme.palette.grey[50] },
             "& .MuiAccordionDetails-root": { bgcolor: (theme) => theme.palette.grey[50] },
           }}
         >
-          <AccordionSummary expandIcon={<ExpandMore />} sx={{ minHeight: "48px", "& .MuiAccordionSummary-content": { margin: "12px 0" } }}>
+          <AccordionSummary
+            expandIcon={<ExpandMore />}
+            sx={{ minHeight: "48px", "& .MuiAccordionSummary-content": { margin: "12px 0" } }}
+          >
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <Typography variant="body2" fontWeight="medium" fontFamily={visualConfig.fontFamily}>
                 {AccordionFilterTilte}
@@ -294,7 +304,12 @@ const SmallScreenTable = ({
                   fullWidth
                   label={`${col.header}`}
                   onChange={(e) => onFilterChange(col.id || col.accessorKey, e.target.value)}
-                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 1, backgroundColor: (theme) => theme.palette.common.white } }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1,
+                      backgroundColor: (theme) => theme.palette.common.white,
+                    },
+                  }}
                 />
               ))}
             </Box>
@@ -309,8 +324,12 @@ const SmallScreenTable = ({
               <Box
                 component="span"
                 sx={{
-                  display: "inline-block", width: 16, height: 16, borderRadius: "50%",
-                  borderTop: "2px solid", borderColor: visualConfig.color, // Color dinámico
+                  display: "inline-block",
+                  width: 16,
+                  height: 16,
+                  borderRadius: "50%",
+                  borderTop: "2px solid",
+                  borderColor: visualConfig.color, // Color dinámico
                   animation: "spin 1s linear infinite",
                   "@keyframes spin": { "0%": { transform: "rotate(0deg)" }, "100%": { transform: "rotate(360deg)" } },
                   mr: 1.5,
@@ -338,7 +357,8 @@ const SmallScreenTable = ({
                     <Box
                       key={col.id || col.accessorKey}
                       sx={{
-                        mb: 1.5, pb: index !== columnsTable.length - 1 ? 1 : 0,
+                        mb: 1.5,
+                        pb: index !== columnsTable.length - 1 ? 1 : 0,
                         borderBottom: index !== columnsTable.length - 1 ? "1px dashed" : "none",
                         borderColor: "divider",
                       }}
@@ -347,8 +367,12 @@ const SmallScreenTable = ({
                       <Typography
                         variant="caption"
                         sx={{
-                          fontWeight: 700, letterSpacing: "0.5px", color: visualConfig.color, // Color dinámico
-                          display: "block", mb: 0.5, textTransform: "uppercase",
+                          fontWeight: 700,
+                          letterSpacing: "0.5px",
+                          color: visualConfig.color, // Color dinámico
+                          display: "block",
+                          mb: 0.5,
+                          textTransform: "uppercase",
                           fontSize: visualConfig.fontSizeHeader,
                           fontFamily: visualConfig.fontFamily,
                         }}
@@ -359,7 +383,9 @@ const SmallScreenTable = ({
                       <Typography
                         variant="body2"
                         sx={{
-                          fontWeight: 400, color: "text.secondary", lineHeight: 1.3,
+                          fontWeight: 400,
+                          color: "text.secondary",
+                          lineHeight: 1.3,
                           fontSize: visualConfig.fontSize,
                           fontFamily: visualConfig.fontFamily,
                         }}
@@ -383,11 +409,18 @@ const SmallScreenTable = ({
               sx={{
                 fontFamily: visualConfig.fontFamily,
                 "& .MuiTablePagination-toolbar": {
-                  minHeight: { xs: "48px", sm: "64px" }, display: "flex", alignItems: "center",
-                  justifyContent: "space-between", flexWrap: "wrap", gap: 1, padding: { xs: "4px", sm: "8px" },
+                  minHeight: { xs: "48px", sm: "64px" },
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 1,
+                  padding: { xs: "4px", sm: "8px" },
                 },
                 "& .MuiTablePagination-displayedRows": {
-                  margin: "auto 0", fontSize: { xs: "0.75rem", sm: "0.875rem" }, whiteSpace: "nowrap",
+                  margin: "auto 0",
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  whiteSpace: "nowrap",
                 },
                 "& .MuiInputBase-root": { marginRight: { xs: 0, sm: 2 } },
                 "@media (max-width: 480px)": {
@@ -399,9 +432,13 @@ const SmallScreenTable = ({
               count={totalPages * perPage}
               rowsPerPage={perPage}
               page={currentPage - 1}
-              onPageChange={(_, newPage) => { onPageChange(newPage + 1) }}
+              onPageChange={(_, newPage) => {
+                onPageChange(newPage + 1)
+              }}
               ActionsComponent={PaginationActions}
-              labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count} | Página ${currentPage} de ${Math.ceil((totalPages * perPage) / perPage)}`}
+              labelDisplayedRows={({ from, to, count }) =>
+                `${from}-${to} de ${count} | Página ${currentPage} de ${Math.ceil((totalPages * perPage) / perPage)}`
+              }
             />
           </Box>
         )}
@@ -430,18 +467,18 @@ const CustomTable = (props) => {
 // CustomReadableTableServer
 // --------------------------------------------------
 const CustomReadableTableServer = ({
-  endpoint = "", 
-  endpointJson = {}, 
-  errorMsgFilterSearch = "Error en cargar datos", 
-  queryKeyModal = "", 
-  perPage = 10, 
-  columnsTable = [], 
+  endpoint = "",
+  endpointJson = {},
+  errorMsgFilterSearch = "Error en cargar datos",
+  queryKeyModal = "",
+  perPage = 10,
+  columnsTable = [],
 }) => {
-  const [filters, setFilters] = useState({}) 
-  const [page, setPage] = useState(1) 
+  const [filters, setFilters] = useState({})
+  const [page, setPage] = useState(1)
   const { data, isLoading, isError, refetch, isFetching } = useGetData(page, filters)
   const [totalPages, setTotalPages] = useState(1)
-  const timeoutRef = useRef(null) 
+  const timeoutRef = useRef(null)
 
   // =========================================================================
   // EXTRACCIÓN DINÁMICA DE ESTILOS (Usa el caché automático de getInfoHome)
@@ -463,7 +500,7 @@ const CustomReadableTableServer = ({
   // Estructuramos la configuración visual lista para ser consumida
   const visualConfig = {
     color: homeInfo?.ciacolor || "#196C87", // Color primario
-    rowColor: hexToRgba(homeInfo?.ciacolor || "#A4EEB3", 0.10), // Fila Par: 10% de opacidad del color primario
+    rowColor: hexToRgba(homeInfo?.ciacolor || "#A4EEB3", 0.1), // Fila Par: 10% de opacidad del color primario
     hoverColor: hexToRgba(homeInfo?.ciacolor || "#196C87", 0.18), // Fila Hover: 18% de opacidad
     fontFamily: homeInfo?.ciatipoletra || "Arial",
     fontSize: homeInfo?.ciatamanioletra ? `${homeInfo.ciatamanioletra}px` : "0.875rem",
@@ -505,7 +542,7 @@ const CustomReadableTableServer = ({
             ...endpointJson,
             page: pageNumber,
             perPage,
-            filters, 
+            filters,
           }),
         })
         const result = await response.json()
@@ -529,7 +566,7 @@ const CustomReadableTableServer = ({
         totalPages={totalPages}
         currentPage={page}
         onPageChange={setPage}
-        onFilterChange={handleFilterChange} 
+        onFilterChange={handleFilterChange}
         errorMsgFilterSearch={errorMsgFilterSearch}
         refetch={refetch}
         visualConfig={visualConfig} // <--- Enviamos la configuración inyectada

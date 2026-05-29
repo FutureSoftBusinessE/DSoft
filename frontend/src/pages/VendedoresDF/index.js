@@ -59,7 +59,15 @@ const VendedoresDF = () => {
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", margin: "0 30px 30px 30px", fontSize: "25px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            margin: "0 30px 30px 30px",
+            fontSize: "25px",
+          }}
+        >
           <b>Mantenimiento de Vendedores</b>
         </div>
 
@@ -91,8 +99,8 @@ const VendedoresDF = () => {
             rowActionsWidthTable={120}
             rowActions={(row) => {
               // Lógica de acciones de fila condicionada por barraAcciones
-              const editarAction = selectedMenuInfo?.data?.barraAcciones?.find(a => a.acccaption === "EDITAR")
-              const eliminarAction = selectedMenuInfo?.data?.barraAcciones?.find(a => a.acccaption === "ELIMINAR")
+              const editarAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "EDITAR")
+              const eliminarAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "ELIMINAR")
 
               const actions = []
               if (editarAction) {
@@ -122,7 +130,7 @@ const VendedoresDF = () => {
               const acciones = selectedMenuInfo?.data?.barraAcciones || []
               const toolbarActions = []
 
-              const crearAction = acciones.find(a => a.acccaption === "CREAR")
+              const crearAction = acciones.find((a) => a.acccaption === "CREAR")
               if (crearAction) {
                 toolbarActions.push({
                   label: crearAction.acccaption,
@@ -132,7 +140,7 @@ const VendedoresDF = () => {
                 })
               }
 
-              const exportarAction = acciones.find(a => a.acccaption === "EXPORTAR")
+              const exportarAction = acciones.find((a) => a.acccaption === "EXPORTAR")
               if (exportarAction) {
                 toolbarActions.push({
                   type: "dropdown",
@@ -160,12 +168,15 @@ const VendedoresDF = () => {
                 })
               }
 
-              const importarAction = acciones.find(a => a.acccaption === "IMPORTAR")
+              const importarAction = acciones.find((a) => a.acccaption === "IMPORTAR")
               if (importarAction) {
                 toolbarActions.push({
                   label: importarAction.acccaption,
                   key: "importBtn",
-                  icon: getIconComponent(importarAction.accnameicono || "UploadFile", importarAction.acctipoico || "MaterialIcons"),
+                  icon: getIconComponent(
+                    importarAction.accnameicono || "UploadFile",
+                    importarAction.acctipoico || "MaterialIcons",
+                  ),
                   onClick: () => setOpenModal(true),
                 })
               }
@@ -190,4 +201,4 @@ const VendedoresDF = () => {
   )
 }
 
-export default VendedoresDF;
+export default VendedoresDF

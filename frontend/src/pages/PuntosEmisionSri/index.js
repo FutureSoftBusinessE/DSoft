@@ -60,7 +60,16 @@ const PuntosEmisionSri = () => {
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", margin: "0 30px 30px 30px", fontSize: "25px", textAlign: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            margin: "0 30px 30px 30px",
+            fontSize: "25px",
+            textAlign: "center",
+          }}
+        >
           <b>Mantenimiento de Puntos de Emisión SRI (Cajas)</b>
         </div>
 
@@ -79,7 +88,7 @@ const PuntosEmisionSri = () => {
               sripreauto: { required: true },
               sriautnumero: { required: true },
               sriserie01: { required: true },
-              sriserie02: { required: true }
+              sriserie02: { required: true },
             }}
             validateEndpoint="/PuntosEmisionSri/validarPuntosEmisionSriIMP"
             insertEndpoint="/PuntosEmisionSri/insertarPuntosEmisionSriIMP"
@@ -93,8 +102,8 @@ const PuntosEmisionSri = () => {
             perPage={10}
             rowActionsWidthTable={120}
             rowActions={(row) => {
-              const editarAction = selectedMenuInfo?.data?.barraAcciones?.find(a => a.acccaption === "EDITAR")
-              const eliminarAction = selectedMenuInfo?.data?.barraAcciones?.find(a => a.acccaption === "ELIMINAR")
+              const editarAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "EDITAR")
+              const eliminarAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "ELIMINAR")
 
               const actions = []
               if (editarAction) {
@@ -124,7 +133,7 @@ const PuntosEmisionSri = () => {
               const acciones = selectedMenuInfo?.data?.barraAcciones || []
               const toolbarActions = []
 
-              const crearAction = acciones.find(a => a.acccaption === "CREAR")
+              const crearAction = acciones.find((a) => a.acccaption === "CREAR")
               if (crearAction) {
                 toolbarActions.push({
                   label: crearAction.acccaption,
@@ -134,7 +143,7 @@ const PuntosEmisionSri = () => {
                 })
               }
 
-              const exportarAction = acciones.find(a => a.acccaption === "EXPORTAR")
+              const exportarAction = acciones.find((a) => a.acccaption === "EXPORTAR")
               if (exportarAction) {
                 toolbarActions.push({
                   type: "dropdown",
@@ -162,12 +171,15 @@ const PuntosEmisionSri = () => {
                 })
               }
 
-              const importarAction = acciones.find(a => a.acccaption === "IMPORTAR")
+              const importarAction = acciones.find((a) => a.acccaption === "IMPORTAR")
               if (importarAction) {
                 toolbarActions.push({
                   label: importarAction.acccaption,
                   key: "importBtn",
-                  icon: getIconComponent(importarAction.accnameicono || "UploadFile", importarAction.acctipoico || "MaterialIcons"),
+                  icon: getIconComponent(
+                    importarAction.accnameicono || "UploadFile",
+                    importarAction.acctipoico || "MaterialIcons",
+                  ),
                   onClick: () => setOpenModal(true),
                 })
               }
@@ -186,19 +198,19 @@ const PuntosEmisionSri = () => {
                   if (status === "A") return "ACTIVO"
                   if (status === "I") return "INACTIVO"
                   return status
-                }
+                },
               },
-              { 
-                accessorKey: "sripreauto", 
-                header: "Tipo", 
+              {
+                accessorKey: "sripreauto",
+                header: "Tipo",
                 size: 130,
                 Cell: ({ cell }) => {
-                  const val = cell.getValue();
-                  if (val === "E") return "ELECTRÓNICA";
-                  if (val === "P") return "PREIMPRESA";
-                  if (val === "A") return "AUTOIMPRESORES";
-                  return val || "-";
-                }
+                  const val = cell.getValue()
+                  if (val === "E") return "ELECTRÓNICA"
+                  if (val === "P") return "PREIMPRESA"
+                  if (val === "A") return "AUTOIMPRESORES"
+                  return val || "-"
+                },
               },
               { accessorKey: "sriautnumero", header: "Nº Autorización", size: 150 },
               { accessorKey: "sriserie01", header: "Establecimiento", size: 130 },
@@ -218,4 +230,4 @@ const PuntosEmisionSri = () => {
   )
 }
 
-export default PuntosEmisionSri;
+export default PuntosEmisionSri

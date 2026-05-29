@@ -37,7 +37,7 @@ const FormularioPlanServicio = forwardRef(
     ref,
   ) => {
     // Inicializamos con "01" como valor por defecto para el inventario de servicios
-    const [invcodigo, setInvcodigo] = useState("01") 
+    const [invcodigo, setInvcodigo] = useState("01")
     const [artcodigo, setArtcodigo] = useState("")
     const [artdescri, setArtdescri] = useState("")
     const [artprecventa1, setArtprecventa1] = useState("")

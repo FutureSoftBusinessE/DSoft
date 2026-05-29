@@ -8,8 +8,16 @@ import PermIdentityIcon from "@mui/icons-material/PermIdentity"
 import dayjs from "dayjs"
 import futuresoftIconNoBackground from "../assets/img/logo-sm-no-background.png"
 import {
-  Modal, Box, Backdrop, Typography, Stack, TextField, Button,
-  CircularProgress, InputAdornment, IconButton,
+  Modal,
+  Box,
+  Backdrop,
+  Typography,
+  Stack,
+  TextField,
+  Button,
+  CircularProgress,
+  InputAdornment,
+  IconButton,
 } from "@mui/material"
 import { Password, Visibility, VisibilityOff } from "@mui/icons-material"
 import useCleanSession from "../hooks/cleanSession"
@@ -18,14 +26,14 @@ import useCleanSession from "../hooks/cleanSession"
 // Función Maestra: Inyecta estilos globales según la Base de Datos
 // ----------------------------------------------------------------------------------
 const aplicarPerfilVisual = (color, font, size) => {
-  let styleTag = document.getElementById("siac-dynamic-profile");
+  let styleTag = document.getElementById("siac-dynamic-profile")
   if (!styleTag) {
-    styleTag = document.createElement("style");
-    styleTag.id = "siac-dynamic-profile";
-    document.head.appendChild(styleTag);
+    styleTag = document.createElement("style")
+    styleTag.id = "siac-dynamic-profile"
+    document.head.appendChild(styleTag)
   }
 
-  let css = "";
+  let css = ""
   // 1. Color Corporativo
   if (color) {
     css += `
@@ -34,25 +42,25 @@ const aplicarPerfilVisual = (color, font, size) => {
       .bg-primary, .btn-primary { background-color: ${color} !important; border-color: ${color} !important; }
       .btn-primary:hover { opacity: 0.9 !important; background-color: ${color} !important; border-color: ${color} !important; }
       .sidebar-logo { color: ${color} !important; }
-    `;
+    `
   }
   // 2. Tipo de Letra
   if (font) {
-    css += ` * { font-family: '${font}', sans-serif !important; } `;
+    css += ` * { font-family: '${font}', sans-serif !important; } `
   }
   // 3. Tamaño de Letra
   if (size) {
-    const baseSize = parseInt(size);
+    const baseSize = parseInt(size)
     css += `
       body, p, span, a, div, .nav-label, .nav-sub-link, button, input { font-size: ${baseSize}px !important; }
       h1 { font-size: ${baseSize + 12}px !important; }
       h2 { font-size: ${baseSize + 8}px !important; }
       h3 { font-size: ${baseSize + 4}px !important; }
       .sidebar-logo { font-size: ${baseSize + 6}px !important; }
-    `;
+    `
   }
-  styleTag.innerHTML = css;
-};
+  styleTag.innerHTML = css
+}
 
 // ----------------------------------------------------------------------------------
 // CustomPasswordInput y CambioClaveComponent (Sin Cambios)
@@ -63,8 +71,12 @@ const CustomPasswordInput = ({ label, value, onChange, disabled, ...props }) => 
 
   return (
     <TextField
-      fullWidth label={label} type={showPassword ? "text" : "password"}
-      value={value} onChange={onChange} disabled={disabled}
+      fullWidth
+      label={label}
+      type={showPassword ? "text" : "password"}
+      value={value}
+      onChange={onChange}
+      disabled={disabled}
       InputProps={{
         endAdornment: (
           <InputAdornment position="end">
@@ -74,7 +86,7 @@ const CustomPasswordInput = ({ label, value, onChange, disabled, ...props }) => 
           </InputAdornment>
         ),
       }}
-      {...props} 
+      {...props}
     />
   )
 }
@@ -91,7 +103,8 @@ const CambioClaveComponent = ({ user }) => {
     return useMutation({
       mutationFn: async (data) => {
         const options = {
-          method: "POST", body: JSON.stringify(data),
+          method: "POST",
+          body: JSON.stringify(data),
           headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
         }
         try {
@@ -109,30 +122,80 @@ const CambioClaveComponent = ({ user }) => {
     if (newPassword !== confirmPassword) return alert("Las nuevas contraseñas no coinciden")
     try {
       await saveCambioClave({
-        usrcodigo: user.username, usrclave: currentPassword,
-        nuevaClave: newPassword, confirmacionClave: confirmPassword,
+        usrcodigo: user.username,
+        usrclave: currentPassword,
+        nuevaClave: newPassword,
+        confirmacionClave: confirmPassword,
       })
       cleanSession()
       alert("Credenciales actualizadas con éxito. Vuelva a ingresar con las credenciales nuevas")
-    } catch (err) { alert(err) }
+    } catch (err) {
+      alert(err)
+    }
   }
   return (
-    <Modal open={true} disableEscapeKeyDown components={{ Backdrop }}
-      componentsProps={{ backdrop: { sx: { backgroundColor: "rgba(0, 0, 0, 0.9)", backdropFilter: "blur(5px)", zIndex: 1300 } } }}
+    <Modal
+      open={true}
+      disableEscapeKeyDown
+      components={{ Backdrop }}
+      componentsProps={{
+        backdrop: { sx: { backgroundColor: "rgba(0, 0, 0, 0.9)", backdropFilter: "blur(5px)", zIndex: 1300 } },
+      }}
       sx={{ display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1310 }}
     >
-      <Box sx={{ backgroundColor: "background.paper", borderRadius: 2, p: 4, width: "100%", maxWidth: 400, position: "relative", zIndex: 1320, outline: "none" }}>
-        <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>🔒 Cambio de Clave Obligatorio</Typography>
+      <Box
+        sx={{
+          backgroundColor: "background.paper",
+          borderRadius: 2,
+          p: 4,
+          width: "100%",
+          maxWidth: 400,
+          position: "relative",
+          zIndex: 1320,
+          outline: "none",
+        }}
+      >
+        <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
+          🔒 Cambio de Clave Obligatorio
+        </Typography>
         <Typography variant="subtitle1" sx={{ mb: 2 }}>
-          Usuario: <strong>{user?.username} - {user?.usrnombre}</strong>
+          Usuario:{" "}
+          <strong>
+            {user?.username} - {user?.usrnombre}
+          </strong>
         </Typography>
         <form onSubmit={handleSubmit}>
           <Stack spacing={3}>
-            <CustomPasswordInput label="Contraseña Actual" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} disabled={isSavingCambioClave} required />
-            <CustomPasswordInput label="Nueva Contraseña" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} disabled={isSavingCambioClave} required />
-            <CustomPasswordInput label="Confirmar Nueva Contraseña" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={isSavingCambioClave} required />
-            <Button type="submit" variant="contained" size="large" disabled={isSavingCambioClave} fullWidth
-              sx={{ mt: 2, backgroundColor: "var(--bs-primary, #075e54)", color: "white" }} disableElevation >
+            <CustomPasswordInput
+              label="Contraseña Actual"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              disabled={isSavingCambioClave}
+              required
+            />
+            <CustomPasswordInput
+              label="Nueva Contraseña"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              disabled={isSavingCambioClave}
+              required
+            />
+            <CustomPasswordInput
+              label="Confirmar Nueva Contraseña"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={isSavingCambioClave}
+              required
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              disabled={isSavingCambioClave}
+              fullWidth
+              sx={{ mt: 2, backgroundColor: "var(--bs-primary, #075e54)", color: "white" }}
+              disableElevation
+            >
               {isSavingCambioClave ? <CircularProgress size={24} color="inherit" /> : "Cambiar Contraseña"}
             </Button>
           </Stack>
@@ -147,7 +210,7 @@ const CambioClaveComponent = ({ user }) => {
 // ----------------------------------------------------------------------------------
 export default function Main() {
   const location = useLocation()
-  
+
   React.useEffect(() => {
     document.body.classList.add("sidebar-show")
   }, [])
@@ -180,9 +243,9 @@ export default function Main() {
         // Guardar valores en localstorage para acceso global (ej. el Sidebar)
         localStorage.setItem("ciaalias", result.ciaalias)
         localStorage.setItem("ciatipomenu", result.ciatipomenu || 0)
-        
+
         // Ejecutar los estilos dinámicos inmediatamente al recibir los datos
-        aplicarPerfilVisual(result.ciacolor, result.ciatipoletra, result.ciatamanioletra);
+        aplicarPerfilVisual(result.ciacolor, result.ciatipoletra, result.ciatamanioletra)
 
         return result
       },
@@ -203,25 +266,52 @@ export default function Main() {
               <div
                 className="background-watermark"
                 style={{
-                  position: "absolute", top: 0, left: 0, width: "100%", height: "100%",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
                   backgroundImage: `url(data:image/jpeg;base64,${dataHomeInfo.ciaselloagua})`,
-                  backgroundPosition: "center", backgroundSize: "contain",
-                  backgroundRepeat: "no-repeat", opacity: 0.08, filter: "grayscale(20%)", zIndex: 0,
+                  backgroundPosition: "center",
+                  backgroundSize: "contain",
+                  backgroundRepeat: "no-repeat",
+                  opacity: 0.08,
+                  filter: "grayscale(20%)",
+                  zIndex: 0,
                 }}
               />
 
-              <div className="d-flex flex-column justify-content-center align-items-center" style={{ height: "100%", position: "relative", zIndex: 1 }}>
+              <div
+                className="d-flex flex-column justify-content-center align-items-center"
+                style={{ height: "100%", position: "relative", zIndex: 1 }}
+              >
                 <div className="text-center mb-4">
-                  <img src={futuresoftIconNoBackground} style={{ width: "auto", maxWidth: "60%", maxHeight: "180px", filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.1))" }} />
+                  <img
+                    src={futuresoftIconNoBackground}
+                    style={{
+                      width: "auto",
+                      maxWidth: "60%",
+                      maxHeight: "180px",
+                      filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.1))",
+                    }}
+                  />
                 </div>
 
                 <h1 className="fw-bold mb-2 text-primary">FUTURESOFT BUSINESS SERVICES</h1>
                 <hr />
 
-                <div className="login-status-panel p-4 bg-white shadow rounded-lg" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.05)", minWidth: "350px" }}>
+                <div
+                  className="login-status-panel p-4 bg-white shadow rounded-lg"
+                  style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.05)", minWidth: "350px" }}
+                >
                   <div className="d-flex align-items-center mb-3">
-                    <div className="user-avatar bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: "45px", height: "45px" }}>
-                      <i className="bi bi-person text-primary fs-5"><PermIdentityIcon className="text-primary" /></i>
+                    <div
+                      className="user-avatar bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
+                      style={{ width: "45px", height: "45px" }}
+                    >
+                      <i className="bi bi-person text-primary fs-5">
+                        <PermIdentityIcon className="text-primary" />
+                      </i>
                     </div>
                     <div>
                       <p className="mb-0 text-secondary small">Bienvenido(a)</p>
@@ -238,9 +328,23 @@ export default function Main() {
                           <p className="mb-0 fw-semibold">{localStorage.getItem("cliciagrupo")}</p>
                         </div>
                       </div>
-                      <div className="circular-icon bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style={{ width: "45px", height: "45px" }}>
-                        <div className="d-flex align-items-center justify-content-center" style={{ width: "100%", height: "100%" }}>
-                          <img src={`data:image/jpeg;base64,${dataHomeInfo?.cialogo}`} style={{ width: "100%", height: "100%", objectFit: "contain", filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.1))" }} />
+                      <div
+                        className="circular-icon bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                        style={{ width: "45px", height: "45px" }}
+                      >
+                        <div
+                          className="d-flex align-items-center justify-content-center"
+                          style={{ width: "100%", height: "100%" }}
+                        >
+                          <img
+                            src={`data:image/jpeg;base64,${dataHomeInfo?.cialogo}`}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "contain",
+                              filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.1))",
+                            }}
+                          />
                         </div>
                       </div>
                     </div>
@@ -270,7 +374,9 @@ export default function Main() {
           </div>
 
           {dataHomeInfo?.passwordChangeNeeded && (
-            <CambioClaveComponent user={{ usrnombre: dataHomeInfo?.usrnombre, username: localStorage.getItem("cliciausu") }} />
+            <CambioClaveComponent
+              user={{ usrnombre: dataHomeInfo?.usrnombre, username: localStorage.getItem("cliciausu") }}
+            />
           )}
         </>
       )}

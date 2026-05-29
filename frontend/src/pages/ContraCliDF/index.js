@@ -60,7 +60,16 @@ const ContraCliDF = () => {
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", margin: "0 30px 30px 30px", fontSize: "25px", textAlign: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            margin: "0 30px 30px 30px",
+            fontSize: "25px",
+            textAlign: "center",
+          }}
+        >
           <b>Mantenimiento de Contratos de Clientes</b>
         </div>
 
@@ -93,8 +102,10 @@ const ContraCliDF = () => {
             rowActionsWidthTable={120}
             rowActions={(row) => {
               // Lógica de acciones de fila condicionada por barraAcciones configurada en base de datos
-              const editarAction = selectedMenuInfo?.data?.barraAcciones?.find(a => a.acccaption === "EDITAR")
-              const eliminarAction = selectedMenuInfo?.data?.barraAcciones?.find(a => a.acccaption === "ELIMINAR" || a.acccaption === "ANULAR")
+              const editarAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "EDITAR")
+              const eliminarAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (a) => a.acccaption === "ELIMINAR" || a.acccaption === "ANULAR",
+              )
 
               const actions = []
               if (editarAction) {
@@ -114,8 +125,8 @@ const ContraCliDF = () => {
                   onClick: async (row) => {
                     // Validamos visualmente antes de mandar a anular
                     if (row.original.constatus === "N") {
-                      api.showWarning("El contrato ya se encuentra anulado.");
-                      return;
+                      api.showWarning("El contrato ya se encuentra anulado.")
+                      return
                     }
                     try {
                       await SaveEliminacionContrato({ concodcontrato: row.original.concodcontrato })
@@ -130,7 +141,7 @@ const ContraCliDF = () => {
               const acciones = selectedMenuInfo?.data?.barraAcciones || []
               const toolbarActions = []
 
-              const crearAction = acciones.find(a => a.acccaption === "CREAR")
+              const crearAction = acciones.find((a) => a.acccaption === "CREAR")
               if (crearAction) {
                 toolbarActions.push({
                   label: crearAction.acccaption,
@@ -140,7 +151,7 @@ const ContraCliDF = () => {
                 })
               }
 
-              const exportarAction = acciones.find(a => a.acccaption === "EXPORTAR")
+              const exportarAction = acciones.find((a) => a.acccaption === "EXPORTAR")
               if (exportarAction) {
                 toolbarActions.push({
                   type: "dropdown",
@@ -168,12 +179,15 @@ const ContraCliDF = () => {
                 })
               }
 
-              const importarAction = acciones.find(a => a.acccaption === "IMPORTAR")
+              const importarAction = acciones.find((a) => a.acccaption === "IMPORTAR")
               if (importarAction) {
                 toolbarActions.push({
                   label: importarAction.acccaption,
                   key: "importBtn",
-                  icon: getIconComponent(importarAction.accnameicono || "UploadFile", importarAction.acctipoico || "MaterialIcons"),
+                  icon: getIconComponent(
+                    importarAction.accnameicono || "UploadFile",
+                    importarAction.acctipoico || "MaterialIcons",
+                  ),
                   onClick: () => setOpenModal(true),
                 })
               }
@@ -188,7 +202,7 @@ const ContraCliDF = () => {
                 accessorKey: "convalor",
                 header: "Valor",
                 size: 100,
-                Cell: ({ cell }) => <span>${Number(cell.getValue() || 0).toFixed(2)}</span>
+                Cell: ({ cell }) => <span>${Number(cell.getValue() || 0).toFixed(2)}</span>,
               },
               { accessorKey: "confecinicio", header: "F. Inicio", size: 120 },
               { accessorKey: "confecfin", header: "F. Fin", size: 120 },
@@ -202,7 +216,7 @@ const ContraCliDF = () => {
                   if (status === "I") return "INACTIVO"
                   if (status === "N") return "ANULADO"
                   return status
-                }
+                },
               },
             ]}
           />
@@ -212,4 +226,4 @@ const ContraCliDF = () => {
   )
 }
 
-export default ContraCliDF;
+export default ContraCliDF

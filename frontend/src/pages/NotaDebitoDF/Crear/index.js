@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query"
 import { ThemeProvider, styled, createTheme } from "@mui/material/styles"
 import Swal from "sweetalert2"
 import {
-  CircularProgress,
   Box,
   InputLabel,
   Typography,
@@ -39,7 +38,7 @@ import dayjs from "dayjs"
 import BackIcon from "../../../components/BackIcon"
 import DeleteIcon from "@mui/icons-material/Delete"
 import AddIcon from "@mui/icons-material/Add"
-import { useNavigate, useLocation } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 
 const StyledRoot = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -62,17 +61,18 @@ const ContainerCabecera = styled(Box)(({ theme }) => ({
   gridTemplateColumns: "repeat(12, 1fr)",
   gridTemplateRows: "auto auto",
   gridTemplateAreas: `
-    "Codigo Codigo Codigo Codigo FormaPago FormaPago FormaPago FormaPago Vendedor Vendedor Vendedor Vendedor"
-    "FechaE FechaE FechaV FechaV Observacion Observacion Observacion Observacion Observacion Observacion Observacion Observacion"
+    "Codigo Codigo Codigo Caja Caja Caja FormaPago FormaPago FormaPago Vendedor Vendedor Vendedor"
+    "FechaE FechaE FechaE FechaV FechaV FechaV Observacion Observacion Observacion Observacion Observacion Observacion"
   `,
   gap: "8px",
   alignItems: "center",
   [theme.breakpoints.down("sm")]: {
     gridTemplateColumns: "repeat(12, 1fr)",
     gridTemplateAreas: `
-      "Codigo Codigo Codigo Codigo Codigo Codigo FormaPago FormaPago FormaPago FormaPago FormaPago FormaPago"
-      "Vendedor Vendedor Vendedor Vendedor Vendedor Vendedor Observacion Observacion Observacion Observacion Observacion Observacion"
+      "Codigo Codigo Codigo Codigo Codigo Codigo Caja Caja Caja Caja Caja Caja"
+      "FormaPago FormaPago FormaPago FormaPago FormaPago FormaPago Vendedor Vendedor Vendedor Vendedor Vendedor Vendedor"
       "FechaE FechaE FechaE FechaE FechaE FechaE FechaV FechaV FechaV FechaV FechaV FechaV"
+      "Observacion Observacion Observacion Observacion Observacion Observacion Observacion Observacion Observacion Observacion Observacion Observacion"
     `,
   },
 }))
@@ -80,9 +80,9 @@ const ContainerCabecera = styled(Box)(({ theme }) => ({
 const ContainerCliente = styled(Box)(({ theme }) => ({
   display: "grid",
   gridTemplateColumns: "repeat(12, 1fr)",
-  gridTemplateRows: "auto",
+  gridTemplateRows: "auto auto",
   gridTemplateAreas: `
-    "Cliente Cliente Cliente Cliente Cliente Cliente Cliente Cliente Cliente Cliente Cliente Cliente"
+    "Factura Factura Factura Factura Cliente Cliente Cliente Cliente Cliente Cliente Cliente Cliente"
     "Direccion Direccion Direccion Direccion Telefono Telefono Telefono Telefono Id Id Id Id"
   `,
   gap: "8px",
@@ -90,6 +90,7 @@ const ContainerCliente = styled(Box)(({ theme }) => ({
   [theme.breakpoints.down("sm")]: {
     gridTemplateColumns: "repeat(12, 1fr)",
     gridTemplateAreas: `
+      "Factura Factura Factura Factura Factura Factura Factura Factura Factura Factura Factura Factura"
       "Cliente Cliente Cliente Cliente Cliente Cliente Cliente Cliente Cliente Cliente Cliente Cliente"
       "Direccion Direccion Direccion Direccion Direccion Direccion Direccion Direccion Direccion Direccion Direccion "
       "Telefono  Telefono Telefono Telefono Telefono Telefono Id Id Id Id Id Id"
@@ -97,6 +98,8 @@ const ContainerCliente = styled(Box)(({ theme }) => ({
   },
 }))
 
+const Factura = styled(Box)({ gridArea: "Factura" })
+const Caja = styled(Box)({ gridArea: "Caja" })
 const Cliente = styled(Box)({ gridArea: "Cliente" })
 const Direccion = styled(Box)({ gridArea: "Direccion" })
 const Telefono = styled(Box)({ gridArea: "Telefono" })
@@ -108,110 +111,102 @@ const FormaPago = styled(Box)({ gridArea: "FormaPago" })
 const Vendedor = styled(Box)({ gridArea: "Vendedor" })
 const Observacion = styled(Box)({ gridArea: "Observacion" })
 
-// --- HOOKS DE CARGA DE DATOS ---
-function useGetProformaDF(pednumped) {
+// --- FUNCIÓN EXTRACTORA UNIVERSAL ---
+const extractArrayData = (res) => {
+  if (Array.isArray(res)) return res
+  if (res && Array.isArray(res.data)) return res.data
+  if (res && res.data && Array.isArray(res.data.data)) return res.data.data
+  return []
+}
+
+// --- FUNCIÓN PARA MAPEAR CÓDIGO SRI AL PORCENTAJE DE IVA MATEMÁTICO ---
+const obtenerPorcentajeIva = (codigoSri) => {
+  const cod = String(codigoSri).trim()
+  switch (cod) {
+    case "0":
+      return 0
+    case "2":
+      return 12
+    case "3":
+      return 14
+    case "4":
+      return 15
+    case "5":
+      return 5
+    case "6":
+      return 0 // No objeto
+    case "7":
+      return 0 // Exento
+    case "8":
+      return 0 // IVA Diferenciado
+    case "10":
+      return 13
+    default:
+      return 0
+  }
+}
+
+// --- HOOKS DE CARGA NATIVOS ---
+function useGetCajas() {
   return useQuery({
-    queryKey: ["proformaEditarDF", pednumped],
+    queryKey: ["listaCajasND"],
     queryFn: async () => {
-      const response = await fetchwrapper(`/FacturaDesdeArticulosDF/getProforma/${pednumped}`)
-      const data = await response.json()
-      if (!data.success) {
-        throw new Error(data.message || "Error al cargar documento")
+      try {
+        const response = await fetchwrapper("/NotaDebitoDF/getCajas", { method: "GET" })
+        const res = await response.json()
+        return extractArrayData(res)
+      } catch (error) {
+        return []
       }
-      return data.data
     },
     refetchOnWindowFocus: false,
-    enabled: !!pednumped,
   })
 }
 
-function useGetInfoCliente(clicodigo) {
+function useGetCodigoTemporalND(cjacodigo) {
   return useQuery({
-    queryKey: ["FacturacionClienteInfoDF", clicodigo],
+    queryKey: ["CodigoTemporalND", cjacodigo],
     queryFn: async () => {
-      const options = {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cliente: clicodigo }),
+      try {
+        const response = await fetchwrapper(`/NotaDebitoDF/generarCodigoTemporal/${cjacodigo}`, { method: "GET" })
+        const data = await response.json()
+        if (!data.success) throw new Error(data.message)
+        return data.data?.data || data.data || ""
+      } catch (error) {
+        console.log(error)
+        throw error
       }
-      const response = await fetchwrapper(`/FacturaDesdeArticulosDF/getInfoCliente`, options)
-      const data = await response.json()
-      return data.data
     },
+    enabled: !!cjacodigo,
     refetchOnWindowFocus: false,
-    enabled: false,
+    retry: false,
   })
 }
 
 // --- COMPONENTE DE BÚSQUEDA EN LA GRILLA ---
-const ComboArticuloRow = ({ index, row, productosAgregados, setProductosAgregados }) => {
-  const [inputValue, setInputValue] = useState("")
-  const [options, setOptions] = useState(row.artcodigo ? [row] : [])
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    let active = true
-    if (!inputValue || inputValue.trim() === "") {
-      setOptions(row.artcodigo ? [row] : [])
-      return undefined
-    }
-
-    const fetchProductos = async () => {
-      setLoading(true)
-      try {
-        const response = await fetchwrapper(`/FacturaDesdeArticulosDF/getSpecificArticulo/${inputValue}`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        })
-        const res = await response.json()
-
-        if (active && res.data && res.data.length > 0) {
-          setOptions(res.data)
-        } else {
-          if (active) setOptions([])
-        }
-      } catch (err) {
-        console.error(err)
-        if (active) setOptions([])
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-
-    const timer = setTimeout(() => fetchProductos(), 600)
-    return () => {
-      active = false
-      clearTimeout(timer)
-    }
-  }, [inputValue, row])
+const ComboServicioRow = ({ index, row, serviciosAgregados, setServiciosAgregados, listaServicios }) => {
+  const safeOptions = Array.isArray(listaServicios) ? listaServicios : []
 
   return (
     <Autocomplete
-      options={options}
-      value={row.artcodigo ? row : null}
-      getOptionLabel={(opt) => `${opt.artcodigo || ""} - ${opt.artdescri || ""}`}
-      filterOptions={(x) => x}
-      loading={loading}
-      onInputChange={(e, val) => setInputValue(val)}
+      options={safeOptions}
+      getOptionLabel={(opt) => (opt && opt.sercodigo ? `${opt.sercodigo} - ${opt.serdescri}` : "")}
+      value={row?.sercodigo ? row : null}
+      isOptionEqualToValue={(option, value) => option?.sercodigo === value?.sercodigo}
       onChange={(e, val) => {
-        const newArr = [...productosAgregados]
+        const newArr = [...serviciosAgregados]
         if (val) {
-          const aplicaIva =
-            val.artapliiva === "S" ||
-            val.artapliiva === "SI" ||
-            val.artapliiva === 1 ||
-            val.artapliiva === true ||
-            val.artapliiva === "-1" ||
-            val.artapliiva === -1
-          const porcIva = aplicaIva ? Number(val.sysiva || 0) : 0
+          // REGLA APLICADA: Calculamos el IVA real según el código del SRI
+          const porcentajeRealIva = obtenerPorcentajeIva(val?.seriva)
 
           newArr[index] = {
             ...val,
             isNew: false,
-            cantidadPedido: row.cantidadPedido || 1,
-            precioUnitario: Number(val.artprecventa1 || val.precioUnitario || 0),
-            descuentoPorcentaje: 0,
-            ivaPorcentaje: porcIva,
+            cantidadPedido: row?.cantidadPedido || 1,
+            precioUnitario: Number(val?.precio1 || 0),
+            descuentoPorcentaje: Number(row?.descuentoPorcentaje || 0),
+            ivaPorcentaje: porcentajeRealIva, // Aquí se aplicará el 15% matemático
+            codigoIvaSri: val?.seriva || "0", // Guardamos el código original (Ej: '4')
           }
         } else {
           newArr[index] = {
@@ -220,41 +215,28 @@ const ComboArticuloRow = ({ index, row, productosAgregados, setProductosAgregado
             precioUnitario: 0,
             descuentoPorcentaje: 0,
             ivaPorcentaje: 0,
+            codigoIvaSri: "0",
           }
         }
-        setProductosAgregados(newArr)
+        setServiciosAgregados(newArr)
       }}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          size="small"
-          placeholder="Escriba el código o nombre..."
-          InputProps={{
-            ...params.InputProps,
-            endAdornment: (
-              <>
-                {loading ? <CircularProgress color="inherit" size={20} /> : null}
-                {params.InputProps.endAdornment}
-              </>
-            ),
-          }}
-        />
-      )}
-      noOptionsText={inputValue ? "No encontrado" : "Escriba para buscar"}
+      renderInput={(params) => <TextField {...params} size="small" placeholder="Buscar motivo / servicio..." />}
+      noOptionsText="Motivo no encontrado"
     />
   )
 }
 
-const EditarFacturaDesdeArticulosDF = () => {
+const CrearNotaDebitoDF = () => {
   const navigate = useNavigate()
-  const location = useLocation()
-  const proformaOriginal = location.state
-
   const [expandedInfoGeneral, setExpandedInfoGeneral] = useState(true)
   const [expandedInfoCliente, setExpandedInfoCliente] = useState(true)
+  const [codigoDocumento, setCodigoDocumento] = useState("Seleccione una Caja")
 
-  const [cabeceraProforma, setCabeceraProforma] = useState({
-    cliente: { clicodigo: "" },
+  // ESTADO CENTRALIZADO
+  const [cabeceraND, setCabeceraND] = useState({
+    facnumref: "",
+    caja: { cjacodigo: "", cjadescri: "" },
+    cliente: { clicodigo: "", clinombre: "" },
     direccion: "",
     ruc: "",
     telefono: "",
@@ -263,30 +245,42 @@ const EditarFacturaDesdeArticulosDF = () => {
     fortipo: "",
     fordias: 0,
     fordescuento: 0.0,
-    vendedor: {
-      vencodigo: "",
-      vennombre: "",
-      pedidossiac: "",
-      pedidosweb: "",
-    },
-    // Objeto necesario exclusivamente para el componente VendedorAutocomplete
-    vendedorSeleccionado: {
-      vencodigo: "",
-      vennombre: "",
-    },
+    vendedor: { vencodigo: "", vennombre: "", pedidossiac: "", pedidosweb: "" },
+    vendedorSeleccionado: { vencodigo: "", vennombre: "" },
     observacion: "",
   })
 
-  const [productosAgregados, setProductosAgregados] = useState([])
+  const [serviciosAgregados, setServiciosAgregados] = useState([])
 
-  // --- LÓGICA REFORZADA: CARGA DE FORMAS DE PAGO NATIVA ---
-  const { data: rawFormasPago, isLoading: isLoadingFP } = useQuery({
+  const { data: listaCajasRaw, isLoading: isLoadingCajas } = useGetCajas()
+  const listaCajas = Array.isArray(listaCajasRaw) ? listaCajasRaw : []
+
+  const {
+    data: codigoTemporal,
+    isLoading: isLoadingCodigo,
+    isError: isErrorCodigo,
+    error: errorCodigo,
+  } = useGetCodigoTemporalND(cabeceraND.caja.cjacodigo)
+
+  useEffect(() => {
+    if (codigoTemporal) {
+      setCodigoDocumento(codigoTemporal)
+    } else if (isErrorCodigo) {
+      setCodigoDocumento("Error de Secuencia")
+      Swal.fire({ icon: "error", title: "Error", text: errorCodigo?.message || "No existe secuencia configurada." })
+    } else if (!cabeceraND.caja.cjacodigo) {
+      setCodigoDocumento("Seleccione una Caja")
+    }
+  }, [codigoTemporal, cabeceraND.caja.cjacodigo, isErrorCodigo, errorCodigo])
+
+  // --- CARGA DE CATÁLOGOS NATIVOS ---
+  const { data: rawFormasPagoResponse, isLoading: isLoadingFP } = useQuery({
     queryKey: ["listaFormasPagoDF"],
     queryFn: async () => {
       try {
         const response = await fetchwrapper("/FacturaDesdeArticulosDF/getFormaPago", { method: "GET" })
         const res = await response.json()
-        return Array.isArray(res) ? res : res?.data || []
+        return extractArrayData(res)
       } catch (error) {
         return []
       }
@@ -294,104 +288,39 @@ const EditarFacturaDesdeArticulosDF = () => {
     refetchOnWindowFocus: false,
   })
 
-  // Normalizamos limpiando espacios en blanco que arroja SQL Server
-  const listaFormasPago = Array.isArray(rawFormasPago)
-    ? rawFormasPago.map((item) => ({
-        ...item,
-        id: item.factippag ? item.factippag.trim() : "",
-        label:
-          `${item.factippag ? item.factippag.trim() : ""} - ${item.fordescri ? item.fordescri.trim() : ""}`.replace(
-            /^ - |- $/g,
-            "",
-          ),
-      }))
-    : []
+  const safeFormasPagoRaw = Array.isArray(rawFormasPagoResponse) ? rawFormasPagoResponse : []
+  const listaFormasPago = safeFormasPagoRaw.map((item) => ({
+    ...item,
+    id: item.factippag ? item.factippag.trim() : "",
+    label: `${item.factippag ? item.factippag.trim() : ""} - ${item.fordescri ? item.fordescri.trim() : ""}`.replace(
+      /^ - |- $/g,
+      "",
+    ),
+  }))
 
-  // --- CARGA INICIAL DE LA FACTURA ---
-  const { data: proformaData, isLoading: isLoadingProforma } = useGetProformaDF(proformaOriginal?.pednumped)
-
-  useEffect(() => {
-    if (proformaData) {
-      const clienteInfo = proformaData.cliente || {}
-      const formaPagoInfo = proformaData.formaPago || {}
-      const vendedorInfo = proformaData.vendedor || {}
-      const cabeceraInfo = proformaData.cabecera || {}
-
-      const safeTrim = (str) => (typeof str === "string" ? str.trim() : str)
-
-      setCabeceraProforma({
-        cliente: {
-          clicodigo: safeTrim(clienteInfo.clicodigo) || "",
-          clinombre: safeTrim(clienteInfo.clinombre) || "",
-          clidirec: safeTrim(clienteInfo.clidirec) || "",
-          cliruc: safeTrim(clienteInfo.cliruc) || "",
-          clitelef1: safeTrim(clienteInfo.clitelef1) || "",
-        },
-        direccion: safeTrim(clienteInfo.clidirec) || safeTrim(cabeceraInfo.peddirent) || "",
-        ruc: safeTrim(clienteInfo.cliruc) || "",
-        telefono: safeTrim(clienteInfo.clitelef1) || "",
-
-        // Mapeo directo y limpio para nuestro Autocomplete nativo
-        factippag: safeTrim(cabeceraInfo.factippag) || safeTrim(formaPagoInfo.factippag) || "",
-        fordescri: safeTrim(formaPagoInfo.fordescri) || "",
-        fortipo: safeTrim(formaPagoInfo.fortipo) || safeTrim(cabeceraInfo.fortipo) || "",
-        fordias: parseFloat(cabeceraInfo.fordias || formaPagoInfo.fordias || 0),
-        fordescuento: parseFloat(cabeceraInfo.fordescuento || formaPagoInfo.fordescuento || 0),
-
-        vendedor: {
-          vencodigo: safeTrim(vendedorInfo.vencodigo) || safeTrim(cabeceraInfo.vencodigo) || "",
-          vennombre: safeTrim(vendedorInfo.vennombre) || "",
-          pedidossiac: "",
-          pedidosweb: "",
-        },
-        vendedorSeleccionado: {
-          vencodigo: safeTrim(vendedorInfo.vencodigo) || safeTrim(cabeceraInfo.vencodigo) || "",
-          vennombre: safeTrim(vendedorInfo.vennombre) || "",
-        },
-        observacion: safeTrim(cabeceraInfo.peddetalle) || "",
-      })
-
-      if (proformaData.productos && proformaData.productos.length > 0) {
-        const productosFormateados = proformaData.productos.map((prod) => ({
-          ...prod,
-          isNew: false,
-          precioUnitario: Number(prod.precioUnitario || 0),
-          ivaPorcentaje: Number(prod.ivaPorcentaje || 0),
-          descuentoPorcentaje: Number(prod.descuentoPorcentaje || 0),
-          cantidadPedido: Number(prod.cantidadPedido || 1),
-        }))
-        setProductosAgregados(productosFormateados)
+  const { data: rawServiciosResponse, isLoading: isLoadingServicios } = useQuery({
+    queryKey: ["listaServiciosND"],
+    queryFn: async () => {
+      try {
+        const response = await fetchwrapper("/NotaDebitoDF/getServicios", { method: "GET" })
+        const res = await response.json()
+        return extractArrayData(res)
+      } catch (error) {
+        return []
       }
-    }
-  }, [proformaData])
+    },
+    refetchOnWindowFocus: false,
+  })
 
-  // --- CARGA DINÁMICA DE CLIENTE ---
-  const { data: fetchedInfoCliente = {}, refetch: refetchInfoCliente } = useGetInfoCliente(
-    cabeceraProforma.cliente.clicodigo,
-  )
+  const listaServicios = Array.isArray(rawServiciosResponse) ? rawServiciosResponse : []
 
-  useEffect(() => {
-    if (cabeceraProforma.cliente.clicodigo) refetchInfoCliente()
-  }, [cabeceraProforma.cliente.clicodigo])
+  const handleSetCabecera = (k, v) => setCabeceraND((prev) => ({ ...prev, [k]: v }))
 
-  useEffect(() => {
-    if (Object.keys(fetchedInfoCliente).length > 0) {
-      setCabeceraProforma((prev) => ({
-        ...prev,
-        direccion: fetchedInfoCliente.clidirec || prev.direccion,
-        ruc: fetchedInfoCliente.cliruc || prev.ruc,
-        telefono: fetchedInfoCliente.clitelef1 || prev.telefono,
-      }))
-    }
-  }, [fetchedInfoCliente])
-
-  const handleSetCabeceraProforma = (k, v) => setCabeceraProforma((prev) => ({ ...prev, [k]: v }))
-
-  // --- MUTACIÓN PARA ACTUALIZAR ---
-  const { mutate: actualizarPedidoMutation, isPending: isUpdating } = useMutation({
-    queryKey: ["actualizarPedidoDF"],
+  // --- MUTACIÓN PARA GUARDAR ---
+  const { mutate: guardarNDMutation, isPending: isSavingND } = useMutation({
+    queryKey: ["guardarNotaDebitoDF"],
     mutationFn: async (payload) => {
-      const response = await api.post("/FacturaDesdeArticulosDF/editarPedido", payload)
+      const response = await api.post("/NotaDebitoDF/guardarNotaDebito", payload)
       return response.data
     },
     showError: "modal",
@@ -399,41 +328,46 @@ const EditarFacturaDesdeArticulosDF = () => {
     onSuccess: (data) => {
       Swal.fire({
         icon: "success",
-        title: "¡Documento Actualizado!",
+        title: "¡Nota de Débito Creada!",
         html: `
-        <p>Documento N°: <strong>${data.pednumped}</strong></p>
+        <p>Documento N°: <strong>${data.facnumfac}</strong></p>
+        <p>Modifica a: <strong>${data.facnumref}</strong></p>
         <p>Total: <strong>$${data.total.toFixed(2)}</strong></p>
-        <p>Productos: <strong>${data.productos}</strong></p>
       `,
         confirmButtonText: "Aceptar",
       }).then(() => {
+        setServiciosAgregados([])
         navigate(-1)
       })
     },
   })
 
-  const handleActualizarPedido = async () => {
-    const productosValidos = productosAgregados.filter((p) => !p.isNew && p.artcodigo)
+  const handleRealizarPedido = async () => {
+    const serviciosValidos = serviciosAgregados.filter((p) => !p.isNew && p.sercodigo)
 
-    if (productosValidos.length === 0) {
-      Swal.fire({ icon: "warning", title: "Sin productos", text: "Debe agregar al menos un producto válido." })
+    if (!cabeceraND.caja.cjacodigo) {
+      Swal.fire({ icon: "warning", title: "Falta Caja", text: "Debe seleccionar una Caja para generar el documento." })
       return
     }
-    if (!cabeceraProforma.cliente.clicodigo) {
-      Swal.fire({ icon: "warning", title: "Falta Cliente", text: "Debe seleccionar un cliente." })
+    if (!cabeceraND.facnumref) {
+      Swal.fire({ icon: "warning", title: "Falta Factura", text: "Debe buscar y seleccionar la factura a modificar." })
       return
     }
-    if (!cabeceraProforma.factippag) {
+    if (serviciosValidos.length === 0) {
+      Swal.fire({ icon: "warning", title: "Sin motivos", text: "Debe agregar al menos un motivo (servicio)." })
+      return
+    }
+    if (!cabeceraND.factippag) {
       Swal.fire({ icon: "warning", title: "Falta Forma de Pago", text: "Debe seleccionar una forma de pago." })
       return
     }
-    if (!cabeceraProforma.vendedor.vencodigo) {
+    if (!cabeceraND.vendedor.vencodigo) {
       Swal.fire({ icon: "warning", title: "Falta Vendedor", text: "Debe seleccionar un vendedor." })
       return
     }
 
     Swal.fire({
-      title: "Actualizando documento...",
+      title: "Guardando documento...",
       allowOutsideClick: false,
       didOpen: () => {
         Swal.showLoading()
@@ -441,29 +375,25 @@ const EditarFacturaDesdeArticulosDF = () => {
     })
 
     const payload = {
-      pednumped: proformaOriginal.pednumped,
-      cliente: cabeceraProforma.cliente,
-      productos: productosValidos.map((p) => ({
-        artcodigo: p.artcodigo,
-        artdescri: p.artdescri,
-        meddescri: p.meddescri,
-        predescri: p.predescri,
-        lindescri: p.lindescri,
-        artcantactual: p.artcantactual,
-        mardescri: p.mardescri,
+      facnumfac: codigoDocumento,
+      facnumref: cabeceraND.facnumref,
+      cjacodigo: cabeceraND.caja.cjacodigo,
+      cliente: cabeceraND.cliente,
+      servicios: serviciosValidos.map((p) => ({
+        sercodigo: p.sercodigo,
+        serdescri: p.serdescri,
+        cantidad: Number(p.cantidadPedido),
         precioUnitario: Number(p.precioUnitario),
         ivaPorcentaje: Number(p.ivaPorcentaje),
-        artapliiva: p.artapliiva,
+        codigoIvaSri: p.codigoIvaSri, // Se envía el código original por si lo requiere el backend (Ej: 4)
         descuentoPorcentaje: Number(p.descuentoPorcentaje),
-        imagen: p.imagen,
-        cantidadPedido: Number(p.cantidadPedido),
       })),
-      formaPago: cabeceraProforma.factippag,
-      vendedor: cabeceraProforma.vendedor,
-      observacion: cabeceraProforma.observacion,
+      formaPago: cabeceraND.factippag,
+      vendedor: cabeceraND.vendedor,
+      observacion: cabeceraND.observacion,
     }
 
-    await actualizarPedidoMutation(payload)
+    await guardarNDMutation(payload)
   }
 
   // --- MOTOR DE CÁLCULOS ---
@@ -474,11 +404,13 @@ const EditarFacturaDesdeArticulosDF = () => {
 
     const round2 = (num) => Math.round((num + Number.EPSILON) * 100) / 100
 
-    productosAgregados.forEach((p) => {
-      if (p.isNew || !p.artcodigo) return
+    serviciosAgregados.forEach((p) => {
+      if (p.isNew || !p.sercodigo) return
       const cant = Number(p.cantidadPedido) || 0
       const precio = Number(p.precioUnitario) || 0
       const desc = Number(p.descuentoPorcentaje) || 0
+
+      // Aquí el ivaPorcentaje ya viene con el valor real (15%, 12%, etc)
       const iva = Number(p.ivaPorcentaje) || 0
 
       const subP = round2(precio * cant)
@@ -527,7 +459,7 @@ const EditarFacturaDesdeArticulosDF = () => {
             </Tooltip>
           </ListItem>
           <ListItem sx={{ padding: 0 }}>
-            <Tooltip title={<span style={{ fontSize: "16px" }}>Productos</span>} placement="left">
+            <Tooltip title={<span style={{ fontSize: "16px" }}>Motivos</span>} placement="left">
               <IconButton onClick={() => scrollToSection("productos")}>
                 <ShoppingBagIcon />
               </IconButton>
@@ -538,29 +470,16 @@ const EditarFacturaDesdeArticulosDF = () => {
     )
   }
 
-  if (isLoadingProforma) {
-    return (
-      <ThemeProvider theme={theme}>
-        <CustomBackdrop isLoading={true} />
-        <Header />
-        <div className="main main-app p-3 p-lg-4" style={{ textAlign: "center", paddingTop: "50px" }}>
-          <CircularProgress />
-          <Typography variant="h6" sx={{ mt: 2 }}>
-            Cargando documento...
-          </Typography>
-        </div>
-      </ThemeProvider>
-    )
-  }
-
   return (
     <ThemeProvider theme={theme}>
-      <CustomBackdrop isLoading={isUpdating || isLoadingFP} />
+      <CustomBackdrop
+        isLoading={isLoadingCodigo || isSavingND || isLoadingFP || isLoadingServicios || isLoadingCajas}
+      />
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
         <div style={{ display: "flex", justifyContent: "center", margin: "0 30px 30px 30px", fontSize: "25px" }}>
-          <b>Editar Proforma: {proformaOriginal?.pednumped}</b>
+          <b>Crear Nota de Débito</b>
         </div>
         <FloatingMenu />
 
@@ -573,12 +492,32 @@ const EditarFacturaDesdeArticulosDF = () => {
           >
             <ContainerCabecera id="informacion">
               <Codigo>
-                <CustomTextFieldReadable label="Código de Proforma" value={proformaOriginal?.pednumped || ""} />
+                <CustomTextFieldReadable label="Código ND" value={codigoDocumento} />
               </Codigo>
+
+              <Caja>
+                <InputLabel sx={{ mb: 1, fontSize: "12px", color: "rgba(0, 0, 0, 0.6)" }}>Caja Asignada</InputLabel>
+                <Autocomplete
+                  options={listaCajas}
+                  getOptionLabel={(opt) => (opt && opt.cjacodigo ? `${opt.cjacodigo} - ${opt.cjadescri}` : "")}
+                  value={cabeceraND.caja?.cjacodigo ? cabeceraND.caja : null}
+                  onChange={(e, val) => {
+                    setCabeceraND((prev) => ({
+                      ...prev,
+                      caja: val || { cjacodigo: "", cjadescri: "" },
+                    }))
+                  }}
+                  isOptionEqualToValue={(option, value) => option?.cjacodigo === value?.cjacodigo}
+                  renderInput={(params) => (
+                    <TextField {...params} placeholder="Seleccione..." InputLabelProps={{ shrink: true }} />
+                  )}
+                />
+              </Caja>
+
               <FechaE>
                 <CustomDatePicker
                   label="Fecha Emision"
-                  value={proformaData ? dayjs(proformaData.cabecera.pedfecemi) : dayjs(new Date())}
+                  value={dayjs(new Date())}
                   format="DD/MM/YYYY"
                   setValue={() => {}}
                   isOptional={true}
@@ -587,30 +526,26 @@ const EditarFacturaDesdeArticulosDF = () => {
               <FechaV>
                 <CustomDatePicker
                   label="Fecha Vencimiento"
-                  value={proformaData ? dayjs(proformaData.cabecera.pedfecven) : dayjs(new Date())}
+                  value={dayjs(new Date())}
                   setValue={() => {}}
                   format="DD/MM/YYYY"
                   isOptional={true}
                 />
               </FechaV>
 
-              {/* COMBO FORMA DE PAGO REFORZADO */}
               <FormaPago>
                 <InputLabel sx={{ mb: 1, fontSize: "12px", color: "rgba(0, 0, 0, 0.6)" }}>Forma de pago</InputLabel>
                 <Autocomplete
                   options={listaFormasPago}
-                  getOptionLabel={(option) => option.label || ""}
+                  getOptionLabel={(opt) => opt?.label || ""}
                   value={
-                    listaFormasPago.find((c) => c.id === cabeceraProforma.factippag) ||
-                    (cabeceraProforma.factippag
-                      ? {
-                          id: cabeceraProforma.factippag,
-                          label: `${cabeceraProforma.factippag} - ${cabeceraProforma.fordescri}`,
-                        }
+                    listaFormasPago.find((c) => c.id === cabeceraND.factippag) ||
+                    (cabeceraND.factippag
+                      ? { id: cabeceraND.factippag, label: `${cabeceraND.factippag} - ${cabeceraND.fordescri}` }
                       : null)
                   }
                   onChange={(event, newValue) => {
-                    setCabeceraProforma((prev) => ({
+                    setCabeceraND((prev) => ({
                       ...prev,
                       factippag: newValue ? newValue.id : "",
                       fordescri: newValue ? newValue.fordescri : "",
@@ -619,7 +554,7 @@ const EditarFacturaDesdeArticulosDF = () => {
                       fordescuento: newValue ? parseFloat(newValue.fordescuento || 0) : 0,
                     }))
                   }}
-                  isOptionEqualToValue={(option, value) => option.id === value?.id}
+                  isOptionEqualToValue={(option, value) => option?.id === value?.id}
                   renderInput={(params) => (
                     <TextField {...params} placeholder="Buscar..." InputLabelProps={{ shrink: true }} />
                   )}
@@ -628,84 +563,108 @@ const EditarFacturaDesdeArticulosDF = () => {
 
               <Vendedor>
                 <InputLabel sx={{ mb: 1, fontSize: "12px", color: "rgba(0, 0, 0, 0.6)" }}>Vendedor</InputLabel>
-                {/* COMBO VENDEDOR (Se mantiene su componente original que funciona bien) */}
-                <VendedorAutocomplete cabeceraProforma={cabeceraProforma} setCabeceraProforma={setCabeceraProforma} />
+                <VendedorAutocomplete cabeceraProforma={cabeceraND} setCabeceraProforma={setCabeceraND} />
               </Vendedor>
 
               <Observacion>
                 <CustomTextField
                   label="Observacion cliente"
-                  value={cabeceraProforma.observacion}
-                  onChange={(e) => handleSetCabeceraProforma("observacion", e.target.value)}
+                  value={cabeceraND.observacion}
+                  onChange={(e) => handleSetCabecera("observacion", e.target.value)}
                 />
               </Observacion>
             </ContainerCabecera>
           </CustomFieldsetAccordion>
           <br />
 
-          {/* INFORMACION CLIENTE */}
+          {/* INFORMACION CLIENTE Y FACTURA MODIFICADA */}
           <CustomFieldsetAccordion
-            title="Información Cliente"
+            title="Factura Original & Cliente"
             expanded={expandedInfoCliente}
             onToggle={() => setExpandedInfoCliente(!expandedInfoCliente)}
           >
             <ContainerCliente>
-              <Cliente>
+              <Factura>
                 <CustomHelperDetail
-                  label="Cliente"
-                  valueSearched={cabeceraProforma.cliente.clicodigo}
-                  endpoint="/FacturaDesdeArticulosDF/getCliente"
-                  valueInputMain="clicodigo"
-                  valueInputSecondary="clinombre"
-                  idSearchField="clicodigo"
-                  errorMsgIdSearch="Error fetching data:"
-                  queryKeyModal="clienteAsociacionProd"
+                  label="Factura a Modificar"
+                  valueSearched={cabeceraND.facnumref}
+                  endpoint="/NotaDebitoDF/buscarFacturaND"
+                  valueInputMain="facnumfac"
+                  valueInputSecondary="sriautnumero"
+                  idSearchField="busqueda"
+                  errorMsgIdSearch="Error al buscar factura:"
+                  queryKeyModal="buscarFacturaND"
                   perPage={10}
                   columnsTable={[
-                    { accessorKey: "clicodigo", header: "Código de Cliente", size: 100 },
-                    { accessorKey: "clinombre", header: "Nombre del Cliente", size: 250 },
-                    { accessorKey: "cliruc", header: "Identificación", size: 150 },
-                    { accessorKey: "clidirec", header: "Dirección", size: 400 },
+                    { accessorKey: "facnumfac", header: "Nº Factura", size: 150 },
+                    { accessorKey: "cliruc", header: "RUC", size: 120 },
+                    { accessorKey: "clinombre", header: "Cliente", size: 250 },
+                    { accessorKey: "facfecemi", header: "Emisión", size: 100 },
+                    { accessorKey: "factotal", header: "Total", size: 100 },
+                    { accessorKey: "clidirec", header: "Dirección", size: 100, isVisible: false },
+                    { accessorKey: "clitelef1", header: "Teléfono", size: 100, isVisible: false },
                   ]}
                   onHandleSelectedData={(v) => {
-                    handleSetCabeceraProforma("cliente", v)
-                    handleSetCabeceraProforma("nombre", v.clinombre)
+                    if (!v || Object.keys(v).length === 0 || !v.facnumfac) return
+
+                    setCabeceraND((prev) => ({
+                      ...prev,
+                      facnumref: v.facnumfac || "",
+                      cliente: { clicodigo: v.clicodigo || "", clinombre: v.clinombre || "" },
+                      ruc: v.cliruc || "",
+                      direccion: v.clidirec || "",
+                      telefono: v.clitelef1 || "",
+                    }))
                   }}
                   sxInputMain={{ minWidth: "170px", maxWidth: "170px", marginRight: "10px" }}
                   sxInputSecondary={{ width: "100%" }}
                 />
+              </Factura>
+              <Cliente>
+                <CustomTextFieldReadable label="Cliente" value={cabeceraND.cliente.clinombre} />
               </Cliente>
               <Direccion>
-                <CustomTextFieldReadable label="Direccion" value={cabeceraProforma.direccion} />
+                <CustomTextFieldReadable label="Direccion" value={cabeceraND.direccion || "Se heredará al guardar"} />
               </Direccion>
               <Telefono>
-                <CustomTextFieldReadable disabled label="Telefono" value={cabeceraProforma.telefono} />
+                <CustomTextFieldReadable disabled label="Telefono" value={cabeceraND.telefono} />
               </Telefono>
               <Id>
-                <CustomTextFieldReadable disabled label="Id" value={cabeceraProforma.ruc} />
+                <CustomTextFieldReadable disabled label="RUC / CI" value={cabeceraND.ruc} />
               </Id>
             </ContainerCliente>
           </CustomFieldsetAccordion>
           <br />
 
-          {/* GRILLA DE PRODUCTOS */}
+          {/* GRILLA DE MOTIVOS (SERVICIOS) */}
           <Paper id="productos" sx={{ width: "100%", p: 2, mb: 4, borderRadius: "10px", border: "1px solid #ddd" }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
               <Typography variant="h6" fontWeight="bold" color="primary">
-                Detalle de Productos
+                Detalle de Motivos (Servicios)
               </Typography>
+
+              {/* REGLA APLICADA: Deshabilitamos el botón si ya hay 1 fila */}
               <Button
                 variant="contained"
                 color="secondary"
                 startIcon={<AddIcon />}
+                disabled={serviciosAgregados.length >= 1}
                 onClick={() => {
-                  setProductosAgregados([
-                    ...productosAgregados,
+                  if (serviciosAgregados.length >= 1) {
+                    Swal.fire(
+                      "Límite alcanzado",
+                      "Las Notas de Débito solo admiten un motivo por documento.",
+                      "warning",
+                    )
+                    return
+                  }
+                  setServiciosAgregados([
+                    ...serviciosAgregados,
                     { isNew: true, cantidadPedido: 1, precioUnitario: 0, descuentoPorcentaje: 0, ivaPorcentaje: 0 },
                   ])
                 }}
               >
-                Añadir Línea
+                Añadir Motivo
               </Button>
             </Box>
 
@@ -716,12 +675,12 @@ const EditarFacturaDesdeArticulosDF = () => {
                     <TableCell width="50px" align="center">
                       Acción
                     </TableCell>
-                    <TableCell>Buscador de Artículo</TableCell>
+                    <TableCell>Buscador de Motivo (Servicio)</TableCell>
                     <TableCell width="120px" align="center">
                       Cantidad
                     </TableCell>
                     <TableCell width="140px" align="center">
-                      Precio Unit.
+                      Valor Unit.
                     </TableCell>
                     <TableCell width="120px" align="center">
                       % Desc.
@@ -735,16 +694,16 @@ const EditarFacturaDesdeArticulosDF = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {productosAgregados.length === 0 ? (
+                  {serviciosAgregados.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                         <Typography color="text.secondary">
-                          Haga clic en "Añadir Línea" para buscar y agregar productos.
+                          Haga clic en "Añadir Motivo" para buscar el motivo del débito.
                         </Typography>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    productosAgregados.map((row, index) => {
+                    serviciosAgregados.map((row, index) => {
                       const cant = Number(row.cantidadPedido) || 0
                       const prec = Number(row.precioUnitario) || 0
                       const desc = Number(row.descuentoPorcentaje) || 0
@@ -765,32 +724,33 @@ const EditarFacturaDesdeArticulosDF = () => {
                               color="error"
                               size="small"
                               onClick={() => {
-                                const newArr = [...productosAgregados]
+                                const newArr = [...serviciosAgregados]
                                 newArr.splice(index, 1)
-                                setProductosAgregados(newArr)
+                                setServiciosAgregados(newArr)
                               }}
                             >
                               <DeleteIcon />
                             </IconButton>
                           </TableCell>
                           <TableCell>
-                            <ComboArticuloRow
+                            <ComboServicioRow
                               index={index}
                               row={row}
-                              productosAgregados={productosAgregados}
-                              setProductosAgregados={setProductosAgregados}
+                              serviciosAgregados={serviciosAgregados}
+                              setServiciosAgregados={setServiciosAgregados}
+                              listaServicios={listaServicios}
                             />
                           </TableCell>
                           <TableCell>
                             <TextField
                               type="number"
                               size="small"
-                              disabled={row.isNew || !row.artcodigo}
+                              disabled={row.isNew || !row.sercodigo}
                               value={row.cantidadPedido}
                               onChange={(e) => {
-                                const newArr = [...productosAgregados]
+                                const newArr = [...serviciosAgregados]
                                 newArr[index].cantidadPedido = e.target.value
-                                setProductosAgregados(newArr)
+                                setServiciosAgregados(newArr)
                               }}
                               inputProps={{ min: 1, style: { textAlign: "center" } }}
                             />
@@ -799,12 +759,12 @@ const EditarFacturaDesdeArticulosDF = () => {
                             <TextField
                               type="number"
                               size="small"
-                              disabled={row.isNew || !row.artcodigo}
+                              disabled={row.isNew || !row.sercodigo}
                               value={row.precioUnitario}
                               onChange={(e) => {
-                                const newArr = [...productosAgregados]
+                                const newArr = [...serviciosAgregados]
                                 newArr[index].precioUnitario = e.target.value
-                                setProductosAgregados(newArr)
+                                setServiciosAgregados(newArr)
                               }}
                               inputProps={{ min: 0, step: "0.0001", style: { textAlign: "right" } }}
                             />
@@ -813,7 +773,7 @@ const EditarFacturaDesdeArticulosDF = () => {
                             <TextField
                               type="number"
                               size="small"
-                              disabled={row.isNew || !row.artcodigo}
+                              disabled={row.isNew || !row.sercodigo}
                               value={row.descuentoPorcentaje}
                               onChange={(e) => {
                                 let val = e.target.value
@@ -822,19 +782,20 @@ const EditarFacturaDesdeArticulosDF = () => {
                                   if (num > 100) val = "100"
                                   if (num < 0) val = "0"
                                 }
-                                const newArr = [...productosAgregados]
+                                const newArr = [...serviciosAgregados]
                                 newArr[index].descuentoPorcentaje = val
-                                setProductosAgregados(newArr)
+                                setServiciosAgregados(newArr)
                               }}
                               inputProps={{ min: 0, max: 100, style: { textAlign: "right" } }}
                             />
                           </TableCell>
                           <TableCell align="center" sx={{ pt: 2 }}>
+                            {/* Mostrará el IVA Real (ej: 15%) */}
                             <Typography variant="body2">{iva}%</Typography>
                           </TableCell>
                           <TableCell align="right" sx={{ pt: 2 }}>
                             <Typography variant="body2" fontWeight="bold">
-                              ${!row.isNew && row.artcodigo ? totalRow.toFixed(2) : "0.00"}
+                              ${!row.isNew && row.sercodigo ? totalRow.toFixed(2) : "0.00"}
                             </Typography>
                           </TableCell>
                         </TableRow>
@@ -852,7 +813,7 @@ const EditarFacturaDesdeArticulosDF = () => {
                 sx={{ p: 2, backgroundColor: "#f9f9f9", borderRadius: "8px", border: "1px solid #eee" }}
               >
                 <Box display="flex" justifyContent="space-between" mb={1}>
-                  <Typography variant="body2">Subtotal:</Typography>
+                  <Typography variant="body2">Subtotal Base:</Typography>
                   <Typography variant="body2" fontWeight="bold">
                     ${subtotal.toFixed(2)}
                   </Typography>
@@ -866,14 +827,14 @@ const EditarFacturaDesdeArticulosDF = () => {
                   </Typography>
                 </Box>
                 <Box display="flex" justifyContent="space-between" mb={1}>
-                  <Typography variant="body2">IVA:</Typography>
+                  <Typography variant="body2">IVA de Servicios:</Typography>
                   <Typography variant="body2" fontWeight="bold">
                     ${ivaTotal.toFixed(2)}
                   </Typography>
                 </Box>
                 <Divider sx={{ my: 1 }} />
                 <Box display="flex" justifyContent="space-between">
-                  <Typography variant="h6">Total:</Typography>
+                  <Typography variant="h6">Total ND:</Typography>
                   <Typography variant="h6" color="primary" fontWeight="bold">
                     ${total.toFixed(2)}
                   </Typography>
@@ -882,8 +843,8 @@ const EditarFacturaDesdeArticulosDF = () => {
             </Box>
 
             <Box display="flex" justifyContent="flex-end" mt={3} pr={2}>
-              <Button variant="contained" size="large" onClick={handleActualizarPedido}>
-                Actualizar Proforma
+              <Button variant="contained" size="large" onClick={handleRealizarPedido}>
+                Guardar Nota de Débito
               </Button>
             </Box>
           </Paper>
@@ -893,4 +854,4 @@ const EditarFacturaDesdeArticulosDF = () => {
   )
 }
 
-export default EditarFacturaDesdeArticulosDF
+export default CrearNotaDebitoDF

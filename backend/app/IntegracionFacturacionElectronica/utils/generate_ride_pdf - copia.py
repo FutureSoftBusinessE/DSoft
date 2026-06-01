@@ -6,17 +6,16 @@ from reportlab.lib.units import mm, cm
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether, Image
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether
 )
 from reportlab.graphics.barcode import code128
 from pathlib import Path
 import os
-import io
 
 def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, output_dir: Path = None) -> tuple:
     """
-    Genera el PDF RIDE de la factura o Nota de Débito electrónica (Diseño SRI).
-    Soporta logos dinámicos y títulos parametrizables.
+    Genera el PDF RIDE de la factura electrónica estandarizado (Diseño SRI).
+    Maneja paginación de productos, alinea los bordes a 180mm y separa los bloques inferiores.
     """
     try:
         if output_dir is None:
@@ -32,9 +31,6 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
         totales_impuestos = factura_data.get("totales_impuestos", [])
         pagos = factura_data.get("pagos", [])
         info_adicional = factura_data.get("info_adicional", [])
-        
-        # 1. TÍTULO DINÁMICO (Factura o Nota de Débito)
-        documento_nombre = factura_data.get("tipo_documento_nombre", "FACTURA")
 
         # Configurar documento (Ancho imprimible = 180mm)
         doc = SimpleDocTemplate(
@@ -92,7 +88,7 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
 
         right_data = [
             [Paragraph(f"R.U.C.: {ruc}", style_bold)],
-            [Paragraph(documento_nombre, style_title)],
+            [Paragraph("FACTURA", style_title)],
             [Paragraph(f"Nº.: {estab}-{pto_emi}-{secuencial}", style_normal)],
             [Paragraph("NÚMERO DE AUTORIZACIÓN:", style_small)],
             [Paragraph(f"{num_autorizacion}", style_small)],
@@ -110,21 +106,8 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
             ('ALIGN', (0, -1), (0, -1), 'CENTER'),
         ]))
 
-        # 2. PROCESAMIENTO DE LOGO DINÁMICO DE LA BD
-        logo_bytes = info_tributaria.get("logo_bytes")
-        if logo_bytes:
-            try:
-                logo_stream = io.BytesIO(logo_bytes)
-                # Renderiza proporcionalmente ajustado a un marco de 70x30mm
-                logo_element = Image(logo_stream, width=70*mm, height=30*mm, kind='proportional')
-            except Exception as e:
-                print(f"Error renderizando logo: {e}")
-                logo_element = Paragraph(f"<b>{razon_social}</b>", style_logo)
-        else:
-            logo_element = Paragraph("DSOFT", style_logo)
-
         header_data = [
-            [logo_element, t_right_inner],
+            [Paragraph("DSOFT", style_logo), t_right_inner],
             [t_emisor_inner, ""]
         ]
 
@@ -133,7 +116,6 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
         t_header.setStyle(TableStyle([
             ('SPAN', (1, 0), (1, 1)),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('ALIGN', (0, 0), (0, 0), 'CENTER'),
 
             ('BOX', (0, 1), (0, 1), 0.5, colors.black),
             ('TOPPADDING', (0, 1), (0, 1), 4),
@@ -203,7 +185,7 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
         elements.append(table_detalles)
         elements.append(Spacer(1, 3*mm))
 
-        # ========== 4. SECCIÓN INFERIOR ==========
+        # ========== 4. SECCIÓN INFERIOR (AJUSTADA A 180mm CON SEPARACIÓN) ==========
         total_iva = 0
         total_sin_impuestos = float(info_factura.get("total_sin_impuestos", 0))
         total_descuento = float(info_factura.get("total_descuento", 0))
@@ -256,6 +238,7 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
             ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
         ]))
 
+        # Contenedor Izquierdo total: 102mm
         left_bottom = Table([[t_info], [Spacer(1, 3*mm)], [t_pagos]], colWidths=[102*mm])
         left_bottom.setStyle(TableStyle([
             ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -279,6 +262,7 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
             [Paragraph("<b>VALOR TOTAL</b>", style_normal), Paragraph(f"<b>{importe_total:.2f}</b>", style_table_cell_right)],
         ]
 
+        # 50 + 25 = 75mm
         t_totales = Table(totales_data, colWidths=[50*mm, 25*mm])
         t_totales.setStyle(TableStyle([
             ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
@@ -286,6 +270,8 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ]))
 
+        # Contenedor Inferior Maestro: 102mm (Izq) + 3mm (Espacio vacío) + 75mm (Der) = 180mm EXACTOS
+        # Aquí agregué el "" en el medio para crear la columna invisible que separa las tablas
         t_bottom_container = Table([[left_bottom, "", t_totales]], colWidths=[102*mm, 3*mm, 75*mm])
 
         t_bottom_container.setStyle(TableStyle([
@@ -298,6 +284,7 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
 
         elements.append(KeepTogether(t_bottom_container))
 
+        # ========== GENERAR PDF ==========
         doc.build(elements)
 
         return str(ruta_pdf), None, None

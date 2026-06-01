@@ -1,5 +1,3 @@
-// app/FacturaDesdeArticulosDF/CrearFacturaDesdeArticulosDF.jsx
-
 import React, { useState, useEffect } from "react"
 import Header from "../../../layouts/Header"
 import fetchwrapper from "../../../services/interceptors/fetchwrapper"
@@ -478,7 +476,8 @@ const CrearFacturaDesdeArticulosDF = () => {
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
         <div style={{ display: "flex", justifyContent: "center", margin: "0 30px 30px 30px", fontSize: "25px" }}>
-          <b>Crear Factura DF</b>
+          {/* CAMBIO 1: Título de la página */}
+          <b>Crear Proforma</b>
         </div>
         <FloatingMenu />
 
@@ -491,7 +490,8 @@ const CrearFacturaDesdeArticulosDF = () => {
           >
             <ContainerCabecera id="informacion">
               <Codigo>
-                <CustomTextFieldReadable label="Codigo Factura" value={codigoFactura} />
+                {/* CAMBIO 2: Etiqueta del código */}
+                <CustomTextFieldReadable label="Código de Proforma" value={codigoFactura} />
               </Codigo>
               <FechaE>
                 <CustomDatePicker
@@ -764,8 +764,9 @@ const CrearFacturaDesdeArticulosDF = () => {
             </Box>
 
             <Box display="flex" justifyContent="flex-end" mt={3} pr={2}>
+              {/* CAMBIO 3: Texto del botón */}
               <Button variant="contained" size="large" onClick={handleRealizarPedido}>
-                Guardar y Facturar
+                Guardar Proforma
               </Button>
             </Box>
           </Paper>

@@ -44,19 +44,17 @@ const theme = createTheme({
   },
 })
 
-// AJUSTE: La ruta ahora apunta al módulo FacturaDesdeArticulosDF
-function useGetProformaFacturaBuscar(datos) {
+// Hook para obtener los datos de la Nota de Débito a visualizar
+function useGetNotaDebitoBuscar(datos) {
   return useQuery({
-    queryKey: ["proformaFacturaBuscarDF", datos?.pednumped],
+    queryKey: ["notaDebitoBuscarDF", datos?.facnumfac],
     queryFn: async () => {
-      const response = await fetchwrapper("/FacturaDesdeArticulosDF/getProformaFacturaBuscar", {
+      const response = await fetchwrapper("/NotaDebitoDF/getNotaDebitoBuscar", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          pednumped: datos?.pednumped,
-          pedstatus: datos?.pedstatus,
           facnumfac: datos?.facnumfac,
         }),
       })
@@ -67,16 +65,16 @@ function useGetProformaFacturaBuscar(datos) {
       return result.data.data
     },
     refetchOnWindowFocus: false,
-    enabled: !!datos?.pednumped,
+    enabled: !!datos?.facnumfac,
   })
 }
 
-const BuscarFacturaDesdeArticulosDF = () => {
+const BuscarNotaDebitoDF = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const datosBusqueda = location.state
+  const datosBusqueda = location.state // Contiene row.original del listado
 
-  const { data, isLoading } = useGetProformaFacturaBuscar(datosBusqueda)
+  const { data, isLoading } = useGetNotaDebitoBuscar(datosBusqueda)
 
   if (isLoading) {
     return (
@@ -86,7 +84,7 @@ const BuscarFacturaDesdeArticulosDF = () => {
         <div className="main main-app p-3 p-lg-4" style={{ textAlign: "center", paddingTop: "50px" }}>
           <CircularProgress />
           <Typography variant="h6" sx={{ mt: 2 }}>
-            Cargando informacion...
+            Cargando información...
           </Typography>
         </div>
       </ThemeProvider>
@@ -100,14 +98,16 @@ const BuscarFacturaDesdeArticulosDF = () => {
         <div className="main main-app p-3 p-lg-4">
           <BackIcon />
           <Typography variant="h6" sx={{ textAlign: "center", mt: 4 }}>
-            No se encontro informacion
+            No se encontró información del documento.
           </Typography>
         </div>
       </ThemeProvider>
     )
   }
 
-  const { tipo, cabecera = {}, cliente = {}, formaPago = {}, vendedor = {}, productos = [] } = data || {}
+  // Se extraen los datos (soportando 'productos' o 'motivos' según devuelva el backend)
+  const { cabecera = {}, cliente = {}, formaPago = {}, vendedor = {} } = data || {}
+  const motivos = data?.motivos || data?.productos || data?.servicios || []
 
   return (
     <ThemeProvider theme={theme}>
@@ -123,45 +123,29 @@ const BuscarFacturaDesdeArticulosDF = () => {
             fontSize: "25px",
           }}
         >
-          <b>
-            {tipo === "PROFORMA" ? "Proforma" : "Factura"}:{" "}
-            {tipo === "PROFORMA" ? cabecera.pednumped : cabecera.facnumfac}
-          </b>
+          <b>Nota de Débito: {cabecera.facnumfac}</b>
         </div>
 
         <Box className={StyledRoot}>
           {/* Informacion General */}
-          <CustomFieldsetAccordion title="Informacion General" expanded={true} onToggle={() => {}}>
+          <CustomFieldsetAccordion title="Información General" expanded={true} onToggle={() => {}}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6} md={3}>
-                <CustomTextFieldReadable
-                  label={tipo === "PROFORMA" ? "Numero Proforma" : "Numero Factura"}
-                  value={tipo === "PROFORMA" ? cabecera.pednumped : cabecera.facnumfac}
-                />
+                <CustomTextFieldReadable label="Número Nota de Débito" value={cabecera.facnumfac} />
               </Grid>
-              {tipo === "FACTURA" && (
-                <Grid item xs={12} sm={6} md={3}>
-                  <CustomTextFieldReadable label="Proforma Original" value={cabecera.pednumped || ""} />
-                </Grid>
-              )}
+              <Grid item xs={12} sm={6} md={3}>
+                <CustomTextFieldReadable label="Factura Modificada" value={cabecera.facnumref || "N/A"} />
+              </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <CustomTextFieldReadable
-                  label="Fecha Emision"
-                  value={
-                    tipo === "PROFORMA"
-                      ? dayjs(cabecera.pedfecemi).format("DD/MM/YYYY")
-                      : dayjs(cabecera.facfecemi).format("DD/MM/YYYY")
-                  }
+                  label="Fecha Emisión"
+                  value={cabecera.facfecemi ? dayjs(cabecera.facfecemi).format("DD/MM/YYYY") : ""}
                 />
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <CustomTextFieldReadable
                   label="Fecha Vencimiento"
-                  value={
-                    tipo === "PROFORMA"
-                      ? dayjs(cabecera.pedfecven).format("DD/MM/YYYY")
-                      : dayjs(cabecera.facfecven).format("DD/MM/YYYY")
-                  }
+                  value={cabecera.facfecven ? dayjs(cabecera.facfecven).format("DD/MM/YYYY") : ""}
                 />
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
@@ -173,17 +157,17 @@ const BuscarFacturaDesdeArticulosDF = () => {
               <Grid item xs={12} sm={6} md={3}>
                 <CustomTextFieldReadable
                   label="Estado"
-                  value={tipo === "PROFORMA" ? cabecera.pedstatus : cabecera.facstatus}
+                  value={cabecera.facstatus === "A" ? "ACTIVO" : cabecera.facstatus}
                 />
               </Grid>
 
-              {/* AJUSTE: Autorización SRI con readOnly en lugar de disabled para permitir copiar, y con md={6} para que se vean los 49 dígitos */}
-              {tipo === "FACTURA" && cabecera.sriautnumero && (
+              {/* Autorización SRI con readOnly en lugar de disabled para permitir copiar, y con md={6} para que se vean los 49 dígitos */}
+              {cabecera.sriautnumero && (
                 <Grid item xs={12} sm={12} md={6}>
                   <TextField
                     fullWidth
                     size="small"
-                    label="Nº Autorizacion SRI"
+                    label="Nº Autorización SRI"
                     value={cabecera.sriautnumero}
                     InputProps={{
                       readOnly: true,
@@ -195,7 +179,7 @@ const BuscarFacturaDesdeArticulosDF = () => {
               )}
 
               <Grid item xs={12}>
-                <CustomTextFieldReadable label="Observacion" value={cabecera.peddetalle || cabecera.facdetalle || ""} />
+                <CustomTextFieldReadable label="Observación" value={cabecera.facdetalle || ""} />
               </Grid>
             </Grid>
           </CustomFieldsetAccordion>
@@ -203,10 +187,10 @@ const BuscarFacturaDesdeArticulosDF = () => {
           <br />
 
           {/* Informacion Cliente */}
-          <CustomFieldsetAccordion title="Informacion Cliente" expanded={true} onToggle={() => {}}>
+          <CustomFieldsetAccordion title="Información Cliente" expanded={true} onToggle={() => {}}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={4}>
-                <CustomTextFieldReadable label="Codigo" value={cliente?.clicodigo || ""} />
+                <CustomTextFieldReadable label="Código" value={cliente?.clicodigo || ""} />
               </Grid>
               <Grid item xs={12} sm={8}>
                 <CustomTextFieldReadable label="Nombre" value={cliente?.clinombre || ""} />
@@ -215,10 +199,10 @@ const BuscarFacturaDesdeArticulosDF = () => {
                 <CustomTextFieldReadable label="RUC/CI" value={cliente?.cliruc || ""} />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <CustomTextFieldReadable label="Telefono" value={cliente?.clitelef1 || ""} />
+                <CustomTextFieldReadable label="Teléfono" value={cliente?.clitelef1 || ""} />
               </Grid>
               <Grid item xs={12}>
-                <CustomTextFieldReadable label="Direccion" value={cliente?.clidirec || ""} />
+                <CustomTextFieldReadable label="Dirección" value={cliente?.clidirec || ""} />
               </Grid>
             </Grid>
           </CustomFieldsetAccordion>
@@ -231,55 +215,58 @@ const BuscarFacturaDesdeArticulosDF = () => {
               <Grid item xs={12} sm={4}>
                 <CustomTextFieldReadable
                   label="Subtotal"
-                  value={`$${tipo === "PROFORMA" ? cabecera.pedsubtot : cabecera.facsubtot}`}
+                  value={`$${parseFloat(cabecera.facsubtot || 0).toFixed(2)}`}
                 />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <CustomTextFieldReadable
-                  label="IVA"
-                  value={`$${tipo === "PROFORMA" ? cabecera.pediva : cabecera.faciva}`}
-                />
+                <CustomTextFieldReadable label="IVA" value={`$${parseFloat(cabecera.faciva || 0).toFixed(2)}`} />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <CustomTextFieldReadable
-                  label="Total"
-                  value={`$${tipo === "PROFORMA" ? cabecera.pedtotal : cabecera.factotal}`}
-                />
+                <CustomTextFieldReadable label="Total" value={`$${parseFloat(cabecera.factotal || 0).toFixed(2)}`} />
               </Grid>
             </Grid>
           </CustomFieldsetAccordion>
 
           <br />
 
-          {/* Productos */}
-          <CustomFieldsetAccordion title="Productos" expanded={true} onToggle={() => {}}>
+          {/* Motivos (Reemplaza a Productos en Notas de Débito) */}
+          <CustomFieldsetAccordion title="Motivos (Servicios)" expanded={true} onToggle={() => {}}>
             <TableContainer component={Paper}>
               <Table size="small">
-                <TableHead>
+                <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
                   <TableRow>
                     <TableCell>#</TableCell>
-                    <TableCell>Codigo</TableCell>
-                    <TableCell>Descripcion</TableCell>
+                    <TableCell>Código</TableCell>
+                    <TableCell>Motivo (Razón)</TableCell>
                     <TableCell align="right">Cantidad</TableCell>
-                    <TableCell align="right">P. Unitario</TableCell>
-                    <TableCell align="right">Descuento %</TableCell>
-                    <TableCell align="right">IVA %</TableCell>
+                    <TableCell align="right">Valor Unit.</TableCell>
+                    <TableCell align="right">% Desc.</TableCell>
+                    <TableCell align="right">% IVA</TableCell>
                     <TableCell align="right">Total</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {productos.map((prod, index) => (
+                  {motivos.map((motivo, index) => (
                     <TableRow key={index}>
-                      <TableCell>{prod.secuencia}</TableCell>
-                      <TableCell>{prod.artcodigo}</TableCell>
-                      <TableCell>{prod.artdescri}</TableCell>
-                      <TableCell align="right">{prod.cantidad}</TableCell>
-                      <TableCell align="right">${prod.precioUnitario}</TableCell>
-                      <TableCell align="right">{prod.descuento}%</TableCell>
-                      <TableCell align="right">{prod.iva}%</TableCell>
-                      <TableCell align="right">${prod.total}</TableCell>
+                      <TableCell>{motivo.secuencia}</TableCell>
+                      <TableCell>{motivo.sercodigo || motivo.artcodigo}</TableCell>
+                      <TableCell>{motivo.serdescri || motivo.artdescri}</TableCell>
+                      <TableCell align="right">{motivo.cantidad}</TableCell>
+                      <TableCell align="right">${parseFloat(motivo.precioUnitario || 0).toFixed(2)}</TableCell>
+                      <TableCell align="right">{motivo.descuento}%</TableCell>
+                      <TableCell align="right">{motivo.iva}%</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: "bold" }}>
+                        ${parseFloat(motivo.total || 0).toFixed(2)}
+                      </TableCell>
                     </TableRow>
                   ))}
+                  {motivos.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                        No hay motivos registrados.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -290,4 +277,4 @@ const BuscarFacturaDesdeArticulosDF = () => {
   )
 }
 
-export default BuscarFacturaDesdeArticulosDF
+export default BuscarNotaDebitoDF

@@ -21,5 +21,8 @@ from app.FacturaDesdeArticulosDF import generarCodigoTemporal
 from app.FacturaDesdeArticulosDF import getVendedores
 from app.FacturaDesdeArticulosDF import facturarProforma
 from app.FacturaDesdeArticulosDF import recuperarPayloadFactura
+from app.FacturaDesdeArticulosDF import getProforma
+from app.FacturaDesdeArticulosDF import editarPedido
+from app.FacturaDesdeArticulosDF import getProformaFacturaBuscar
 
 from app.FacturaDesdeArticulosDF.utils import construir_payload_sri

@@ -184,6 +184,15 @@ import { SecuenciasInternas, CrearSecuenciasInternas, EditarSecuenciasInternas }
 // SecuenciasDoc
 import { SecuenciasDoc, CrearSecuenciasDoc, EditarSecuenciasDoc } from "../pages"
 
+// NotaDebitoDF
+import { NotaDebitoDF, CrearNotaDebitoDF, BuscarNotaDebitoDF } from "../pages"
+
+// GuiadeRemisionDF
+import { GuiadeRemisionDF, CrearGuiadeRemisionDF, BuscarGuiadeRemisionDF } from "../pages"
+
+// ServiciosNDNC
+import { ServiciosNDNC, CrearServiciosNDNC, EditarServiciosNDNC } from "../pages"
+
 const protectedRoutes = [
   { path: "Submenu/:label/:id", element: <SubMenu /> },
   { path: "dashboard/AccesoACompañiasYModulos", element: <AccesoACompañiasYModulos /> },
@@ -331,6 +340,15 @@ const protectedRoutes = [
   { path: "dashboard/SecuenciasDoc", element: <SecuenciasDoc /> },
   { path: "dashboard/SecuenciasDoc/crear", element: <CrearSecuenciasDoc /> },
   { path: "dashboard/SecuenciasDoc/editar", element: <EditarSecuenciasDoc /> },
+  { path: "dashboard/NotaDebitoDF", element: <NotaDebitoDF /> },
+  { path: "dashboard/NotaDebitoDF/buscar", element: <BuscarNotaDebitoDF /> },
+  { path: "dashboard/NotaDebitoDF/crear", element: <CrearNotaDebitoDF /> },
+  { path: "dashboard/GuiadeRemisionDF", element: <GuiadeRemisionDF /> },
+  { path: "dashboard/GuiadeRemisionDF/buscar", element: <BuscarGuiadeRemisionDF /> },
+  { path: "dashboard/GuiadeRemisionDF/crear", element: <CrearGuiadeRemisionDF /> },
+  { path: "dashboard/ServiciosNDNC", element: <ServiciosNDNC /> },
+  { path: "dashboard/ServiciosNDNC/crear", element: <CrearServiciosNDNC /> },
+  { path: "dashboard/ServiciosNDNC/editar", element: <EditarServiciosNDNC /> },
 ]
 
 export default protectedRoutes

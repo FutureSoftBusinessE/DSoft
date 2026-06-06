@@ -1,7 +1,8 @@
 import axios from "axios"
 import { errorHandler } from "./errorHandler"
 
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3000"
+// Si está vacío (solo pasa en desarrollo), usa el hostname. Esto lo hago para que se pueda probar en celular en desarrollo
+const API_URL = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:5000`
 
 // Cliente Axios configurado
 const apiClient = axios.create({

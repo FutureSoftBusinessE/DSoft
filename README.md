@@ -127,9 +127,9 @@ pip install -r requirements.txt
 
 **IMPORTANTE:** Asegúrate de que el entorno virtual (.venv) esté activado antes de ejecutar este comando.
 
-6. **Iniciar el servidor Flask en modo debug:**
+6. **Iniciar el servidor de desarrollo Flask:**
 ```
-flask run --debug
+py flask_service.py
 ```
 #### Verificación:
 - El backend estará disponible en: `http://localhost:5000`

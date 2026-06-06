@@ -3,3 +3,4 @@ samples
 node_modules
 .DS_Store
 **/.DS_Store
+*web.config

@@ -1,5 +1,6 @@
 function fetchwrapper(url, options) {
-  const API_URL = process.env.REACT_APP_API_URL
+  // Si está vacío (solo pasa en desarrollo), usa el hostname. Esto lo hago para que se pueda probar en celular en desarrollo
+  const API_URL = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:5000`
   const token = localStorage.getItem("accessToken")
   if (token) {
     if (!options) {

@@ -18,7 +18,7 @@ load_dotenv()  # Carga .env por defecto
 
 def create_app(config_class=Config):
 
-    app = Flask(__name__, static_folder="../../frontend/build")
+    app = Flask(__name__)
 
     # ************************************************************
     #                         LOGGER FLASK
@@ -73,11 +73,21 @@ def create_app(config_class=Config):
 
     ma.init_app(app)
 
+    # ************************************************************
+    #  CONFIGURACION DE POOL DE ORIGENES PARA EL CORS
+    # ************************************************************
+
     from app.extensions import cors
 
+    cors_origins_str = config_env("APP_CORS_ALLOWED_ORIGINS", "")
+
+    # Se convierte el string separado por comas en una lista de Python
+    allowed_origins = [origen.strip() for origen in cors_origins_str.split(",")]
+
+    # 3. Se lo pasamos a la configuración de CORS
     cors.init_app(
         app,
-        resources={r"/*": {"origins": "*", "headers": ["Content-Type", "Authorization"]}},
+        resources={r"/*": {"origins": allowed_origins, "headers": ["Content-Type", "Authorization"]}},
     )
 
     from app.extensions import jwt
@@ -338,35 +348,29 @@ def create_app(config_class=Config):
 
     app.register_blueprint(SecuenciasDoc_bp, url_prefix="/SecuenciasDoc")
 
-    print("---------------ENDPOINTS------------------")
-    for rule in app.url_map.iter_rules():
-        print(str(rule))
+    # ************************************************************
+    #  RUTAS BASE Y HERRAMIENTAS DE DESARROLLO (SOLO LOCAL)
+    # ************************************************************
 
-    print("---------------/ENDPOINTS------------------")
-
-    # --------------------------------------
-
-    # Ruta para servir todos los archivos dentro de la carpeta "build" de React
-    # Serve React App
-    @app.route("/")
-    def index():
-        endpoints = []
+    if current_env == "development":
+        # Imprimir en consola local todos los endpoints del backend
+        print("---------------ENDPOINTS------------------")
         for rule in app.url_map.iter_rules():
-            endpoints.append(str(rule))
-        return jsonify(endpoints=endpoints)
+            print(str(rule))
+        print("---------------/ENDPOINTS------------------")
 
-    # @app.route('/', defaults={'path': ''})
-    @app.route("/<path:path>")
-    def serve(path):
-        if path != "" and os.path.exists(app.static_folder + "/" + path):
-            return send_from_directory(app.static_folder, path)
-        else:
-            return send_from_directory(app.static_folder, "index.html")
+        # Exponer endpoints en la ruta '/' solo para localhost de 'development'
+        @app.route("/")
+        def index():
+            endpoints = []
+            for rule in app.url_map.iter_rules():
+                endpoints.append(str(rule))
+            return jsonify(endpoints=endpoints)
 
-    # --------------------------------------
-    # test page
-    @app.route("/test/")
-    def test_page():
-        return "<h1>TEST</h1>"
+    else:
+        # En PRODUCCIÓN, la ruta raíz solo devuelve un status genérico
+        @app.route("/")
+        def index():
+            return jsonify({"status": "API Online"})
 
     return app

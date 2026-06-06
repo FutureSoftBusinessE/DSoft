@@ -1,14 +1,13 @@
 from flask import jsonify, request
 from app.PuntosEmisionSri import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from sqlalchemy import text
 
 
 @bp.route("/getSeriesSriByCaja", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getSeriesSriByCaja():
     claims = get_jwt()

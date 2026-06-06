@@ -1,7 +1,7 @@
 from flask import request, jsonify
 from app.GuiadeRemisionDF import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 from app.db import get_session
@@ -9,7 +9,6 @@ import base64
 
 
 @bp.route("/descargarRIDE", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def descargar_ride():
     try:

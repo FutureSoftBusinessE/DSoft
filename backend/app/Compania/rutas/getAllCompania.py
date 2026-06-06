@@ -2,7 +2,7 @@ import base64
 from flask import jsonify, request
 from app.Compania import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from sqlalchemy import text
@@ -11,7 +11,6 @@ from app.Clases.FILTER_VALUE_TYPE import FILTER_VALUE_TYPE
 
 
 @bp.route("/getAllCompania", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getAllGravamenes():
     claims = get_jwt()

@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from app.CargaDeTrabajo import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 from app.db import get_session
@@ -10,7 +10,6 @@ from datetime import datetime
 
 
 @bp.route("/getAllInfo", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getAllInfo():
     claims = get_jwt()

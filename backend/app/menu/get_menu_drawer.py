@@ -6,7 +6,7 @@ import json
 from app.menu.utils.build_tree import build_tree
 from app.menu import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 
 from app.models.siacopc import Siacopc, SiacopcSchema
 from app.models.siactusrweb import Siactusrweb
@@ -18,7 +18,6 @@ from app.db import get_session
 #     "deep": 2
 # }
 @bp.route("/get_menu_drawer", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_menu_drawer():
     data = request.get_json() if request.is_json else None
@@ -66,7 +65,6 @@ def get_menu_drawer():
 
 
 @bp.route("/get_menu_all", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def get_menu_all():
     data = request.get_json() if request.is_json else None

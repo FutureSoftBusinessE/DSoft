@@ -2,14 +2,13 @@
 from flask import jsonify, request
 from app.login import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from services.encrip_desencrip import encriptar, desencriptar
 
 from app.models.usuario import Usuario, UsuarioSchema
 
 
 @bp.route("/obtener_usuario", methods=["POST"])
-@cross_origin()
 def obtener_usuario():
     data = request.get_json() if request.is_json else None
 

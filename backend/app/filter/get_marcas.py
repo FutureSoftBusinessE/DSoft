@@ -4,12 +4,11 @@ from app.models.marca import Marca
 from flask import jsonify, request
 from app.filter import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from app.db import get_session
 
 
 @bp.route("/get_marcas", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_marcas():
 

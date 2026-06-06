@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from app.AsignacionHorariosAUsuarios import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import func
 from app.db import get_session
@@ -16,7 +16,6 @@ import base64
 
 
 @bp.route("/getAllHorarios", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getAllHorarios():
     claims = get_jwt()

@@ -5,7 +5,7 @@ from sqlalchemy import text, func, cast, VARCHAR
 import json
 from app.linea import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 
 from app.models.linea import Linea, LineaSchema
 
@@ -16,7 +16,6 @@ from app.models.linea import Linea, LineaSchema
 
 
 @bp.route("/get_linea_by_parent", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_linea_by_parent():
     data = request.get_json() if request.is_json else None

@@ -2,13 +2,12 @@
 from flask import jsonify, request, render_template
 from app.login import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from app.models.fsbsmcliusu import fsbsmcliusu, fsbsmcliusu_schema_varios, fsbsmcliusu_schema
 from app.models.fsbsmclicia import fsbsmclicia, fsbsmclicia_schema_varios, fsbsmclicia_schema
 
 
 @bp.route("/")
-@cross_origin()
 def index():
     return "login/"  # render_template('login/index.html')
 
@@ -61,7 +60,6 @@ def index():
 
 
 @bp.route("/buscar_grupos_de_cliciausu", methods=["POST"])
-@cross_origin()
 def login():
     # Obtener el JSON enviado en la solicitud
     data = request.get_json()
@@ -113,7 +111,6 @@ def login():
 
 
 @bp.route("/fsbsmcliusu/")
-@cross_origin()
 def all_users():
 
     users = fsbsmcliusu.query.all()
@@ -122,7 +119,6 @@ def all_users():
 
 
 @bp.route("/fsbsmclicia/")
-@cross_origin()
 def all_otros():
 
     otros = fsbsmclicia.query.all()

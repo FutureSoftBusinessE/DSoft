@@ -5,7 +5,7 @@ from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import and_, func
 from app.models.intimagen import intimagen
 from flask import jsonify, request
-from flask_cors import cross_origin
+
 from app.productos import bp
 from app.extensions import db
 from app.models.viewProductos import ViewProducto
@@ -21,7 +21,6 @@ from app.db import get_session
 
 
 @bp.route("/get_productos_fichas", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_productos_fichas():
     data = request.get_json() if request.is_json else None

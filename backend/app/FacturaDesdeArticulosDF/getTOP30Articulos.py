@@ -1,7 +1,7 @@
 from app.FacturaDesdeArticulosDF import bp
 from app.extensions import db
 from flask import jsonify, request
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 from app.db import get_session
@@ -10,7 +10,6 @@ import base64
 
 
 @bp.route("/getTOP30Articulos", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getTOP30Articulos():
     claims = get_jwt()
@@ -154,7 +153,6 @@ def getTOP30Articulos():
 
 
 @bp.route("/getArticulosConFiltros", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getArticulosConFiltros():
     claims = get_jwt()

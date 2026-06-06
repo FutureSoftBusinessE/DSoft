@@ -3,7 +3,7 @@ import json
 from flask import jsonify, request
 from app.login import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from app.models.DynamicLoginDB import DynamicLoginDB, DynamicLoginDBSchema
 from services.encrip_desencrip import encriptar, desencriptar
 from app.models.fsbsmcliusu import fsbsmcliusu, fsbsmcliusu_schema_varios, fsbsmcliusu_schema
@@ -28,7 +28,6 @@ from services.encrip_desencrip import desencriptar
 #       },
 # }
 @bp.route("/inicio_sesion", methods=["POST"])
-@cross_origin()
 def inicio_sesion():
     data = request.get_json() if request.is_json else None
     usuario = data["user"]

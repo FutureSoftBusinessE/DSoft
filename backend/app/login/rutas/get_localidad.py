@@ -2,13 +2,12 @@
 from sqlalchemy import text
 from app.login import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from services.encrip_desencrip import encriptar
 from app.db import get_session
 
 
 @bp.route("/get_localidad", methods=["POST"])
-@cross_origin()
 def get_localidad():
     # =========================================================================
     # 1. TRUCO MAESTRO: Limpiar el Token Viejo de la Petición

@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from app.Integradora import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from sqlalchemy import text
@@ -11,7 +11,6 @@ from app.Clases.SEARCH_TYPE_HELPER import SEARCH_TYPE_HELPER
 
 
 @bp.route("/getTipoIdentificacion", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getTipoIdentificacion():
     claims = get_jwt()

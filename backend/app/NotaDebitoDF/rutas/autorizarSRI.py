@@ -1,7 +1,7 @@
 from flask import request, jsonify
 from app.NotaDebitoDF import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 from app.db import get_session
@@ -40,7 +40,6 @@ def get_codigo_porcentaje_iva(porcentaje):
 
 
 @bp.route("/autorizarSRI", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def autorizar_sri_nota_debito():
     try:

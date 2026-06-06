@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from app.solicitudDeIngreso import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from app.models.cxcmcli import Cxcmcli
@@ -10,7 +10,6 @@ from app.models.inbsgaclibod import inbsgaclibod
 
 
 @bp.route("/getAllClientes", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def getAllClientes():
     claims = get_jwt()

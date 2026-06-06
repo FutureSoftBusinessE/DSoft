@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from app.LineasINV import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from sqlalchemy import text
@@ -12,7 +12,6 @@ from app.Clases.FILTER_VALUE_TYPE import FILTER_VALUE_TYPE
 
 
 @bp.route("/getAllLineasINV", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getAllLineasINV():
     # 1. Extracción de sesión y multitenancy

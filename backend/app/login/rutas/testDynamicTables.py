@@ -2,7 +2,7 @@
 # import json
 # from flask import jsonify, request
 # from app.login import bp
-# from flask_cors import cross_origin
+#
 # from app.models.siacPracticasaSiacusr import siacPracticasaSiacusr
 # from app.db import get_session
 # from app.extensions import db
@@ -23,8 +23,7 @@
 # #       },
 # # }
 # @bp.route('/testDynamics', methods=['POST'])
-# @cross_origin()
-# def testDynamics():
+# # def testDynamics():
 #     data = request.get_json() if request.is_json else None
 #     # usrcodigo = data['user']
 #     password = data['password']

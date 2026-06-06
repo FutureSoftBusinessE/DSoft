@@ -2,7 +2,7 @@
 from flask import jsonify, request, make_response
 from app.BancoDeTareas import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from app.models.gdocctareas import gdocctareas
@@ -61,7 +61,6 @@ from datetime import datetime
 
 
 @bp.route("/editarSpecificBancoDeTarea/<string:pregcodigo>", methods=["PUT"])
-@cross_origin()
 @jwt_required()
 def editarSpecificBancoDeTarea(pregcodigo):
 

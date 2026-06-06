@@ -1,8 +1,8 @@
 from flask import Blueprint
-from flask_cors import CORS
+
 
 bp = Blueprint("AccesoAOpcionesPorModulos", __name__)
-cors = CORS(bp, resources={r"/*": {"origins": "*", "headers": ["Content-Type", "Authorization"]}})
+
 
 from app.AccesoAOpcionesPorModulos.rutas import getAllUsersModulos
 from app.AccesoAOpcionesPorModulos.rutas import getAllOpcionesModulo

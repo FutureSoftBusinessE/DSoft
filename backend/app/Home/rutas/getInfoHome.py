@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from app.Home import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from services.encrip_desencrip import encriptar, desencriptar
@@ -11,7 +11,6 @@ from datetime import datetime
 
 
 @bp.route("/getInfoHome", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getInfoHome():
     # 1. Extracción de identidad y contexto del JWT

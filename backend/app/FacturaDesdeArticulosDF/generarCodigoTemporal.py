@@ -1,7 +1,7 @@
 from app.FacturaDesdeArticulosDF import bp
 from flask import jsonify, request
 from flask_jwt_extended import get_jwt, jwt_required
-from flask_cors import cross_origin
+
 from app.extensions import db
 from app.db import get_session
 from sqlalchemy import text
@@ -9,7 +9,6 @@ from datetime import datetime
 
 
 @bp.route("/generarCodigoPedidoTemporal", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def generarCodigoPedidoTemporal():
     claims = get_jwt()

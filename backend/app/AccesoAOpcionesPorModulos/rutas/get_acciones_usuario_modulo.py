@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from app.AccesoAOpcionesPorModulos import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 from app.db import get_session
@@ -11,7 +11,6 @@ from datetime import datetime
 
 # Agrega este endpoint en tu archivo de rutas (app/AccesoAOpcionesPorModulos/__init__.py o similar)
 @bp.route("/get_acciones_usuario_modulo", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_acciones_usuario_modulo():
     """

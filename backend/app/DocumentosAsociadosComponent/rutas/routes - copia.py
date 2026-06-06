@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from app.DocumentosAsociadosComponent import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 from app.db import get_session
@@ -24,7 +24,6 @@ def null_si_vacio(valor):
 
 
 @bp.route("/getAllTiposDocumentos", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def get_all_tipos_documentos():
     """
@@ -73,7 +72,6 @@ def get_all_tipos_documentos():
 
 
 @bp.route("/getAllDocumentosAsociados", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_all_documentos_asociados():
     """
@@ -182,7 +180,6 @@ def get_all_documentos_asociados():
 
 
 @bp.route("/createNewDocumento", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def create_new_documento():
     """
@@ -429,7 +426,6 @@ def create_new_documento():
 
 
 @bp.route("/editSpecificDocumento", methods=["PUT"])
-@cross_origin()
 @jwt_required()
 def edit_specific_documento():
     """
@@ -705,7 +701,6 @@ def edit_specific_documento():
 
 
 @bp.route("/deleteSpecificDocumento", methods=["DELETE"])
-@cross_origin()
 @jwt_required()
 def delete_specific_documento():
     """
@@ -858,7 +853,6 @@ def delete_specific_documento():
 
 
 @bp.route("/downloadSpecificDocumento", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def download_specific_documento():
     """
@@ -966,7 +960,6 @@ def download_specific_documento():
 
 
 @bp.route("/buscarDocumentosParaImportar", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def buscar_documentos_para_importar():
     """
@@ -1125,7 +1118,6 @@ def buscar_documentos_para_importar():
 
 
 @bp.route("/importarDocumentos", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def importar_documentos():
     """
@@ -1256,7 +1248,6 @@ def importar_documentos():
 
 
 @bp.route("/getDocumentoContent", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_documento_content():
     """

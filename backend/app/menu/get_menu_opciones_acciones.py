@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from app.menu import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 from app.db import get_session
@@ -13,7 +13,6 @@ from services.encrip_desencrip import encriptar
 
 
 @bp.route("/get_menu_opciones_acciones", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def get_menu_opciones_acciones():
     claims = get_jwt()

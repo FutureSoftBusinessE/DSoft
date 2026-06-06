@@ -1,14 +1,13 @@
 from flask import request, jsonify
 from app.NotaDebitoDF import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 from app.db import get_session
 
 
 @bp.route("/getNotaDebitoBuscar", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_nota_debito_buscar():
     """Reconstruye toda la información de una Nota de Débito para la vista de Solo Lectura"""

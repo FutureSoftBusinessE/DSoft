@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from app.ConsultaDeCedulaEventos import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import func
 from app.db import get_session
@@ -12,7 +12,6 @@ from datetime import datetime
 
 
 @bp.route("/getLocalidades", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def getAllLocalidades():
     claims = get_jwt()

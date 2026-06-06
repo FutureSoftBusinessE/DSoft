@@ -4,13 +4,12 @@ from app.models.fapvendedor import Fapvendedor, FapvendedorSchema
 from app.extensions import db
 from flask import jsonify, request
 from flask_jwt_extended import get_jwt, jwt_required
-from flask_cors import cross_origin
+
 from app.db import get_session
 from sqlalchemy import text
 
 
 @bp.route("/getVendedores", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def getVendedores():
     claims = get_jwt()

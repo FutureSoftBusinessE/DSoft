@@ -1,7 +1,7 @@
 ﻿from flask import request
 from app.Compania import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from sqlalchemy import text
@@ -445,7 +445,6 @@ def validate_field_length(field_name, field_value):
 
 
 @bp.route("/editarCompania", methods=["POST"])
-@cross_origin()
 @jwt_required()
 @api_endpoint
 def editarCompania():

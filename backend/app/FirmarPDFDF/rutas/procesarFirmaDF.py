@@ -1,5 +1,5 @@
 from flask import request
-from flask_cors import cross_origin
+
 from flask_jwt_extended import jwt_required
 import io
 from datetime import datetime, timezone
@@ -12,7 +12,6 @@ from error_handling import api_endpoint, ValidationError
 
 
 @bp.route("/validarFirmaP12", methods=["POST"])
-@cross_origin()
 @jwt_required()
 @api_endpoint
 def validarFirmaP12():

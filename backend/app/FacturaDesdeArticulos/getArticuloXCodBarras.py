@@ -7,7 +7,7 @@ from flask import jsonify, request
 from sqlalchemy import and_, func, or_, text
 from app.FacturaDesdeArticulos import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 
 from app.models.intimagen import intimagen
 from app.utils import paginate
@@ -16,7 +16,6 @@ from app.models.SiacSys import SiacSys, SiacSysSchema
 
 
 @bp.route("/getArticuloXCodBarras/<string:codigo_articulo>", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def getArticuloXCodBarras(codigo_articulo):
     claims = get_jwt()

@@ -1,7 +1,7 @@
 ﻿# flake8: noqa
 from urllib import request
 from flask import jsonify
-from flask_cors import cross_origin
+
 from flask_jwt_extended import jwt_required
 from app.siacopc import bp
 from app.extensions import db
@@ -9,7 +9,6 @@ from app.models.siacopc import Siacopc
 
 
 @bp.route("/obtener_items", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def obtener_items():
     query_result = db.session.query(

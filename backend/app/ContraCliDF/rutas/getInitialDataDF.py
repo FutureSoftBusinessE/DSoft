@@ -1,5 +1,5 @@
 from flask import request
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 from app.ContraCliDF import bp
@@ -9,7 +9,6 @@ from error_handling import api_endpoint
 
 
 @bp.route("/getInitialDataDF", methods=["POST"])
-@cross_origin()
 @jwt_required()
 @api_endpoint
 def getInitialDataDF():

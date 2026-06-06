@@ -4,13 +4,12 @@ from flask_jwt_extended import get_jwt, jwt_required
 import json
 from app.linea import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 
 from app.models.linea import Linea, LineaSchema
 
 
 @bp.route("/get_lineas_roots", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_lineas_roots():
     data = request.get_json() if request.is_json else None

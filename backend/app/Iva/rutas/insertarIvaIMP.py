@@ -1,5 +1,5 @@
 from flask import request
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 from datetime import datetime
@@ -13,7 +13,6 @@ from app.Iva.rutas.validarIvaIMP import validar_iva
 
 
 @bp.route("/insertarIvaIMP", methods=["POST"])
-@cross_origin()
 @jwt_required()
 @api_endpoint
 def insertarIvaIMP():

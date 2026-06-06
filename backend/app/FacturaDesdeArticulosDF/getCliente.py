@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from app.FacturaDesdeArticulosDF import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from app.models.cxcmcli import Cxcmcli
@@ -15,7 +15,6 @@ class SEARCH_TYPE_HELPER(Enum):
 
 
 @bp.route("/getCliente", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getCliente():
     claims = get_jwt()

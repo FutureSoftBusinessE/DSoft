@@ -6,7 +6,7 @@ from flask import jsonify, request
 from sqlalchemy import and_, or_
 from app.filter import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 
 from app.utils import paginate
 from app.db import get_session
@@ -28,7 +28,6 @@ from app.utils.get_info_product import get_info_product
 
 
 @bp.route("/make_filter", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def make_filter():
     data = request.get_json() if request.is_json else None

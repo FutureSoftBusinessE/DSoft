@@ -1,7 +1,7 @@
 from flask import jsonify, request, make_response
 from app.FacturaDesdeArticulosDF import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from app.models.cxcmcli import Cxcmcli
@@ -16,7 +16,6 @@ from enum import Enum
 
 
 @bp.route("/getAgenciaXCliente", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getAgenciaXCliente():
     try:

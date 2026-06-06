@@ -2,7 +2,7 @@
 import json
 import platform
 from flask import jsonify, request, current_app
-from flask_cors import cross_origin
+
 from flask_jwt_extended import create_access_token, get_jwt, jwt_required
 from app.login import bp
 from app.extensions import db
@@ -32,7 +32,6 @@ from sqlalchemy import text
 #         },
 # }
 @bp.route("/generate_token", methods=["POST"])
-@cross_origin()
 def generate_token():
     try:
         data = request.get_json() if request.is_json else None
@@ -97,7 +96,6 @@ def generate_token():
 
 
 @bp.route("/test_token", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def test_token():
     claims = get_jwt()
@@ -106,7 +104,6 @@ def test_token():
 
 
 @bp.route("/refresh_token", methods=["POST"])
-@cross_origin()
 @jwt_required(refresh=True)
 def refresh_token():
     claims = get_jwt()
@@ -117,7 +114,6 @@ def refresh_token():
 
 # retoena el tiempo que le queda al token
 @bp.route("/verify_token", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def verify_token():
     claims = get_jwt()
@@ -127,7 +123,6 @@ def verify_token():
 
 # cambio de compañia sin necesidad de volver a iniciar sesion
 @bp.route("/switch_company_token", methods=["POST"])
-@cross_origin()
 @jwt_required()  # <- ESTO ES CLAVE: Solo un usuario ya logueado puede ejecutar esto
 def switch_company_token():
     try:

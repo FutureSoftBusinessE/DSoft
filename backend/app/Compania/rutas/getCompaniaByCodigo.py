@@ -1,7 +1,7 @@
 import base64
 
 from flask import jsonify, request
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 
@@ -18,7 +18,6 @@ def serialize_image(value):
 
 
 @bp.route("/getCompaniaByCodigo", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getCompaniaByCodigo():
     claims = get_jwt()

@@ -4,7 +4,7 @@ from sqlalchemy import text, func, cast, VARCHAR
 import json
 from app.login import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 
 from app.models.siacopc import Siacopc, SiacopcSchema
 from app.models.siactusrweb import Siactusrweb
@@ -28,7 +28,6 @@ from app.models.siactusrweb import Siactusrweb
 #     "item_number": null
 # }
 @bp.route("/get_menu_by_parent", methods=["POST"])
-@cross_origin()
 def get_menu_by_parent():
     data = request.get_json()
     cliciaciacodigo = data["seleccion"]["cliciaciacodigo"]

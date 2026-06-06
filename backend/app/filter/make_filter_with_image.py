@@ -7,7 +7,7 @@ from flask import jsonify, request
 from sqlalchemy import and_, func, or_, text
 from app.filter import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 
 from app.models.intimagen import intimagen
 from app.utils import paginate
@@ -19,7 +19,6 @@ from app.models.intartbarras import intartbarras
 
 
 @bp.route("/make_filter_with_image", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def make_filter_with_image():
     data = request.get_json() if request.is_json else None

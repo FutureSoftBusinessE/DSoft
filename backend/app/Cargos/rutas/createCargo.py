@@ -1,7 +1,7 @@
 from flask import request
 from app.Cargos import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from sqlalchemy import text
@@ -10,7 +10,6 @@ from error_handling import api_endpoint, ValidationError
 
 
 @bp.route("/createCargo", methods=["POST"])
-@cross_origin()
 @jwt_required()
 @api_endpoint  # Decorador estándar de SIACDEV1.0 para manejo de respuestas y errores
 def createCargo():

@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from app.solicitudDeIngreso import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 from datetime import datetime
@@ -9,7 +9,6 @@ from app.db import get_session
 
 
 @bp.route("/getCod2ArticuloXCliente", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getCod2ArticuloXCliente():
     claims = get_jwt()

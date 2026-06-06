@@ -2,7 +2,7 @@
 from flask import jsonify, request
 from app.PaquetesDeProcesosTareas import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from app.models.gdoccpaquetes import gdoccpaquetes
@@ -12,7 +12,6 @@ from sqlalchemy import desc
 
 
 @bp.route("/getProcesos", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def getAllGestionAlmacenProcesos():
 

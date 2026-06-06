@@ -1,14 +1,13 @@
 ﻿from app.FacturaDesdeArticulos import bp
 from flask import jsonify, request
 from flask_jwt_extended import get_jwt, jwt_required
-from flask_cors import cross_origin
+
 from app.extensions import db
 from app.db import get_session
 from sqlalchemy import text
 
 
 @bp.route("/getFormaPago", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def get_formas_pago():
     # Obtener los datos del usuario autenticado desde el token JWT

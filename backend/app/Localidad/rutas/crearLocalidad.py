@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from flask import request
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 
@@ -576,7 +576,6 @@ def normalize_value(field_name, value):
 
 
 @bp.route("/crearLocalidad", methods=["POST"])
-@cross_origin()
 @jwt_required()
 @api_endpoint
 def crearLocalidad():

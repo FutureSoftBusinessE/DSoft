@@ -1,5 +1,5 @@
 from flask import request
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 from datetime import datetime
@@ -14,7 +14,6 @@ from app.MedidasINV.rutas.validarMedidasINVIMP import validar_medidasinv
 
 
 @bp.route("/insertarMedidasINVIMP", methods=["POST"])
-@cross_origin()
 @jwt_required()
 @api_endpoint
 def insertarMedidasINVIMP():

@@ -4,7 +4,7 @@ from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import and_
 from app.models.intimagen import intimagen
 from flask import jsonify, request
-from flask_cors import cross_origin
+
 from app.productos import bp
 from app.extensions import db
 from app.models.producto import Producto
@@ -23,7 +23,6 @@ from app.models.view_inmstock import view_inmstockSchema
 
 
 @bp.route("/obtener_productos", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def obtener_productos():
     data = request.get_json()
@@ -67,7 +66,6 @@ def obtener_productos():
 
 
 @bp.route("/obtener_productos/<codigo_Prod>", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def obtener_productos_por_codigo(codigo_Prod):
 
@@ -96,7 +94,6 @@ def obtener_productos_por_codigo(codigo_Prod):
 
 
 @bp.route("/obtener_productos/it/<categoria>/<nivel>", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def obtener_items_cat_nivel(categoria, nivel):
     query_result = db.session.query(

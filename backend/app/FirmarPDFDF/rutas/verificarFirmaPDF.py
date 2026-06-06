@@ -1,5 +1,5 @@
 from flask import request
-from flask_cors import cross_origin
+
 from flask_jwt_extended import jwt_required
 
 # Importamos PdfFileReader en lugar del Writer para una validación segura
@@ -40,7 +40,6 @@ def decodificar_texto_pdf(texto):
 
 
 @bp.route("/verificarFirmaPDF", methods=["POST"])
-@cross_origin()
 @jwt_required()
 @api_endpoint
 def verificarFirmaPDF():

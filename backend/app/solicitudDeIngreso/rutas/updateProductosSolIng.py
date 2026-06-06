@@ -1,7 +1,7 @@
 from flask import jsonify, request, make_response
 from app.solicitudDeIngreso import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from app.models.incSgaSolIng import incSgaSolIng
@@ -16,7 +16,6 @@ from app.models.cxpmprov import cxpmprov
 
 
 @bp.route("/updateProductosSolIng", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def updateProductosSolIng():
     claims = get_jwt()

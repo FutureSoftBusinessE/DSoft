@@ -4,7 +4,7 @@ from app.linea.utils.build_tree import build_tree
 from flask import jsonify, request
 from app.linea import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from app.models.linea import Linea
 
 # {
@@ -13,7 +13,6 @@ from app.models.linea import Linea
 
 
 @bp.route("/get_lineas_tree_by_root", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_lineas_tree_by_root():
     data = request.get_json() if request.is_json else None

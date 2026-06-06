@@ -3,7 +3,7 @@ from flask import jsonify, request
 from flask_jwt_extended import get_jwt, jwt_required
 from app.menu import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 
 from app.models.siacopc import Siacopc, SiacopcSchema
 from app.models.siactusrweb import Siactusrweb
@@ -14,7 +14,6 @@ from services.encrip_desencrip import encriptar
 #     "item_number": null
 # }
 @bp.route("/get_menu_by_parent", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_menu_by_parent():
     data = request.get_json() if request.is_json else None

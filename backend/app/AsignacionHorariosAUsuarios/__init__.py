@@ -1,8 +1,8 @@
 from flask import Blueprint
-from flask_cors import CORS
+
 
 bp = Blueprint("AsignacionHorariosAUsuarios", __name__)
-cors = CORS(bp, resources={r"/*": {"origins": "*", "headers": ["Content-Type", "Authorization"]}})
+
 
 from app.AsignacionHorariosAUsuarios.rutas import getAllUsuarios
 from app.AsignacionHorariosAUsuarios.rutas import getAllLocalidades

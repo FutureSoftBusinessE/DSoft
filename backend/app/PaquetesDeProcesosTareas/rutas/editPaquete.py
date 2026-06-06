@@ -2,7 +2,7 @@
 from flask import jsonify, request, make_response
 from app.PaquetesDeProcesosTareas import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from app.models.gdoctpaquetes import gdoctpaquetes
@@ -37,7 +37,6 @@ from datetime import datetime
 
 
 @bp.route("/editPaquete/<string:formcodigo>", methods=["PUT"])
-@cross_origin()
 @jwt_required()
 def editPaquete(formcodigo):
 

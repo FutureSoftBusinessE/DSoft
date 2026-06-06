@@ -4,7 +4,7 @@ import base64
 from flask_jwt_extended import get_jwt, jwt_required
 from app.models.intimagen import intimagen, intimagenSchema
 from flask import jsonify, request
-from flask_cors import cross_origin
+
 from app.productos import bp
 from app.extensions import db
 from app.models.viewProductos import ViewProducto
@@ -59,7 +59,6 @@ def obtenerIvaArticulo(ciaivaporproducto, sysiva, codigosTarifasIva, artapliiva)
 
 
 @bp.route("/get_producto_por_codigo", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_producto_por_codigo():
     data = request.get_json() if request.is_json else None

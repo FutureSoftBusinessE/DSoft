@@ -2,7 +2,7 @@
 from flask import jsonify, request, send_file
 from app.DocumentosAsociadosComponent import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 from app.db import get_session
@@ -25,7 +25,6 @@ def null_si_vacio(valor):
 # 1. GET: Catálogos Globales
 # =================================================================
 @bp.route("/getAllTiposDocumentos", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def get_all_tipos_documentos():
     try:
@@ -38,7 +37,6 @@ def get_all_tipos_documentos():
 
 
 @bp.route("/getAllInstituciones", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def get_all_instituciones():
     try:
@@ -51,7 +49,6 @@ def get_all_instituciones():
 
 
 @bp.route("/getAllTiposClaves", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def get_all_tipos_claves():
     try:
@@ -67,7 +64,6 @@ def get_all_tipos_claves():
 # 2. GET: getDocumentosAsociados
 # =================================================================
 @bp.route("/getDocumentosAsociados/<string:qgenero>/<string:procqgenero>", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def get_documentos_asociados(qgenero, procqgenero):
     try:
@@ -105,7 +101,6 @@ def get_documentos_asociados(qgenero, procqgenero):
 # 3. POST: guardarArchivoAdjunto (BLINDADO CON HEXADECIMAL)
 # =================================================================
 @bp.route("/guardarArchivoAdjunto", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def upload_documento():
     try:
@@ -156,11 +151,11 @@ def upload_documento():
                 query = text(
                     """
                     INSERT INTO gdocmdocumentos (
-                        ciacodigo, documentouuid, docextension, docqgenero, docprocqgenero, docsecuen, docnombre, documento, doc_datos_sensibles, 
+                        ciacodigo, documentouuid, docextension, docqgenero, docprocqgenero, docsecuen, docnombre, documento, doc_datos_sensibles,
                         docfecemi, docfecven, docindex1, docindex2, docindex3, docindex4, docindex5, docindex6, insticodigo, clacodigo, docfechorisys, docusuisys, docestisys
                     ) VALUES (
-                        :ciacodigo, :documentouuid, :docextension, :docqgenero, :docprocqgenero, :docsecuen, :docnombre, 
-                        CASE WHEN :doc_hex IS NOT NULL THEN CONVERT(VARBINARY(MAX), :doc_hex, 2) ELSE NULL END, 
+                        :ciacodigo, :documentouuid, :docextension, :docqgenero, :docprocqgenero, :docsecuen, :docnombre,
+                        CASE WHEN :doc_hex IS NOT NULL THEN CONVERT(VARBINARY(MAX), :doc_hex, 2) ELSE NULL END,
                         CASE WHEN :sens_hex IS NOT NULL THEN CONVERT(VARBINARY(MAX), :sens_hex, 2) ELSE NULL END,
                         :docfecemi, :docfecven, :docindex1, :docindex2, :docindex3, :docindex4, :docindex5, :docindex6, :insticodigo, :clacodigo, :docfechorisys, :docusuisys, 'A'
                     )
@@ -201,7 +196,6 @@ def upload_documento():
 # 4. GET: getDatosSensibles (CON RESCATE DE JSON Y PROTECCIÓN DE ERROR 500)
 # =================================================================
 @bp.route("/getDatosSensibles/<string:documentouuid>", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def get_datos_sensibles(documentouuid):
     try:
@@ -244,7 +238,6 @@ def get_datos_sensibles(documentouuid):
 # 5. GET: downloadDocumento (DESCARGA BINARIA PURA)
 # =================================================================
 @bp.route("/downloadDocumento/<string:documentouuid>", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def download_documento(documentouuid):
     try:
@@ -256,7 +249,7 @@ def download_documento(documentouuid):
         with db.session.bind.connect() as connection:
             query = text(
                 """
-                SELECT COALESCE(d.documento, o.documento), d.docnombre, d.docextension 
+                SELECT COALESCE(d.documento, o.documento), d.docnombre, d.docextension
                 FROM gdocmdocumentos d
                 LEFT JOIN gdocmdocumentos o ON d.documento_origen_uuid = o.documentouuid
                 WHERE d.documentouuid = :uuid AND d.ciacodigo = :ciacodigo
@@ -279,7 +272,6 @@ def download_documento(documentouuid):
 # 6. DELETE: deleteDocumento
 # =================================================================
 @bp.route("/deleteDocumento/<string:documentouuid>", methods=["DELETE"])
-@cross_origin()
 @jwt_required()
 def delete_documento(documentouuid):
     try:
@@ -300,7 +292,6 @@ def delete_documento(documentouuid):
 # 7. POST: buscarDocumentosParaImportar
 # =================================================================
 @bp.route("/buscarDocumentosParaImportar", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def buscar_documentos_para_importar():
     try:
@@ -348,7 +339,6 @@ def buscar_documentos_para_importar():
 # 8. POST: ejecutarImportacionDocumento (CORREGIDO TRANSACTION)
 # =================================================================
 @bp.route("/ejecutarImportacionDocumento", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def ejecutar_importacion_documento():
     try:

@@ -1,7 +1,7 @@
 from flask import jsonify, request, make_response
 from app.solicitudDeIngreso import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from app.models.intSgaSolIng import intSgaSolIng
@@ -9,7 +9,6 @@ from services.encrip_desencrip import encriptar
 
 
 @bp.route("/deleteProductosSolIng", methods=["DELETE"])
-@cross_origin()
 @jwt_required()
 def deleteProductosSolIng():
 

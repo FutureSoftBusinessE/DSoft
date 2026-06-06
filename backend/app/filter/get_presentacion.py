@@ -5,12 +5,11 @@ from app.models.presentacion import Presentacion
 from flask import jsonify, request
 from app.filter import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from app.db import get_session
 
 
 @bp.route("/get_presentacion", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_presentacion():
     data = request.get_json() if request.is_json else None

@@ -5,14 +5,13 @@ from sqlalchemy import text, func, cast, VARCHAR
 import json
 from app.linea import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 
 from app.models.linea import Linea, LineaSchema
 from app.db import get_session
 
 
 @bp.route("/get_lineas", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_lineas():
     data = request.get_json() if request.is_json else None

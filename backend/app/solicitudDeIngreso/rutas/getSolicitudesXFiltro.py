@@ -3,7 +3,7 @@ import traceback
 from flask_paginate import Pagination, get_page_parameter
 from app.solicitudDeIngreso import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from app.models.cxpmprov import cxpmprov
@@ -50,7 +50,6 @@ def apply_grilla_filters(query, filters):
 
 
 @bp.route("/getSolicitudesXFiltro", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getSolicitudesXFiltro():
     try:

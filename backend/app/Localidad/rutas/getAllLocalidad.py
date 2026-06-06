@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 
@@ -11,7 +11,6 @@ from app.utils.build_paginated_query import build_paginated_query
 
 
 @bp.route("/getAllLocalidad", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getAllLocalidad():
     claims = get_jwt()

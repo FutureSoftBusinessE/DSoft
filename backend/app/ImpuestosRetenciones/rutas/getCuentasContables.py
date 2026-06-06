@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 
@@ -12,7 +12,6 @@ from app.Clases.SEARCH_TYPE_HELPER import SEARCH_TYPE_HELPER
 
 
 @bp.route("/getCuentasContables", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getCuentasContables():
     claims = get_jwt()

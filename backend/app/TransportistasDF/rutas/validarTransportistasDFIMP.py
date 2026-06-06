@@ -1,5 +1,5 @@
 from flask import request
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 
@@ -115,7 +115,6 @@ def validar_transportistasdf(connection, columns: list, required: list, key_colu
 
 
 @bp.route("/validarTransportistasDFIMP", methods=["POST"])
-@cross_origin()
 @jwt_required()
 @api_endpoint
 def validarTransportistasDFIMP():

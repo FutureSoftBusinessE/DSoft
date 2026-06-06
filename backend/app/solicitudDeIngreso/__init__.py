@@ -1,12 +1,7 @@
 from flask import Blueprint
-from flask_cors import CORS
 
 
 bp = Blueprint("solicitudDeIngreso", __name__)
-cors = CORS(
-    bp,
-    resources={r"/*": {"origins": "*", "headers": ["Content-Type", "Authorization"]}},
-)
 
 from app.solicitudDeIngreso.rutas import getImagesxArtcodigo
 from app.solicitudDeIngreso.rutas import ayudaProveedor

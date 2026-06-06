@@ -2,7 +2,7 @@
 from flask import jsonify, request, make_response
 from app.GestionAlmacenProcesos import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from app.models.siacprocesos import siacprocesos
@@ -10,7 +10,6 @@ from services.encrip_desencrip import encriptar
 
 
 @bp.route("/getProceso", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def getGestionAlmacenProceso():
 

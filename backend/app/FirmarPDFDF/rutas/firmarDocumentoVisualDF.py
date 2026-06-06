@@ -5,7 +5,7 @@ import qrcode
 import traceback
 from datetime import datetime
 from flask import request, send_file, jsonify, make_response
-from flask_cors import cross_origin
+
 from flask_jwt_extended import jwt_required
 from PIL import Image
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
@@ -26,7 +26,6 @@ def error_response(msg, status=400):
 
 
 @bp.route("/firmarDocumentoVisualDF", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def firmarDocumentoVisualDF():
     pdf_file = request.files.get("documento")

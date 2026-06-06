@@ -1,9 +1,9 @@
 # flake8: noqa
 from flask import Blueprint
-from flask_cors import CORS
+
 
 bp = Blueprint("PlanificacionTareas", __name__)
-cors = CORS(bp, resources={r"/*": {"origins": "*", "headers": ["Content-Type", "Authorization"]}})
+
 
 from app.PlanificacionTareas.rutas import getAllEventsCalendar
 from app.PlanificacionTareas.rutas import getAllLocalidades

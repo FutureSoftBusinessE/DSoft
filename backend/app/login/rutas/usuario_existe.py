@@ -2,7 +2,7 @@
 from flask import jsonify, request
 from app.login import bp
 from app.extensions import db
-from flask_cors import cross_origin
+
 from services.encrip_desencrip import encriptar, desencriptar
 from app.models.fsbsmcliusu import fsbsmcliusu, fsbsmcliusu_schema_varios, fsbsmcliusu_schema
 from app.models.fsbsmclicia import fsbsmclicia, fsbsmclicia_schema_varios, fsbsmclicia_schema
@@ -15,7 +15,6 @@ from app.db import get_session
 # }
 # devuelve si el usuario existe o no
 @bp.route("/usuario_existe", methods=["POST"])
-@cross_origin()
 def usuario_existe():
     # Obtener el JSON enviado en la solicitud
     data = request.get_json() if request.is_json else None

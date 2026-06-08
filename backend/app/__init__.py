@@ -350,6 +350,14 @@ def create_app(config_class=Config):
 
     app.register_blueprint(ServiciosNDNC_bp, url_prefix="/ServiciosNDNC")
 
+    from app.NotaCreditoDF import bp as NotaCreditoDF_bp
+
+    app.register_blueprint(NotaCreditoDF_bp, url_prefix="/NotaCreditoDF")
+
+    from app.RetencionDF import bp as RetencionDF_bp
+
+    app.register_blueprint(RetencionDF_bp, url_prefix="/RetencionDF")
+
     print("---------------ENDPOINTS------------------")
     for rule in app.url_map.iter_rules():
         print(str(rule))

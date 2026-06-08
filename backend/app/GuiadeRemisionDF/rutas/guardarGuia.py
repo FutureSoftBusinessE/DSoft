@@ -12,7 +12,7 @@ from datetime import datetime
 @cross_origin()
 @jwt_required()
 def guardar_guia_remision():
-    """Guarda la Guía de Remisión en IncGuia e IntGuia"""
+    """Guarda la Guía de Remisión en IncGuia, IntGuia y actualiza saldos en fatfac"""
     try:
         claims = get_jwt()
         clicianonBD = claims["seleccion"]["clicianonBD"]
@@ -79,12 +79,9 @@ def guardar_guia_remision():
 
             # 2. OBTENER METADATOS COMPLEMENTARIOS
             trans_data = connection.execute(text("SELECT transdescri, transruc FROM inbtranspor WHERE ciacodigo=:cia AND transcodigo=:trans"), {"cia": ciacodigo, "trans": transcodigo}).mappings().first()
-
             cia_data = connection.execute(text("SELECT ciaruc, ciadescri, ciadirec, ciatelefono1, ciaciudad, ciapais FROM siaccia WHERE ciacodigo=:cia"), {"cia": ciacodigo}).mappings().first()
 
-            # =================================================================
             # 3. EXTRACCIÓN DE DATOS DE LA FACTURA SUSTENTO (facfac)
-            # =================================================================
             fasriserie01 = fasriserie02 = fasriautnumero = ""
             fasrisecini = fasrisecfin = 0
             fasriautfecemi = fasriautfecven = None
@@ -151,7 +148,6 @@ def guardar_guia_remision():
                     "guifecfintrans": guifecfintrans,
                     "guiplacafinal": guiplacafinal,
                     "motivo": motivo,
-                    # Campos de la FACTURA Sustento (Extraídos de facfac)
                     "fasriserie01": fasriserie01,
                     "fasriserie02": fasriserie02,
                     "fasrisecini": fasrisecini,
@@ -159,7 +155,6 @@ def guardar_guia_remision():
                     "fasriautfecemi": fasriautfecemi,
                     "fasriautfecven": fasriautfecven,
                     "fasriautnumero": fasriautnumero,
-                    # Campos de la GUIA de Remisión (Extraídos de siactsriseries)
                     "sriserie01": serie["sriserie01"],
                     "sriserie02": serie["sriserie02"],
                     "srisecini": serie["srisecini"],
@@ -182,7 +177,20 @@ def guardar_guia_remision():
                 },
             )
 
-            # 5. INSERT DETALLE (IntGuia)
+            # --- LÓGICA DE ACTUALIZACIÓN DE SALDOS EN FATFAC ---
+            sql_update_fatfac = text(
+                """
+                UPDATE fatfac
+                SET faccantentregados = COALESCE(faccantentregados, 0) + :cantidad,
+                    faccantporentregar = faccantidad - (COALESCE(faccantentregados, 0) + :cantidad)
+                WHERE ciacodigo = :ciacodigo
+                  AND loccodigo = :loccodigo
+                  AND facnumfac = :facnumfac
+                  AND artcodigo = :artcodigo
+            """
+            )
+
+            # 5. INSERT DETALLE (IntGuia) Y ACTUALIZACIÓN KARDEX
             sql_insert_intguia = text(
                 """
                 INSERT INTO IntGuia (
@@ -201,6 +209,9 @@ def guardar_guia_remision():
 
             secuencia = 1
             for d in detalles:
+                cantidad_enviada = float(d.get("cantidad", 0))
+
+                # Insertar en el detalle de la guía
                 connection.execute(
                     sql_insert_intguia,
                     {
@@ -212,12 +223,16 @@ def guardar_guia_remision():
                         "artcodigo": d.get("artcodigo", ""),
                         "artdescri": d.get("artdescri", ""),
                         "secuencia": secuencia,
-                        "cantidad": float(d.get("cantidad", 0)),
+                        "cantidad": cantidad_enviada,
                         "fec0": fecha_cero,
                         "fec1900": fecha_1900,
                         "usuario_sys": usuario_sys,
                     },
                 )
+
+                # Descontar el inventario de la factura origen si existe
+                if facnumfac:
+                    connection.execute(sql_update_fatfac, {"cantidad": cantidad_enviada, "ciacodigo": ciacodigo, "loccodigo": loccodigo, "facnumfac": facnumfac, "artcodigo": d.get("artcodigo", "")})
                 secuencia += 1
 
         return jsonify({"success": True, "data": {"guinumero": guinumero}, "message": "Guía de Remisión guardada exitosamente."})

@@ -11,7 +11,7 @@ from app.db import get_session
 @cross_origin()
 @jwt_required()
 def get_factura_detalle_gr():
-    """Obtiene el cliente y los artículos de una Factura específica para la Guía de Remisión"""
+    """Obtiene el cliente y los artículos de una Factura específica con saldo pendiente para despachar"""
     try:
         claims = get_jwt()
         clicianonBD = claims["seleccion"]["clicianonBD"]
@@ -54,25 +54,29 @@ def get_factura_detalle_gr():
             )
             cliente_info = connection.execute(query_cliente, {"ciacodigo": ciacodigo, "clicodigo": cabecera["clicodigo"]}).mappings().first()
 
-            # 3. Extraer detalles de productos (fatfac cruzado con inmart)
+            # 3. LÓGICA DE SALDOS (KARDEX): Calculamos el saldo en vivo
             query_detalles = text(
                 """
                 SELECT
                     f.artcodigo,
                     COALESCE(a.artdescri, f.artdescri) as artdescri,
-                    f.faccantidad
+                    (f.faccantidad - COALESCE(f.faccantentregados, 0)) as saldo_pendiente
                 FROM fatfac f
                 LEFT JOIN inmart a ON f.ciacodigo = a.ciacodigo AND f.artcodigo = a.artcodigo
                 WHERE f.ciacodigo = :ciacodigo
                   AND f.facnumfac = :facnumfac
                   AND f.loccodigo = :loccodigo
+                  AND (f.faccantidad - COALESCE(f.faccantentregados, 0)) > 0
                 ORDER BY f.facsecuen
             """
             )
             detalles = connection.execute(query_detalles, {"ciacodigo": ciacodigo, "facnumfac": facnumfac, "loccodigo": loccodigo}).mappings().all()
 
-            # Formatear productos
-            productos_data = [{"artcodigo": det["artcodigo"].strip() if det["artcodigo"] else "", "artdescri": det["artdescri"].strip() if det["artdescri"] else "", "cantidad": float(det["faccantidad"] or 0)} for det in detalles]
+            if not detalles:
+                return jsonify({"success": False, "message": "La factura seleccionada ya fue despachada en su totalidad."}), 404
+
+            # Formatear productos con su cantidad máxima permitida
+            productos_data = [{"artcodigo": det["artcodigo"].strip() if det["artcodigo"] else "", "artdescri": det["artdescri"].strip() if det["artdescri"] else "", "cantidad": float(det["saldo_pendiente"] or 0), "cantidad_maxima": float(det["saldo_pendiente"] or 0)} for det in detalles]
 
         return jsonify({"success": True, "data": {"cliente": dict(cliente_info) if cliente_info else {}, "productos": productos_data}})
 

@@ -8,7 +8,6 @@ from app.db import get_session
 
 
 @bp.route("/getNotaCreditoBuscar", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_nota_credito_buscar():
     """Reconstruye toda la información de una Nota de Crédito para la vista de Solo Lectura"""

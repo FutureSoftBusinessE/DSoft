@@ -3,7 +3,6 @@ from flask import Blueprint
 from flask_cors import CORS
 
 bp = Blueprint("NotaCreditoDF", __name__)
-cors = CORS(bp, resources={r"/*": {"origins": "*", "headers": ["Content-Type", "Authorization"]}})
 
 
 # from app.filter import get_filter

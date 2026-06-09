@@ -40,7 +40,6 @@ def get_codigo_porcentaje_iva(porcentaje):
 
 
 @bp.route("/autorizarSRI", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def autorizar_sri_nota_credito():
     try:

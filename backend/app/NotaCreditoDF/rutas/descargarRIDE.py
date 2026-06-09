@@ -9,7 +9,6 @@ import base64
 
 
 @bp.route("/descargarRIDE", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def descargar_ride():
     try:

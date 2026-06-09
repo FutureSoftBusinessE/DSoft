@@ -13,7 +13,6 @@ from app.IntegracionFacturacionElectronica.utils.sri_services import send_author
 
 
 @bp.route("/consultarFacturaSRI", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def consultar_factura_sri():
     """Consulta la clave de acceso en el SRI, extrae los datos y crea el proveedor si no existe."""

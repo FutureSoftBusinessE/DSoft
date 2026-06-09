@@ -10,7 +10,6 @@ from datetime import datetime
 
 
 @bp.route("/generarCodigoTemporal/<cjacodigo>", methods=["GET"])
-@cross_origin()
 @jwt_required()
 @api_endpoint
 def generarCodigoTemporal(cjacodigo):

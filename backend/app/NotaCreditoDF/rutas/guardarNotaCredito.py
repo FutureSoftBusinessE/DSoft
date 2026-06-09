@@ -9,7 +9,6 @@ from datetime import datetime
 
 
 @bp.route("/guardarNotaCredito", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def guardar_nota_credito():
     """Guarda la Nota de Crédito discriminando entre Monto (Servicio) o Devolución (Productos)"""

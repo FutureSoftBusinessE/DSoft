@@ -9,7 +9,6 @@ from datetime import datetime
 
 
 @bp.route("/generarCodigoTemporal/<cjacodigo>", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def generarCodigoTemporal(cjacodigo):
     """Genera el código NEMOTÉCNICO de la Retención (R) según la caja seleccionada"""

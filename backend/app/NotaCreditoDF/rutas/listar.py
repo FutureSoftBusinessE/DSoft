@@ -8,7 +8,6 @@ from app.db import get_session
 
 
 @bp.route("/listar", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def listar_notas_credito():
     """Obtiene el listado paginado de las Notas de Crédito para la grilla principal"""

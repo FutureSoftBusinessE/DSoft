@@ -9,7 +9,6 @@ from datetime import datetime
 
 
 @bp.route("/guardarRetencion", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def guardar_retencion():
     """Guarda la cabecera (cxpcret) y el detalle de impuestos (cxptfac) de la Retención"""

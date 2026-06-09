@@ -9,7 +9,6 @@ from error_handling import api_endpoint
 
 
 @bp.route("/getServicios", methods=["GET"])
-@cross_origin()
 @jwt_required()
 @api_endpoint
 def getServicios():

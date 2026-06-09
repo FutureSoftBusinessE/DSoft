@@ -8,7 +8,6 @@ from app.db import get_session
 
 
 @bp.route("/buscarFacturaNC", methods=["POST"])
-@cross_origin()
 @jwt_required()
 # SIN DECORADOR PARA EVITAR LA MUÑECA RUSA Y QUE LA TABLA CARGUE
 def buscarFacturaNC():

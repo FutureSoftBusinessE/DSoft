@@ -8,7 +8,6 @@ from app.db import get_session
 
 
 @bp.route("/listar", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def listar_retenciones():
     """Obtiene el listado paginado de las Retenciones para la grilla principal"""

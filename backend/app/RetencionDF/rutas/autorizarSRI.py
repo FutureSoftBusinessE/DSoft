@@ -22,7 +22,6 @@ def escape_xml(text_val):
 
 
 @bp.route("/autorizarSRI", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def autorizar_sri_retencion():
     try:

@@ -8,7 +8,6 @@ from app.db import get_session
 
 
 @bp.route("/getFacturaDetalleNC", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_factura_detalle_nc():
     """Obtiene los artículos y el cliente de una Factura para Notas de Crédito"""

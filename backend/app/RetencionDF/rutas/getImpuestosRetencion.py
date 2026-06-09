@@ -8,7 +8,6 @@ from app.db import get_session
 
 
 @bp.route("/getImpuestos", methods=["GET"])
-@cross_origin()
 @jwt_required()
 def get_impuestos_retencion():
     """Obtiene el catálogo de impuestos y retenciones (cxpbimp) activos"""

@@ -8,7 +8,6 @@ from app.db import get_session
 
 
 @bp.route("/getRetencionBuscar", methods=["POST"])
-@cross_origin()
 @jwt_required()
 def get_retencion_buscar():
     """Reconstruye toda la información de un Comprobante de Retención para la vista de Solo Lectura"""

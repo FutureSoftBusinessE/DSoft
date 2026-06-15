@@ -207,7 +207,7 @@ def facturarProforma():
             params_cabecera = {
                 "ciacodigo": ciacodigo,
                 "facnumfac": facnumfac,
-                "factipo": "FE",
+                "factipo": "FA",
                 "factippag": proforma["factippag"],
                 "moncodigo": proforma["moncodigo"],
                 "clicodigo": proforma["clicodigo"],
@@ -388,7 +388,7 @@ def facturarProforma():
                     "ciacodigo": ciacodigo,
                     "facnumfac": facnumfac,
                     "facsecuen": i + 1,
-                    "factipo": "FE",
+                    "factipo": "FA",
                     "factippag": proforma["factippag"],
                     "moncodigo": proforma["moncodigo"],
                     "faccambio": 0,

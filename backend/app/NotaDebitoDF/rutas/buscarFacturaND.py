@@ -38,7 +38,7 @@ def buscarFacturaND():
                 ON f.ciacodigo = c.ciacodigo AND f.clicodigo = c.clicodigo
             WHERE f.ciacodigo = :ciacodigo
               AND f.loccodigo = :loccodigo
-              AND f.factipo = 'FE'
+              AND f.factipo = 'FA'
         """
 
         params = {

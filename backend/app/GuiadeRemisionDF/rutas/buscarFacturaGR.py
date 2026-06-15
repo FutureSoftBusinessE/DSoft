@@ -30,13 +30,13 @@ def buscarFacturaGR():
         page_size = int(payload.get("pageSize", 10))
         offset = page_index * page_size
 
-        # Buscamos facturas ('FE' o 'FA')
+        # Buscamos facturas ('FA')
         base_query = """
             FROM facfac f
             INNER JOIN cxcmcli c ON f.ciacodigo = c.ciacodigo AND f.clicodigo = c.clicodigo
             WHERE f.ciacodigo = :ciacodigo
               AND f.loccodigo = :loccodigo
-              AND f.factipo IN ('FE', 'FA')
+              AND f.factipo IN ('FA')
         """
 
         params = {

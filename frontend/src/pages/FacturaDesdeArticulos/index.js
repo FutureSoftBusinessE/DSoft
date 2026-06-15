@@ -53,6 +53,7 @@ const ACCIONES = {
   AUTORIZAR: "AUTORIZAR",
   RIDE: "RIDE",
   CLONAR: "CLONAR",
+  ANULAR: "ANULAR",
 }
 
 const FacturaDesdeArticulos = () => {
@@ -433,6 +434,9 @@ const FacturaDesdeArticulos = () => {
               const clonarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action?.acccaption === ACCIONES.CLONAR,
               )
+              const anularAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (action) => action?.acccaption === ACCIONES.ANULAR,
+              )
 
               const actions = [
                 {
@@ -485,11 +489,11 @@ const FacturaDesdeArticulos = () => {
                   icon: getIconComponent(eliminarAction?.accnameicono, eliminarAction?.acctipoico),
                   onClick: async (row) => {
                     const result = await Swal.fire({
-                      title: "¿Está seguro que quiere eliminar esta proforma?",
+                      title: "¿Está seguro que quiere INACTIVAR esta proforma?",
                       text: `Proforma: ${row.original.pednumped}`,
                       icon: "warning",
                       showCancelButton: true,
-                      confirmButtonText: "Sí, eliminar",
+                      confirmButtonText: "Sí, inactivar",
                       cancelButtonText: "Cancelar",
                       confirmButtonColor: "#d33",
                     })
@@ -504,7 +508,7 @@ const FacturaDesdeArticulos = () => {
 
                         await Swal.fire({
                           title: "¡Eliminado!",
-                          text: "La proforma ha sido eliminada correctamente.",
+                          text: "La proforma ha sido INACTIVADA correctamente.",
                           icon: "success",
                           confirmButtonText: "Aceptar",
                           confirmButtonColor: "#196C87",
@@ -512,10 +516,57 @@ const FacturaDesdeArticulos = () => {
 
                         queryClient.invalidateQueries({ queryKey: ["getAllFacturas"] })
                       } catch (error) {
-                        console.error("Error al eliminar:", error)
+                        console.error("Error al INACTIVAR:", error)
                         Swal.fire({
                           title: "Error",
-                          text: error.response?.data?.message || "No se pudo eliminar la proforma",
+                          text: error.response?.data?.message || "No se pudo INACTIVAR la proforma",
+                          icon: "error",
+                          confirmButtonText: "Aceptar",
+                        })
+                      }
+                    }
+                  },
+                })
+              }
+              // Botón ANULAR (solo si la factura ya está autorizada osea que no tiene status y tiene facnumfac)
+              if (anularAction && !row.original.facstatus && row.original.facnumfac) {
+                actions.push({
+                  label: anularAction?.acccaption,
+                  key: anularAction?.acccaption,
+                  icon: getIconComponent(anularAction?.accnameicono, anularAction?.acctipoico),
+                  onClick: async (row) => {
+                    const result = await Swal.fire({
+                      title: "¿Está seguro que quiere anular esta factura?",
+                      text: `Factura: ${row.original.facnumfac}`,
+                      icon: "warning",
+                      showCancelButton: true,
+                      confirmButtonText: "Sí, anular",
+                      cancelButtonText: "Cancelar",
+                      confirmButtonColor: "#d33",
+                    })
+
+                    if (result.isConfirmed) {
+                      try {
+                        await api.post("/FacturaDesdeArticulos/anularFactura", {
+                          ciacodigo: row.original.ciacodigo,
+                          facnumfac: row.original.facnumfac,
+                          loccodigo: row.original.loccodigo,
+                        })
+
+                        await Swal.fire({
+                          title: "¡Anulada!",
+                          text: "La factura ha sido anulada correctamente.",
+                          icon: "success",
+                          confirmButtonText: "Aceptar",
+                          confirmButtonColor: "#196C87",
+                        })
+
+                        queryClient.invalidateQueries({ queryKey: ["getAllFacturas"] })
+                      } catch (error) {
+                        console.error("Error al anular:", error)
+                        Swal.fire({
+                          title: "Error",
+                          text: error.response?.data?.message || "No se pudo anular la factura",
                           icon: "error",
                           confirmButtonText: "Aceptar",
                         })
@@ -723,6 +774,15 @@ const FacturaDesdeArticulos = () => {
                 accessorKey: "sri_status",
                 header: "Estado SRI",
                 size: 200,
+                Cell: ({ cell }) => {
+                  const value = cell.getValue()
+                  return value
+                },
+              },
+              {
+                accessorKey: "facstatus",
+                header: "Estado documento Factura",
+                size: 300,
                 Cell: ({ cell }) => {
                   const value = cell.getValue()
                   return value

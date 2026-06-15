@@ -23,7 +23,7 @@ from app.FacturaDesdeArticulos import editarProforma
 from app.FacturaDesdeArticulos import deleteProforma
 from app.FacturaDesdeArticulos import getFacturaParaClonar
 from app.FacturaDesdeArticulos import getProformaFacturaBuscar
-
+from app.FacturaDesdeArticulos import anularFactura
 
 from app.FacturaDesdeArticulos import recuperarPayloadFactura
 from app.FacturaDesdeArticulos.utils import construir_payload_sri

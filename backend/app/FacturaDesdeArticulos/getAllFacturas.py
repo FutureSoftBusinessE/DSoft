@@ -67,6 +67,7 @@ def getAllFacturas():
                 f.pedhormsys,
                 -- NUEVOS CAMPOS: Datos de la factura electrónica
                 fa.facnumfac,
+                fa.facstatus,
                 fa.audnumxml,
                 fa.facelectronica,
                 fa.sriautnumero,
@@ -121,6 +122,7 @@ def getAllFacturas():
                     "facelectronica": row.get("facelectronica", 0),
                     "sriautnumero": row.get("sriautnumero", ""),
                     "sri_status": row.get("sri_status", "PENDIENTE"),
+                    "facstatus": row.get("facstatus", ""),
                 }
                 for row in result
             ]

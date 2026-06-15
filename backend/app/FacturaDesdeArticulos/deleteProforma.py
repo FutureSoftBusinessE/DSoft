@@ -34,7 +34,44 @@ def deleteProforma():
 
     with engine.connect() as connection:
         with connection.begin():
-            # 1. Verificar que la proforma exista y este pendiente
+            # # 1. Verificar que la proforma exista y este pendiente
+            # query_verificar = """
+            #     SELECT pedstatus, pednumped
+            #     FROM facped
+            #     WHERE ciacodigo = :ciacodigo
+            #     AND loccodigo = :loccodigo
+            #     AND pednumped = :pednumped
+            # """
+
+            # proforma_existente = connection.execute(text(query_verificar), {"ciacodigo": ciacodigo_param, "loccodigo": loccodigo_param, "pednumped": pednumped}).mappings().first()
+
+            # if not proforma_existente:
+            #     raise NotFoundError(f"Proforma {pednumped} no encontrada")
+
+            # if proforma_existente["pedstatus"] != "P":
+            #     raise ValidationError("Solo se pueden eliminar proformas pendientes")
+
+            # # 2. Eliminar detalles de fatped
+            # sql_delete_detalles = """
+            #     DELETE FROM fatped
+            #     WHERE ciacodigo = :ciacodigo
+            #     AND loccodigo = :loccodigo
+            #     AND pednumped = :pednumped
+            # """
+
+            # connection.execute(text(sql_delete_detalles), {"ciacodigo": ciacodigo_param, "loccodigo": loccodigo_param, "pednumped": pednumped})
+
+            # # 3. Eliminar cabecera de facped
+            # sql_delete_cabecera = """
+            #     DELETE FROM facped
+            #     WHERE ciacodigo = :ciacodigo
+            #     AND loccodigo = :loccodigo
+            #     AND pednumped = :pednumped
+            # """
+
+            # connection.execute(text(sql_delete_cabecera), {"ciacodigo": ciacodigo_param, "loccodigo": loccodigo_param, "pednumped": pednumped})
+
+            # 1. Verificar que la proforma exista y esté pendiente
             query_verificar = """
                 SELECT pedstatus, pednumped
                 FROM facped
@@ -49,26 +86,26 @@ def deleteProforma():
                 raise NotFoundError(f"Proforma {pednumped} no encontrada")
 
             if proforma_existente["pedstatus"] != "P":
-                raise ValidationError("Solo se pueden eliminar proformas pendientes")
+                raise ValidationError("Solo se pueden anular proformas pendientes")
 
-            # 2. Eliminar detalles de fatped
-            sql_delete_detalles = """
-                DELETE FROM fatped
+            # 2. Cambiar status a 'I' (Inactivo)
+            sql_anular_detalles = """
+                UPDATE fatped
+                SET pedstatus = 'I'
+                WHERE ciacodigo = :ciacodigo
+                AND loccodigo = :loccodigo
+                AND pednumped = :pednumped
+            """
+            connection.execute(text(sql_anular_detalles), {"ciacodigo": ciacodigo_param, "loccodigo": loccodigo_param, "pednumped": pednumped})
+
+            sql_anular = """
+                UPDATE facped
+                SET pedstatus = 'I'
                 WHERE ciacodigo = :ciacodigo
                 AND loccodigo = :loccodigo
                 AND pednumped = :pednumped
             """
 
-            connection.execute(text(sql_delete_detalles), {"ciacodigo": ciacodigo_param, "loccodigo": loccodigo_param, "pednumped": pednumped})
+            connection.execute(text(sql_anular), {"ciacodigo": ciacodigo_param, "loccodigo": loccodigo_param, "pednumped": pednumped})
 
-            # 3. Eliminar cabecera de facped
-            sql_delete_cabecera = """
-                DELETE FROM facped
-                WHERE ciacodigo = :ciacodigo
-                AND loccodigo = :loccodigo
-                AND pednumped = :pednumped
-            """
-
-            connection.execute(text(sql_delete_cabecera), {"ciacodigo": ciacodigo_param, "loccodigo": loccodigo_param, "pednumped": pednumped})
-
-            return {"success": True, "message": "Proforma eliminada exitosamente", "pednumped": pednumped}
+    return {"success": True, "message": f"Proforma {pednumped} inactivada exitosamente", "pednumped": pednumped}

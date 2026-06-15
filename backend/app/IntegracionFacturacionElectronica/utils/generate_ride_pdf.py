@@ -10,7 +10,7 @@ from reportlab.platypus import (
 )
 from reportlab.graphics.barcode import code128
 from pathlib import Path
-import os
+import base64
 import io
 
 def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, output_dir: Path = None) -> tuple:
@@ -32,7 +32,7 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
         totales_impuestos = factura_data.get("totales_impuestos", [])
         pagos = factura_data.get("pagos", [])
         info_adicional = factura_data.get("info_adicional", [])
-        
+
         # 1. TÍTULO DINÁMICO (Factura o Nota de Débito)
         documento_nombre = factura_data.get("tipo_documento_nombre", "FACTURA")
 
@@ -111,9 +111,12 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
         ]))
 
         # 2. PROCESAMIENTO DE LOGO DINÁMICO DE LA BD
-        logo_bytes = info_tributaria.get("logo_bytes")
-        if logo_bytes:
+        logo_data = info_tributaria.get("logo")
+        if logo_data:
             try:
+                # Decodificar base64 UNA SOLA VEZ
+                logo_bytes = base64.b64decode(logo_data)
+                # Crear stream de bytes
                 logo_stream = io.BytesIO(logo_bytes)
                 # Renderiza proporcionalmente ajustado a un marco de 70x30mm
                 logo_element = Image(logo_stream, width=70*mm, height=30*mm, kind='proportional')
@@ -121,7 +124,7 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
                 print(f"Error renderizando logo: {e}")
                 logo_element = Paragraph(f"<b>{razon_social}</b>", style_logo)
         else:
-            logo_element = Paragraph("DSOFT", style_logo)
+            logo_element = Paragraph(f"<b>{razon_social}</b>", style_logo)
 
         header_data = [
             [logo_element, t_right_inner],

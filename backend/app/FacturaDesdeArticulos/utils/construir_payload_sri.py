@@ -1,6 +1,7 @@
 from datetime import datetime
 from dotenv import load_dotenv
 from decouple import config as config_env
+import base64
 
 # Cargar variables de entorno
 load_dotenv()  # Carga .env por defecto
@@ -109,6 +110,7 @@ def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, dato
             "pto_emi": secuencia_sri["sriserie02"],
             "secuencial": f"{secuencia_sri['srisecact']:09}",
             "dir_matriz": datos_empresa.get("ciadirec"),
+            "logo": base64.b64encode(datos_empresa["cialogo"]).decode("utf-8") if datos_empresa.get("cialogo") else "",
         },
         "info_factura": {
             "fecha_emision": datetime.now().strftime("%d/%m/%Y"),

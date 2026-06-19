@@ -259,6 +259,11 @@ import SecuenciasDoc from "./SecuenciasDoc"
 import CrearSecuenciasDoc from "./SecuenciasDoc/Crear"
 import EditarSecuenciasDoc from "./SecuenciasDoc/Editar"
 
+// NotaCreditoDF
+import NotaCreditoDF from "./NotaCreditoDF"
+import BuscarNotaCreditoDF from "./NotaCreditoDF/Buscar"
+import CrearNotaCreditoDF from "./NotaCreditoDF/Crear"
+
 // NotaDebitoDF
 import NotaDebitoDF from "./NotaDebitoDF"
 import BuscarNotaDebitoDF from "./NotaDebitoDF/Buscar"
@@ -273,6 +278,11 @@ import CrearGuiadeRemisionDF from "./GuiadeRemisionDF/Crear"
 import ServiciosNDNC from "./ServiciosNDNC"
 import CrearServiciosNDNC from "./ServiciosNDNC/Crear"
 import EditarServiciosNDNC from "./ServiciosNDNC/Editar"
+
+// RetencionDF
+import RetencionDF from "./RetencionDF"
+import BuscarRetencionDF from "./RetencionDF/Buscar"
+import CrearRetencionDF from "./RetencionDF/Crear"
 
 export {
   Login,
@@ -434,4 +444,10 @@ export {
   ServiciosNDNC,
   CrearServiciosNDNC,
   EditarServiciosNDNC,
+  NotaCreditoDF,
+  BuscarNotaCreditoDF,
+  CrearNotaCreditoDF,
+  RetencionDF,
+  CrearRetencionDF,
+  BuscarRetencionDF,
 }

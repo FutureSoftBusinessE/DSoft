@@ -193,6 +193,12 @@ import { GuiadeRemisionDF, CrearGuiadeRemisionDF, BuscarGuiadeRemisionDF } from 
 // ServiciosNDNC
 import { ServiciosNDNC, CrearServiciosNDNC, EditarServiciosNDNC } from "../pages"
 
+// NotaCreditoDF
+import { NotaCreditoDF, CrearNotaCreditoDF, BuscarNotaCreditoDF } from "../pages"
+
+// RetencionDF
+import { RetencionDF, CrearRetencionDF, BuscarRetencionDF } from "../pages"
+
 const protectedRoutes = [
   { path: "Submenu/:label/:id", element: <SubMenu /> },
   { path: "dashboard/AccesoACompañiasYModulos", element: <AccesoACompañiasYModulos /> },
@@ -349,6 +355,12 @@ const protectedRoutes = [
   { path: "dashboard/ServiciosNDNC", element: <ServiciosNDNC /> },
   { path: "dashboard/ServiciosNDNC/crear", element: <CrearServiciosNDNC /> },
   { path: "dashboard/ServiciosNDNC/editar", element: <EditarServiciosNDNC /> },
+  { path: "dashboard/NotaCreditoDF", element: <NotaCreditoDF /> },
+  { path: "dashboard/NotaCreditoDF/buscar", element: <BuscarNotaCreditoDF /> },
+  { path: "dashboard/NotaCreditoDF/crear", element: <CrearNotaCreditoDF /> },
+  { path: "dashboard/RetencionDF", element: <RetencionDF /> },
+  { path: "dashboard/RetencionDF/buscar", element: <BuscarRetencionDF /> },
+  { path: "dashboard/RetencionDF/crear", element: <CrearRetencionDF /> },
 ]
 
 export default protectedRoutes

@@ -120,9 +120,16 @@ class NotFoundError(APIError):
     raise NotFoundError("usuario", "123")
     """
 
-    def __init__(self, resource, resource_id):
-        super().__init__(f"{resource} '{resource_id}' not found", 404, "NOT_FOUND_ERROR")
-        self.details = {"resource": resource, "id": resource_id}
+    def __init__(self, resource_id, resource=None):
+        if resource:
+            message = f"{resource} '{resource_id}' not found"
+        else:
+            message = f"Resource '{resource_id}' not found"
+
+        super().__init__(message, 404, "NOT_FOUND_ERROR")
+        self.details = {"id": resource_id}
+        if resource:
+            self.details["resource"] = resource
 
 
 class ConflictError(APIError):

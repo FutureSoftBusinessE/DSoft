@@ -1,5 +1,3 @@
-// app/FacturaDesdeArticulos/CrearFacturaDesdeArticulos.jsx
-
 import React, { useState, useEffect, useRef } from "react"
 import Header from "../../../layouts/Header"
 import fetchwrapper from "../../../services/interceptors/fetchwrapper"
@@ -48,7 +46,10 @@ import AccordionFiltros from "../components/AccordionFiltros"
 import dayjs from "dayjs"
 import BackIcon from "../../../components/BackIcon"
 import CloseIcon from "@mui/icons-material/Close"
+import AddIcon from "@mui/icons-material/Add"
+import DeleteIcon from "@mui/icons-material/Delete"
 import { useNavigate, useLocation } from "react-router-dom"
+import CustomAutocomplete from "../../../components/CustomAutocomplete"
 
 const StyledRoot = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -76,7 +77,7 @@ const ContainerCabecera = styled(Box)(({ theme }) => ({
   gridTemplateRows: "auto auto",
   gridTemplateAreas: `
     "Codigo Codigo Codigo Codigo FormaPago FormaPago FormaPago FormaPago Vendedor Vendedor Vendedor Vendedor"
-    "FechaE FechaE FechaV FechaV Observacion Observacion Observacion Observacion Observacion Observacion Observacion Observacion"
+    "FechaE FechaE FechaV FechaV CajaSRI CajaSRI CajaSRI CajaSRI Observacion Observacion Observacion Observacion"
   `,
   gap: "8px",
   alignItems: "center",
@@ -87,6 +88,7 @@ const ContainerCabecera = styled(Box)(({ theme }) => ({
       "Codigo Codigo Codigo Codigo Codigo Codigo FormaPago FormaPago FormaPago FormaPago FormaPago FormaPago"
       "Vendedor Vendedor Vendedor Vendedor Vendedor Vendedor Observacion Observacion Observacion Observacion Observacion Observacion"
       "FechaE FechaE FechaE FechaE FechaE FechaE FechaV FechaV FechaV FechaV FechaV FechaV"
+      "CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI"
     `,
   },
 }))
@@ -178,6 +180,10 @@ const Vendedor = styled(Box)({
 
 const Observacion = styled(Box)({
   gridArea: "Observacion",
+})
+
+const CajaSRI = styled(Box)({
+  gridArea: "CajaSRI",
 })
 
 // Hook para TOP 30
@@ -283,6 +289,27 @@ function useGetFacturaParaClonar(facnumfac, ciacodigo, loccodigo) {
   })
 }
 
+// Hook para obtener cajas SRI
+function useGetCajas() {
+  return useQuery({
+    queryKey: ["cajasSRI"],
+    queryFn: async () => {
+      const options = {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
+      let response = await fetchwrapper(`/FacturaDesdeArticulos/getCajas`, options)
+      response = await response.json()
+      return response?.data ?? []
+    },
+    refetchOnWindowFocus: false,
+    enabled: true,
+  })
+}
+
 const CrearFacturaDesdeArticulos = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -293,8 +320,16 @@ const CrearFacturaDesdeArticulos = () => {
   const handleToggleInfoGeneral = () => setExpandedInfoGeneral((prev) => !prev)
   const [expandedInfoCliente, setExpandedInfoCliente] = useState(true)
   const handleToggleInfoCliente = () => setExpandedInfoCliente((prev) => !prev)
+  const [expandedInfoAdicional, setExpandedInfoAdicional] = useState(true)
+  const handleToggleInfoAdicional = () => setExpandedInfoAdicional((prev) => !prev)
 
   const [codigoFactura, setCodigoFactura] = useState("")
+
+  // NUEVO: Estado para info adicional general
+  const [infoAdicional, setInfoAdicional] = useState([])
+
+  // Estado para caja SRI seleccionada
+  const [cajaSeleccionada, setCajaSeleccionada] = useState(null)
 
   const {
     data: codigoPedidoTemporal,
@@ -309,6 +344,9 @@ const CrearFacturaDesdeArticulos = () => {
     datosClonacion?.ciacodigo,
     datosClonacion?.loccodigo,
   )
+
+  // Hook para obtener cajas SRI
+  const { data: cajasSRI = [], isLoading: isLoadingCajas } = useGetCajas()
 
   useEffect(() => {
     refetchCodigoPedido()
@@ -405,8 +443,16 @@ const CrearFacturaDesdeArticulos = () => {
       if (datosFacturaClonar.productos && datosFacturaClonar.productos.length > 0) {
         setProductosAgregados(datosFacturaClonar.productos)
       }
+
+      // Cargar caja SRI si existe en la factura clonada
+      if (datosFacturaClonar.cjacodigo) {
+        const cajaEncontrada = cajasSRI.find((c) => c.value === datosFacturaClonar.cjacodigo)
+        if (cajaEncontrada) {
+          setCajaSeleccionada(cajaEncontrada)
+        }
+      }
     }
-  }, [datosFacturaClonar])
+  }, [datosFacturaClonar, cajasSRI])
 
   // Efecto para cargar TOP 30 cuando cambia cliente o forma de pago
   useEffect(() => {
@@ -464,6 +510,32 @@ const CrearFacturaDesdeArticulos = () => {
     setMostrandoFiltros(true)
   }
 
+  // NUEVO: Funciones para info adicional
+  const handleAgregarInfoAdicional = () => {
+    setInfoAdicional([...infoAdicional, { pedclave: "", pedvalor: "", pedorden: infoAdicional.length + 1 }])
+  }
+
+  const handleEliminarInfoAdicional = (index) => {
+    const nuevaInfo = infoAdicional.filter((_, i) => i !== index)
+    setInfoAdicional(nuevaInfo)
+  }
+
+  const handleChangeInfoAdicional = (index, campo, valor) => {
+    const nuevaInfo = [...infoAdicional]
+    nuevaInfo[index][campo] = valor
+    setInfoAdicional(nuevaInfo)
+  }
+
+  // NUEVO: Función para actualizar detalle adicional de un producto
+  const handleChangeDetalleAdicional = (index, valor) => {
+    const nuevosProductos = [...productosAgregados]
+    nuevosProductos[index] = {
+      ...nuevosProductos[index],
+      peddetalleadicional: valor,
+    }
+    setProductosAgregados(nuevosProductos)
+  }
+
   // Mutation para guardar pedido
   const { mutate: guardarPedidoMutation, isPending: isSavingPedido } = useMutation({
     queryKey: ["guardarPedido"],
@@ -485,6 +557,7 @@ const CrearFacturaDesdeArticulos = () => {
         confirmButtonText: "Aceptar",
       }).then(() => {
         setProductosAgregados([])
+        setInfoAdicional([])
         navigate(-1)
       })
     },
@@ -527,6 +600,15 @@ const CrearFacturaDesdeArticulos = () => {
       return
     }
 
+    if (!cajaSeleccionada?.value) {
+      Swal.fire({
+        icon: "warning",
+        title: "Caja SRI no seleccionada",
+        text: "Debe seleccionar una caja SRI para realizar el proforma",
+      })
+      return
+    }
+
     Swal.fire({
       title: "Guardando proforma...",
       allowOutsideClick: false,
@@ -551,10 +633,13 @@ const CrearFacturaDesdeArticulos = () => {
         descuentoPorcentaje: p.descuentoPorcentaje,
         imagen: p.imagen,
         cantidadPedido: p.cantidadPedido,
+        peddetalleadicional: p.peddetalleadicional || "",
       })),
       formaPago: cabeceraFactura.factippag,
       vendedor: cabeceraFactura.vendedor,
       observacion: cabeceraFactura.observacion,
+      infoAdicional: infoAdicional.filter((i) => i.pedclave.trim() !== ""),
+      cjacodigo: cajaSeleccionada.value,
     }
 
     await guardarPedidoMutation(payload)
@@ -691,6 +776,17 @@ const CrearFacturaDesdeArticulos = () => {
                   isOptional={true}
                 />
               </FechaV>
+              <CajaSRI>
+                <CustomAutocomplete
+                  label="Caja SRI"
+                  disabled={isLoadingCajas}
+                  selectedOption={cajaSeleccionada}
+                  setSelectedOption={setCajaSeleccionada}
+                  options={cajasSRI}
+                  isOptionEqualToValue={(option, value) => option.value === value?.value}
+                  getOptionLabel={(option) => option.label || ""}
+                />
+              </CajaSRI>
               <FormaPago>
                 <InputLabel>Forma de pago</InputLabel>
                 <FormaDePagoAutocomplete cabeceraProforma={cabeceraFactura} setCabeceraProforma={setCabeceraFactura} />
@@ -775,6 +871,49 @@ const CrearFacturaDesdeArticulos = () => {
 
           <br />
 
+          {/* NUEVO: Sección de Info Adicional General */}
+          <div style={{ paddingBottom: "10px" }}>
+            <CustomFieldsetAccordion
+              title="Información Adicional"
+              expanded={expandedInfoAdicional}
+              onToggle={handleToggleInfoAdicional}
+            >
+              <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {infoAdicional.map((info, index) => (
+                  <Box key={index} sx={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                    <TextField
+                      label="Clave"
+                      value={info.pedclave}
+                      onChange={(e) => handleChangeInfoAdicional(index, "pedclave", e.target.value)}
+                      size="small"
+                      sx={{ flex: 1 }}
+                    />
+                    <TextField
+                      label="Valor"
+                      value={info.pedvalor}
+                      onChange={(e) => handleChangeInfoAdicional(index, "pedvalor", e.target.value)}
+                      size="small"
+                      sx={{ flex: 2 }}
+                    />
+                    <IconButton color="error" onClick={() => handleEliminarInfoAdicional(index)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                ))}
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={handleAgregarInfoAdicional}
+                  sx={{ alignSelf: "flex-start" }}
+                >
+                  Agregar Campo
+                </Button>
+              </Box>
+            </CustomFieldsetAccordion>
+          </div>
+
+          <br />
+
           <ContainerArticulos>
             <Productos id="productos">
               <div style={styles.tabsContainer}>
@@ -829,6 +968,7 @@ const CrearFacturaDesdeArticulos = () => {
                   productosAgregados={productosAgregados}
                   setProductosAgregados={setProductosAgregados}
                   onRealizarPedido={handleRealizarPedido}
+                  onchangeDetalleAdicional={handleChangeDetalleAdicional}
                 />
               ) : (
                 <>
@@ -869,6 +1009,7 @@ const CrearFacturaDesdeArticulos = () => {
                           handleRealizarPedido()
                           setModalOpen(false)
                         }}
+                        onchangeDetalleAdicional={handleChangeDetalleAdicional}
                       />
                     </Box>
                   </Dialog>

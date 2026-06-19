@@ -162,10 +162,13 @@ def build_xml_desde_factura(factura: Factura) -> str:
             if detalles_adicionales:
                 nodo_detalles_adicionales = doc.createElement("detallesAdicionales")
 
+                # detalles_adicionales es un arreglo de diccionarios
                 for det_ad in detalles_adicionales:
                     nodo_det_adicional = doc.createElement("detAdicional")
-                    nodo_det_adicional.setAttribute("nombre", det_ad.getNombre())
-                    nodo_det_adicional.setAttribute("valor", det_ad.getValor())
+                    nombre = det_ad.get("nombre", "")
+                    valor = det_ad.get("valor", "")
+                    nodo_det_adicional.setAttribute("nombre", nombre)
+                    nodo_det_adicional.setAttribute("valor", valor)
                     nodo_detalles_adicionales.appendChild(nodo_det_adicional)
 
                 nodo_detalle.appendChild(nodo_detalles_adicionales)

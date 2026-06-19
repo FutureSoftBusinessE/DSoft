@@ -7,11 +7,14 @@ import base64
 load_dotenv()  # Carga .env por defecto
 
 
-def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, datos_cliente, forma_pago, ciacodigo, loccodigo, facnumfac):
+def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, datos_cliente, forma_pago, ciacodigo, loccodigo, facnumfac, info_adicional=None):
     """
     Construye el payload JSON para la API de facturación electrónica.
     Este payload será enviado a /IntegracionFacturacionElectronica/emisionFactura
     """
+
+    if info_adicional is None:
+        info_adicional = []
 
     # Mapeo de formas de pago según la lógica del SRI
     # Si fortipo está en esta lista → "20" (Con sistema financiero)
@@ -77,18 +80,27 @@ def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, dato
             "descuento": float(detalle.get("pedvaldesc", 0)),
             "precio_total_sin_impuesto": round(base_imponible, 2),
             "impuestos": [],
+            "detalles_adicionales": [],
         }
 
         if iva_pct > 0:
             detalle_sri["impuestos"].append({"codigo": "2", "codigo_porcentaje": mapear_codigo_porcentaje_iva(iva_pct), "tarifa": float(iva_pct), "base_imponible": round(base_imponible, 2), "valor": round(float(detalle.get("pedvaliva", 0)), 2)})
 
+        if detalle.get("peddetalleadicional") or detalle.get("facdetalleadicional"):
+            valor_detalle = detalle.get("peddetalleadicional") or detalle.get("facdetalleadicional", "")
+            detalle_sri["detalles_adicionales"].append({"nombre": "Detalle", "valor": valor_detalle})
+
         detalles_sri.append(detalle_sri)
 
     # ========== CONSTRUIR INFO ADICIONAL ==========
-    info_adicional = [{"nombre": "Dirección", "valor": datos_cliente.get("clidirec", "")}, {"nombre": "Email", "valor": datos_empresa.get("ciaemail", "")}, {"nombre": "Proforma", "valor": proforma["pednumped"]}]
+    info_adicional_sri = []
+    for info in info_adicional:
+        info_adicional_sri.append({"nombre": info.get("nombre", info.get("pedclave", "")), "valor": info.get("valor", info.get("pedvalor", ""))})
+
+    info_adicional_sri.append({"nombre": "Proforma", "valor": proforma["pednumped"]})
 
     if proforma.get("peddetalle"):
-        info_adicional.append({"nombre": "Observación", "valor": proforma["peddetalle"]})
+        info_adicional_sri.append({"nombre": "Observación", "valor": proforma["peddetalle"]})
 
     # ========== CONSTRUIR PAYLOAD COMPLETO ==========
     # NOTA: Este payload se envía directamente a emisionFactura
@@ -130,7 +142,7 @@ def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, dato
         "totales_impuestos": totales_impuestos,
         "pagos": [{"forma_pago": codigo_sri_pago, "total": round(float(proforma["pedtotal"]), 2), "plazo": str(forma_pago.get("fordias", "")), "unidad_tiempo": "dias" if forma_pago.get("fordias", 0) > 0 else ""}],
         "detalles": detalles_sri,
-        "info_adicional": info_adicional,
+        "info_adicional": info_adicional_sri,
         "retenciones": [],  # TODO: Implementar si hay retenciones
         "datos_correo": {
             "smtp_host": "",  # TODO: Configurar SMTP del sistema

@@ -27,6 +27,7 @@ def guardarPedido():
     formaPago = data.get("formaPago", "")
     vendedor = data.get("vendedor", {})
     observacion = data.get("observacion", "")
+    cjacodigo = data.get("cjacodigo")
 
     moncodigo = "D"  # Valor constante siempre 'D'
 
@@ -41,6 +42,9 @@ def guardarPedido():
 
     if not cliente.get("clicodigo"):
         return jsonify({"error": "Cliente no seleccionado"}), 400
+
+    if not cjacodigo:
+        return jsonify({"error": "Caja no seleccionado"}), 400
 
     # Obtener la sesión y el engine
     db.session = get_session(clicianonBD)
@@ -178,7 +182,7 @@ def guardarPedido():
                     formondesde, formonhasta, forapligrac, fordiasgrac, forcuoinigr,
                     pednumadi, pedvaladi, pedconser, pedvehi, pedsolsinstock,
                     pedsinstock, pedproyecto, pedaprocredito, pedaprologistica,
-                    pedaprocliente
+                    pedaprocliente, cjacodigo
                 ) VALUES (
                     :ciacodigo, :pednumped, :loccodigo, NULL, :pedtipo, :factippag,
                     :moncodigo, :clicodigo, :garcodigo, :peddirent, :pedcambio, :pedfecemi,
@@ -195,7 +199,7 @@ def guardarPedido():
                     :formondesde, :formonhasta, :forapligrac, :fordiasgrac, :forcuoinigr,
                     :pednumadi, :pedvaladi, :pedconser, :pedvehi, :pedsolsinstock,
                     :pedsinstock, :pedproyecto, :pedaprocredito, :pedaprologistica,
-                    :pedaprocliente
+                    :pedaprocliente, :cjacodigo
                 )
             """
 
@@ -204,6 +208,7 @@ def guardarPedido():
                 "pednumped": pedidoCodigoGenerated,
                 "loccodigo": loccodigo,
                 "pedtipo": "PE",
+                "cjacodigo": cjacodigo,
                 "factippag": formaPago,
                 "moncodigo": moncodigo,
                 "clicodigo": cliente.get("clicodigo"),
@@ -293,7 +298,7 @@ def guardarPedido():
                     pedpordesc, pedusudesc, artaplipro, pedvalinter, medcodigo,
                     marcodigo, artpeso, artserie, artservicio, artexpins, artfaccero,
                     integracodigo, proyectocodigo, pedcantfacturado, pedpordescori,
-                    pedprecioori, prosecuen, artdescri, pedfecposent
+                    pedprecioori, prosecuen, artdescri, pedfecposent, peddetalleadicional
                 ) VALUES (
                     :ciacodigo, :pednumped, :loccodigo, :pedsecuen, :pedtipo, :pedapliiva,
                     :factippag, :moncodigo, :pedcambio, :pedfecemi, :clicodigo, :cliprecio,
@@ -305,7 +310,7 @@ def guardarPedido():
                     :pedpordesc, :pedusudesc, :artaplipro, :pedvalinter, :medcodigo,
                     :marcodigo, :artpeso, :artserie, :artservicio, :artexpins, :artfaccero,
                     :integracodigo, :proyectocodigo, :pedcantfacturado, :pedpordescori,
-                    :pedprecioori, :prosecuen, :artdescri, :pedfecposent
+                    :pedprecioori, :prosecuen, :artdescri, :pedfecposent, :peddetalleadicional
                 )
             """
 
@@ -357,6 +362,7 @@ def guardarPedido():
                     "bodcodigo": "",  # Esto producto no tiene bodega ya que siempre es un servicio de dsoft, esto fue un requerimiento
                     "invcodigo": producto_info["invcodigo"],
                     "artcodigo": producto.get("artcodigo"),
+                    "peddetalleadicional": producto.get("peddetalleadicional", ""),
                     "precodigo": producto_info["precodigo"],
                     "lincodigo": producto_info["lincodigo"],
                     "vencodigo": vendedor.get("vencodigo", ""),
@@ -404,4 +410,33 @@ def guardarPedido():
 
                 connection.execute(text(sql_insert_detalle), params_detalle)
 
-            return {"success": True, "message": "Pedido guardado exitosamente", "pednumped": pedidoCodigoGenerated, "total": calculos_totales.get("totalNeto", 0), "productos": len(productos)}
+            # Insertar info adicional general
+            info_adicional = data.get("infoAdicional", [])
+            for info in info_adicional:
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO pedinfoadicional (
+                            ciacodigo, loccodigo, pednumped, pedclave, pedvalor, pedorden,
+                            pedfecisys, pedhorisys, pedusuisys, pedestisys
+                        ) VALUES (
+                            :ciacodigo, :loccodigo, :pednumped, :pedclave, :pedvalor, :pedorden,
+                            :pedfecisys, :pedhorisys, :pedusuisys, :pedestisys
+                        )
+                    """
+                    ),
+                    {
+                        "ciacodigo": ciacodigo,
+                        "loccodigo": loccodigo,
+                        "pednumped": pedidoCodigoGenerated,
+                        "pedclave": info["pedclave"],
+                        "pedvalor": info["pedvalor"],
+                        "pedorden": info.get("pedorden", 1),
+                        "pedfecisys": fecha_con_hora_cero,
+                        "pedhorisys": fecha_formato_1900,
+                        "pedusuisys": usrcodigo,
+                        "pedestisys": ipUser,
+                    },
+                )
+
+    return {"success": True, "message": "Pedido guardado exitosamente", "pednumped": pedidoCodigoGenerated, "total": calculos_totales.get("totalNeto", 0), "productos": len(productos)}

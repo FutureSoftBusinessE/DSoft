@@ -120,8 +120,12 @@ def build_factura_desde_json(datos: Dict[str, Any], clave_acceso: str) -> Factur
             lista_impuestos.append(imp)
         detalle.setImpuesto(lista_impuestos)
 
-        # Detalles adicionales (opcional, comentado en VB6)
-        detalle.setDetAdicional([])
+        # Detalles adicionales por producto
+        lista_det_adicional = []
+        for da_data in det_data.get("detalles_adicionales", []):
+            da = {"nombre": da_data.get("nombre", ""), "valor": da_data.get("valor", "")}
+            lista_det_adicional.append(da)
+        detalle.setDetAdicional(lista_det_adicional)
 
         lista_detalles.append(detalle)
     factura.setDetalle(lista_detalles)

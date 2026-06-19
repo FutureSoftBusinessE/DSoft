@@ -20,7 +20,9 @@ import {
   Tooltip,
   List,
   ListItem,
+  TextField,
   Dialog,
+  Button,
 } from "@mui/material"
 import CustomBackdrop from "../../../components/CustomBackdrop"
 import { useMutation, api } from "../../../api"
@@ -39,7 +41,10 @@ import AccordionFiltros from "../components/AccordionFiltros"
 import dayjs from "dayjs"
 import BackIcon from "../../../components/BackIcon"
 import CloseIcon from "@mui/icons-material/Close"
+import AddIcon from "@mui/icons-material/Add"
+import DeleteIcon from "@mui/icons-material/Delete"
 import { useNavigate, useLocation } from "react-router-dom"
+import CustomAutocomplete from "../../../components/CustomAutocomplete"
 
 const StyledRoot = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -61,52 +66,13 @@ const theme = createTheme({
   },
 })
 
-function useGetProforma(pednumped) {
-  return useQuery({
-    queryKey: ["proformaEditar", pednumped],
-    queryFn: async () => {
-      const response = await fetchwrapper(`/FacturaDesdeArticulos/getProforma/${pednumped}`)
-      const data = await response.json()
-      if (!data.success) {
-        throw new Error(data.message || "Error al cargar proforma")
-      }
-      return data.data
-    },
-    refetchOnWindowFocus: false,
-    enabled: !!pednumped,
-  })
-}
-// Hook para TOP 30
-function useGetArticulos(clicodigo, factippag) {
-  return useQuery({
-    queryKey: ["FacturacionArticulos", clicodigo, factippag],
-    queryFn: async () => {
-      const options = {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-        body: JSON.stringify({
-          clicodigo: clicodigo || "000001",
-          factippag: factippag || "",
-        }),
-      }
-      let response = await fetchwrapper(`/FacturaDesdeArticulos/getTOP30Articulos`, options)
-      response = await response.json()
-      return response?.data ?? []
-    },
-    refetchOnWindowFocus: false,
-    enabled: !!(clicodigo && clicodigo !== ""),
-  })
-}
 const ContainerCabecera = styled(Box)(({ theme }) => ({
   display: "grid",
   gridTemplateColumns: "repeat(12, 1fr)",
   gridTemplateRows: "auto auto",
   gridTemplateAreas: `
     "Codigo Codigo Codigo Codigo FormaPago FormaPago FormaPago FormaPago Vendedor Vendedor Vendedor Vendedor"
-    "FechaE FechaE FechaV FechaV Observacion Observacion Observacion Observacion Observacion Observacion Observacion Observacion"
+    "FechaE FechaE FechaV FechaV CajaSRI CajaSRI CajaSRI CajaSRI Observacion Observacion Observacion Observacion"
   `,
   gap: "8px",
   alignItems: "center",
@@ -117,6 +83,7 @@ const ContainerCabecera = styled(Box)(({ theme }) => ({
       "Codigo Codigo Codigo Codigo Codigo Codigo FormaPago FormaPago FormaPago FormaPago FormaPago FormaPago"
       "Vendedor Vendedor Vendedor Vendedor Vendedor Vendedor Observacion Observacion Observacion Observacion Observacion Observacion"
       "FechaE FechaE FechaE FechaE FechaE FechaE FechaV FechaV FechaV FechaV FechaV FechaV"
+      "CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI"
     `,
   },
 }))
@@ -209,13 +176,115 @@ const Vendedor = styled(Box)({
 const Observacion = styled(Box)({
   gridArea: "Observacion",
 })
+
+const CajaSRI = styled(Box)({
+  gridArea: "CajaSRI",
+})
+
+// Hook para TOP 30
+function useGetArticulos(clicodigo, factippag) {
+  return useQuery({
+    queryKey: ["FacturacionArticulos", clicodigo, factippag],
+    queryFn: async () => {
+      const options = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+        body: JSON.stringify({
+          clicodigo: clicodigo || "000001",
+          factippag: factippag || "",
+        }),
+      }
+      let response = await fetchwrapper(`/FacturaDesdeArticulos/getTOP30Articulos`, options)
+      response = await response.json()
+      return response?.data ?? []
+    },
+    refetchOnWindowFocus: false,
+    enabled: !!(clicodigo && clicodigo !== ""),
+  })
+}
+
+// Hook para info del cliente
+function useGetInfoCliente(clicodigo) {
+  return useQuery({
+    queryKey: ["FacturacionClienteInfo", clicodigo],
+    queryFn: async () => {
+      const options = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+        body: JSON.stringify({
+          cliente: clicodigo,
+        }),
+      }
+      const response = await fetchwrapper(`/FacturaDesdeArticulos/getInfoCliente`, options)
+      const data = await response.json()
+      return data.data
+    },
+    refetchOnWindowFocus: false,
+    enabled: false,
+  })
+}
+
+// Hook para obtener datos de la proforma
+function useGetProforma(pednumped) {
+  return useQuery({
+    queryKey: ["proformaEditar", pednumped],
+    queryFn: async () => {
+      const response = await fetchwrapper(`/FacturaDesdeArticulos/getProforma/${pednumped}`)
+      const data = await response.json()
+      if (!data.success) {
+        throw new Error(data.message || "Error al cargar proforma")
+      }
+      return data.data
+    },
+    refetchOnWindowFocus: false,
+    enabled: !!pednumped,
+  })
+}
+
+// Hook para obtener cajas SRI
+function useGetCajas() {
+  return useQuery({
+    queryKey: ["cajasSRI"],
+    queryFn: async () => {
+      const options = {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
+      let response = await fetchwrapper(`/FacturaDesdeArticulos/getCajas`, options)
+      response = await response.json()
+      return response?.data ?? []
+    },
+    refetchOnWindowFocus: false,
+    enabled: true,
+  })
+}
+
 const EditarFacturaDesdeArticulos = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const proformaOriginal = location.state // Datos pasados desde la tabla
+  const proformaOriginal = location.state
 
   const [expandedInfoGeneral, setExpandedInfoGeneral] = useState(true)
+  const handleToggleInfoGeneral = () => setExpandedInfoGeneral((prev) => !prev)
   const [expandedInfoCliente, setExpandedInfoCliente] = useState(true)
+  const handleToggleInfoCliente = () => setExpandedInfoCliente((prev) => !prev)
+  const [expandedInfoAdicional, setExpandedInfoAdicional] = useState(true)
+  const handleToggleInfoAdicional = () => setExpandedInfoAdicional((prev) => !prev)
+
+  // Estado para info adicional general
+  const [infoAdicional, setInfoAdicional] = useState([])
+
+  // Estado para caja SRI seleccionada
+  const [cajaSeleccionada, setCajaSeleccionada] = useState(null)
 
   const [cabeceraProforma, setCabeceraProforma] = useState({
     cliente: { clicodigo: "" },
@@ -260,34 +329,12 @@ const EditarFacturaDesdeArticulos = () => {
     cabeceraProforma.cliente.clicodigo,
   )
 
-  // Hook para info del cliente
-  function useGetInfoCliente(clicodigo) {
-    return useQuery({
-      queryKey: ["FacturacionClienteInfo", clicodigo],
-      queryFn: async () => {
-        const options = {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-          },
-          body: JSON.stringify({
-            cliente: clicodigo,
-          }),
-        }
-        const response = await fetchwrapper(`/FacturaDesdeArticulos/getInfoCliente`, options)
-        const data = await response.json()
-        return data.data
-      },
-      refetchOnWindowFocus: false,
-      enabled: false,
-    })
-  }
+  // Hook para obtener cajas SRI
+  const { data: cajasSRI = [], isLoading: isLoadingCajas } = useGetCajas()
 
   // Efecto para inicializar datos de la proforma
   useEffect(() => {
     if (proformaData) {
-      // Extraer información
       const clienteInfo = proformaData.cliente || {}
       const formaPagoInfo = proformaData.formaPago || {}
       const vendedorInfo = proformaData.vendedor || {}
@@ -306,7 +353,7 @@ const EditarFacturaDesdeArticulos = () => {
         telefono: clienteInfo.clitelef1 || "",
         factippag: cabeceraInfo.factippag || "",
         fordescri: formaPagoInfo.fordescri || "",
-        fortipo: cabeceraInfo.factippag || formaPagoInfo.factippag || "",
+        fortipo: cabeceraInfo.fortipo || formaPagoInfo.fortipo || "",
         fordias: parseFloat(cabeceraInfo.fordias || formaPagoInfo.fordias || 0),
         fordescuento: parseFloat(cabeceraInfo.fordescuento || formaPagoInfo.fordescuento || 0),
         vendedor: {
@@ -316,19 +363,20 @@ const EditarFacturaDesdeArticulos = () => {
           pedidosweb: "",
         },
         observacion: cabeceraInfo.peddetalle || "",
-        formaPagoSeleccionada: {
-          factippag: cabeceraInfo.factippag || formaPagoInfo.factippag || "",
-          fordescri: formaPagoInfo.fordescri || "",
-          fordias: parseFloat(formaPagoInfo.fordias || 0),
-          fortipo: formaPagoInfo.fortipo || "",
-          forcuotas: formaPagoInfo.forcuotas || 1,
-          fordescuento: parseFloat(formaPagoInfo.fordescuento || 0),
-        },
-        vendedorSeleccionado: {
-          vencodigo: vendedorInfo.vencodigo || "",
-          vennombre: vendedorInfo.vennombre || "",
-        },
       })
+
+      // Cargar info adicional
+      if (proformaData.infoAdicional && proformaData.infoAdicional.length > 0) {
+        setInfoAdicional(proformaData.infoAdicional)
+      }
+
+      // Cargar caja SRI
+      if (cabeceraInfo.cjacodigo) {
+        const cajaEncontrada = cajasSRI.find((c) => c.value === cabeceraInfo.cjacodigo)
+        if (cajaEncontrada) {
+          setCajaSeleccionada(cajaEncontrada)
+        }
+      }
 
       // Cargar productos existentes
       if (proformaData.productos && proformaData.productos.length > 0) {
@@ -351,13 +399,14 @@ const EditarFacturaDesdeArticulos = () => {
           pedvaliva: prod.pedvaliva,
           pedvalor: prod.pedvalor,
           pedvaltot: prod.pedvaltot,
+          peddetalleadicional: prod.peddetalleadicional || "",
         }))
         setProductosAgregados(productosFormateados)
       }
     }
-  }, [proformaData])
+  }, [proformaData, cajasSRI])
 
-  // Efectos para TOP 30 y filtros (igual que en crear)
+  // Efectos para TOP 30 y filtros
   useEffect(() => {
     if (cabeceraProforma.cliente.clicodigo) {
       refetchTop30()
@@ -408,6 +457,32 @@ const EditarFacturaDesdeArticulos = () => {
     setProductosFiltrados(productos)
     setProductosGrid(productos)
     setMostrandoFiltros(true)
+  }
+
+  // Funciones para info adicional
+  const handleAgregarInfoAdicional = () => {
+    setInfoAdicional([...infoAdicional, { pedclave: "", pedvalor: "", pedorden: infoAdicional.length + 1 }])
+  }
+
+  const handleEliminarInfoAdicional = (index) => {
+    const nuevaInfo = infoAdicional.filter((_, i) => i !== index)
+    setInfoAdicional(nuevaInfo)
+  }
+
+  const handleChangeInfoAdicional = (index, campo, valor) => {
+    const nuevaInfo = [...infoAdicional]
+    nuevaInfo[index][campo] = valor
+    setInfoAdicional(nuevaInfo)
+  }
+
+  // Función para actualizar detalle adicional de un producto
+  const handleChangeDetalleAdicional = (index, valor) => {
+    const nuevosProductos = [...productosAgregados]
+    nuevosProductos[index] = {
+      ...nuevosProductos[index],
+      peddetalleadicional: valor,
+    }
+    setProductosAgregados(nuevosProductos)
   }
 
   // Mutation para actualizar proforma
@@ -472,6 +547,15 @@ const EditarFacturaDesdeArticulos = () => {
       return
     }
 
+    if (!cajaSeleccionada?.value) {
+      Swal.fire({
+        icon: "warning",
+        title: "Caja SRI no seleccionada",
+        text: "Debe seleccionar una caja SRI para actualizar la proforma",
+      })
+      return
+    }
+
     Swal.fire({
       title: "Actualizando proforma...",
       allowOutsideClick: false,
@@ -497,16 +581,19 @@ const EditarFacturaDesdeArticulos = () => {
         descuentoPorcentaje: p.descuentoPorcentaje,
         imagen: p.imagen,
         cantidadPedido: p.cantidadPedido,
+        peddetalleadicional: p.peddetalleadicional || "",
       })),
-      formaPago: cabeceraProforma.fortipo,
+      formaPago: cabeceraProforma.factippag,
       vendedor: cabeceraProforma.vendedor,
       observacion: cabeceraProforma.observacion,
+      infoAdicional: infoAdicional.filter((i) => i.pedclave.trim() !== ""),
+      cjacodigo: cajaSeleccionada.value,
     }
 
     await actualizarProformaMutation(payload)
   }
 
-  // FloatingMenu (igual que en crear)
+  // FloatingMenu
   const FloatingMenu = () => {
     const menuItems = [
       { icon: <DescriptionIcon />, label: "Información", sectionId: "informacion" },
@@ -608,7 +695,7 @@ const EditarFacturaDesdeArticulos = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <CustomBackdrop isLoading={isUpdating || isFetchingTop30} />
+      <CustomBackdrop isLoading={isUpdating || isFetchingTop30 || isLoadingCajas} />
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
@@ -626,11 +713,11 @@ const EditarFacturaDesdeArticulos = () => {
         <FloatingMenu />
 
         <Box className={StyledRoot}>
-          {/* Información General - Igual que en crear pero con valores existentes */}
+          {/* Información General */}
           <CustomFieldsetAccordion
             title="Información General"
             expanded={expandedInfoGeneral}
-            onToggle={() => setExpandedInfoGeneral(!expandedInfoGeneral)}
+            onToggle={handleToggleInfoGeneral}
           >
             <ContainerCabecera id="informacion">
               <Codigo>
@@ -654,6 +741,17 @@ const EditarFacturaDesdeArticulos = () => {
                   isOptional={true}
                 />
               </FechaV>
+              <CajaSRI>
+                <CustomAutocomplete
+                  label="Caja SRI"
+                  disabled={isLoadingCajas}
+                  selectedOption={cajaSeleccionada}
+                  setSelectedOption={setCajaSeleccionada}
+                  options={cajasSRI}
+                  isOptionEqualToValue={(option, value) => option.value === value?.value}
+                  getOptionLabel={(option) => option.label || ""}
+                />
+              </CajaSRI>
               <FormaPago>
                 <InputLabel>Forma de pago</InputLabel>
                 <FormaDePagoAutocomplete
@@ -682,7 +780,7 @@ const EditarFacturaDesdeArticulos = () => {
             <CustomFieldsetAccordion
               title="Información Cliente"
               expanded={expandedInfoCliente}
-              onToggle={() => setExpandedInfoCliente(!expandedInfoCliente)}
+              onToggle={handleToggleInfoCliente}
             >
               <ContainerCliente>
                 <Cliente>
@@ -742,7 +840,50 @@ const EditarFacturaDesdeArticulos = () => {
 
           <br />
 
-          {/* Productos - Misma estructura que crear */}
+          {/* Información Adicional General */}
+          <div style={{ paddingBottom: "10px" }}>
+            <CustomFieldsetAccordion
+              title="Información Adicional"
+              expanded={expandedInfoAdicional}
+              onToggle={handleToggleInfoAdicional}
+            >
+              <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {infoAdicional.map((info, index) => (
+                  <Box key={index} sx={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                    <TextField
+                      label="Clave"
+                      value={info.pedclave}
+                      onChange={(e) => handleChangeInfoAdicional(index, "pedclave", e.target.value)}
+                      size="small"
+                      sx={{ flex: 1 }}
+                    />
+                    <TextField
+                      label="Valor"
+                      value={info.pedvalor}
+                      onChange={(e) => handleChangeInfoAdicional(index, "pedvalor", e.target.value)}
+                      size="small"
+                      sx={{ flex: 2 }}
+                    />
+                    <IconButton color="error" onClick={() => handleEliminarInfoAdicional(index)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                ))}
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={handleAgregarInfoAdicional}
+                  sx={{ alignSelf: "flex-start" }}
+                >
+                  Agregar Campo
+                </Button>
+              </Box>
+            </CustomFieldsetAccordion>
+          </div>
+
+          <br />
+
+          {/* Productos */}
           <ContainerArticulos>
             <Productos id="productos">
               <div style={styles.tabsContainer}>
@@ -798,6 +939,7 @@ const EditarFacturaDesdeArticulos = () => {
                   setProductosAgregados={setProductosAgregados}
                   onRealizarPedido={handleActualizarProforma}
                   buttonText="Actualizar Proforma"
+                  onchangeDetalleAdicional={handleChangeDetalleAdicional}
                 />
               ) : (
                 <>
@@ -839,6 +981,7 @@ const EditarFacturaDesdeArticulos = () => {
                           setModalOpen(false)
                         }}
                         buttonText="Actualizar Proforma"
+                        onchangeDetalleAdicional={handleChangeDetalleAdicional}
                       />
                     </Box>
                   </Dialog>

@@ -1,3 +1,4 @@
+# flake8: noqa: E501
 from flask import jsonify, request
 from app.CreacionUsuarios import bp
 from app.extensions import db

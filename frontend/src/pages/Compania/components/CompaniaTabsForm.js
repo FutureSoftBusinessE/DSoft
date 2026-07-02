@@ -463,12 +463,13 @@ const ACCIONES_TABS = {
 
 const SECTION_CONFIG = [
   { key: "generales", permiso: ACCIONES_TABS.GENERALES, Component: GeneralesSection },
-  { key: "administrativo", permiso: ACCIONES_TABS.ADMINISTRATIVO, Component: AdministrativoSection },
-  { key: "contables", permiso: ACCIONES_TABS.CONTABLES, Component: ContablesSection },
-  { key: "otros", permiso: ACCIONES_TABS.OTROS, Component: OtrosSection },
-  { key: "otros2", permiso: ACCIONES_TABS.OTROS2, Component: Otros2Section },
-  { key: "cxpcompras", permiso: ACCIONES_TABS.CXP_COMPRAS, Component: CXPComprasSection },
-  { key: "adicionales", permiso: ACCIONES_TABS.ADICIONALES, Component: AdicionalesSection },
+  // A continuacion estos sections fueron escondidos:
+  // { key: "administrativo", permiso: ACCIONES_TABS.ADMINISTRATIVO, Component: AdministrativoSection },
+  // { key: "contables", permiso: ACCIONES_TABS.CONTABLES, Component: ContablesSection },
+  // { key: "otros", permiso: ACCIONES_TABS.OTROS, Component: OtrosSection },
+  // { key: "otros2", permiso: ACCIONES_TABS.OTROS2, Component: Otros2Section },
+  // { key: "cxpcompras", permiso: ACCIONES_TABS.CXP_COMPRAS, Component: CXPComprasSection },
+  // { key: "adicionales", permiso: ACCIONES_TABS.ADICIONALES, Component: AdicionalesSection },
 ]
 
 export default function CompaniaTabsForm({

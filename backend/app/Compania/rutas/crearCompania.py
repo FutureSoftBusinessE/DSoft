@@ -195,12 +195,12 @@ def generate_cliciagrupo(nombre, codigo):
     return f"{iniciales}{codigo}"
 
 
-def generate_usuario_extra(nombre):
-    """Genera usuario extra: solo letras, todo unido y en minúsculas"""
-    # Eliminar todo lo que no sea letra o espacio
-    solo_letras = re.sub(r"[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]", "", nombre)
-    # Unir todo y convertir a minúsculas
-    return solo_letras.replace(" ", "").lower()
+# def generate_usuario_extra(nombre):
+#     """Genera usuario extra: solo letras, todo unido y en minúsculas"""
+#     # Eliminar todo lo que no sea letra o espacio
+#     solo_letras = re.sub(r"[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]", "", nombre)
+#     # Unir todo y convertir a minúsculas
+#     return solo_letras.replace(" ", "").lower()
 
 
 @bp.route("/crearCompania", methods=["POST"])
@@ -512,8 +512,8 @@ def crearCompania():
                     },
                 )
 
-                # Segundo usuario: nuevo usuario extra (iniciales sin código de compania)
-                fsbs_new_cliciausu = generate_usuario_extra(ciaalias)
+                # Segundo usuario: nuevo usuario extra
+                fsbs_new_cliciausu = "admin"
                 conn_fsbs.execute(
                     insert_fsbsmcliusu_query,
                     {

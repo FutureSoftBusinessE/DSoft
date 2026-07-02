@@ -15,7 +15,6 @@ from app.Clases.FILTER_VALUE_TYPE import FILTER_VALUE_TYPE
 def getAllGravamenes():
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
-    sCodCia = claims["seleccion"]["cliciaciacodigo"]
 
     # Obtener los parámetros de la solicitud
     data = request.get_json()  # Esto permite obtener los parámetros de la consulta (URL query parameters)
@@ -69,7 +68,7 @@ def getAllGravamenes():
                 {"ciausumsys": FILTER_VALUE_TYPE.STRING},
             ]
 
-            base_query = f"""
+            base_query = """
             SELECT
                 ciacodigo,
                 ciadescri,
@@ -100,7 +99,6 @@ def getAllGravamenes():
                 ciahormsys,
                 ciausumsys
             FROM siaccia
-            WHERE ciacodigo = '{sCodCia}'
             """
 
             # Construir consulta paginada con filtros usando la función auxiliar

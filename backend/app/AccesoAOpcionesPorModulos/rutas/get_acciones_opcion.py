@@ -15,9 +15,9 @@ from datetime import datetime
 def get_acciones_opcion():
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
-    ciacodigo = claims["seleccion"]["cliciaciacodigo"]
 
     data = request.get_json()
+    ciacodigo = data.get("ciacodigo")
     usrcodigo = data.get("usrcodigo")
     opctag = data.get("opctag")
 

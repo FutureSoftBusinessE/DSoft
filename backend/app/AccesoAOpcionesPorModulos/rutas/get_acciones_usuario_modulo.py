@@ -18,9 +18,9 @@ def get_acciones_usuario_modulo():
     """
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
-    ciacodigo = claims["seleccion"]["cliciaciacodigo"]
 
     data = request.get_json()
+    ciacodigo = data.get("ciacodigo")
     usrcodigo = data.get("usrcodigo")
     modcodigo = data.get("modcodigo")
 
@@ -64,7 +64,7 @@ def get_acciones_usuario_modulo():
                 for row in result:
                     acciones.append({"opctag": row["opctag"], "acccaption": row["acccaption"], "opccontroller": row["opccontroller"], "accnameicono": row["accnameicono"], "acctipoico": row["acctipoico"], "fecha_asignacion": row["usrfecisys"].isoformat() if row["usrfecisys"] else None})
 
-                print(f"📋 Acciones guardadas encontradas: {len(acciones)}")
+                print(f"Acciones guardadas encontradas: {len(acciones)}")
                 return jsonify({"data": acciones, "status": "ok", "total": len(acciones)}), 200
 
     except Exception as e:

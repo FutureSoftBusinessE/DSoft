@@ -204,7 +204,11 @@ const AccesoALocalidadesBuscar = () => {
     return useQuery({
       queryKey: ["AccesoALocalidadesBuscarLocalidades"],
       queryFn: async () => {
-        const response = await fetchwrapper(`/AccesoALocalidades/getLocalidadesByCompania`)
+        const response = await fetchwrapper(`/AccesoALocalidades/getLocalidadesByCompania`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ciacodigo }),
+        })
         const result = await response.json()
         return result.data
       },
@@ -229,6 +233,7 @@ const AccesoALocalidadesBuscar = () => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
+              ciacodigo,
               usrcodigo,
             }),
           })
@@ -264,7 +269,7 @@ const AccesoALocalidadesBuscar = () => {
       mutationFn: async (data) => {
         const options = {
           method: "POST",
-          body: JSON.stringify({ permisos: data }),
+          body: JSON.stringify({ permisos: data, ciacodigo }),
           headers: {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",

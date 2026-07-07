@@ -20,9 +20,9 @@ import base64
 def get_permisos_by_usuario_compania():
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
-    ciacodigo = claims["seleccion"]["cliciaciacodigo"]
 
     data = request.get_json()
+    ciacodigo = data.get("ciacodigo")
     usrcodigo = data["usrcodigo"]
 
     if not usrcodigo:

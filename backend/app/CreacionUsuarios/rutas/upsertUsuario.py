@@ -244,6 +244,386 @@ def upsertUsuario():
 
                     connection.execute(insert_siactloc_query, data_siactloc)
 
+                    # ============================================================
+                    # INSERCIONES EN TABLAS MAESTRAS PARA EL NUEVO USUARIO
+                    # ============================================================
+
+                    # 1. INSERT en cxcbreg
+                    connection.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM cxcbreg WHERE ciacodigo = :ciacodigo AND regcodigo = :regcodigo)
+                            INSERT INTO cxcbreg (ciacodigo, regcodigo, regdescri, regstatus, regfecisys, reghorisys, regusuisys, regfecmsys, reghormsys, regusumsys)
+                            VALUES (:ciacodigo, :regcodigo, :regdescri, :regstatus, :regfecisys, :reghorisys, :regusuisys, :regfecmsys, :reghormsys, :regusumsys)
+                        """
+                        ),
+                        {
+                            "ciacodigo": sCodCia,
+                            "regcodigo": "000",
+                            "regdescri": "POR ACTUALIZAR",
+                            "regstatus": "A",
+                            "regfecisys": sFecISys,
+                            "reghorisys": sHorISys,
+                            "regusuisys": sUsuario,
+                            "regfecmsys": sFecISys,
+                            "reghormsys": sHorISys,
+                            "regusumsys": sUsuario,
+                        },
+                    )
+
+                    # 2. INSERT en fapzona
+                    connection.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM fapzona WHERE ciacodigo = :ciacodigo AND zoncodigo = :zoncodigo)
+                            INSERT INTO fapzona (ciacodigo, zoncodigo, zondescri, zonstatus, zonfecisys, zonhorisys, zonusuisys, zonestisys, zonfecmsys, zonhormsys, zonusumsys, zonestmsys)
+                            VALUES (:ciacodigo, :zoncodigo, :zondescri, :zonstatus, :zonfecisys, :zonhorisys, :zonusuisys, :zonestisys, :zonfecmsys, :zonhormsys, :zonusumsys, :zonestmsys)
+                        """
+                        ),
+                        {
+                            "ciacodigo": sCodCia,
+                            "zoncodigo": "000",
+                            "zondescri": "POR ACTUALIZAR",
+                            "zonstatus": "A",
+                            "zonfecisys": sFecISys,
+                            "zonhorisys": sHorISys,
+                            "zonusuisys": sUsuario,
+                            "zonestisys": sNomEst,
+                            "zonfecmsys": sFecISys,
+                            "zonhormsys": sHorISys,
+                            "zonusumsys": sUsuario,
+                            "zonestmsys": sNomEst,
+                        },
+                    )
+
+                    # 3. INSERT en inbinv
+                    connection.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM inbinv WHERE ciacodigo = :ciacodigo AND invcodigo = :invcodigo)
+                            INSERT INTO inbinv (ciacodigo, invcodigo, invdescri, invstatus, invfecisys, invhorisys, invusuisys, invfecmsys, invhormsys, invusumsys)
+                            VALUES (:ciacodigo, :invcodigo, :invdescri, :invstatus, :invfecisys, :invhorisys, :invusuisys, :invfecmsys, :invhormsys, :invusumsys)
+                        """
+                        ),
+                        {
+                            "ciacodigo": sCodCia,
+                            "invcodigo": "01",
+                            "invdescri": "GENERAL",
+                            "invstatus": "A",
+                            "invfecisys": sFecISys,
+                            "invhorisys": sHorISys,
+                            "invusuisys": sUsuario,
+                            "invfecmsys": sFecISys,
+                            "invhormsys": sHorISys,
+                            "invusumsys": sUsuario,
+                        },
+                    )
+
+                    # 4. INSERT en intartjefe
+                    connection.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM intartjefe WHERE ciacodigo = :ciacodigo AND jefecodigo = :jefecodigo)
+                            INSERT INTO intartjefe (ciacodigo, jefecodigo, jefedescri, jefestatus, jefefecisys, jefehorisys, jefeusuisys, jefeestisys, jefefecmsys, jefehormsys, jefeusumsys, jefeestmsys, jefecomisiona)
+                            VALUES (:ciacodigo, :jefecodigo, :jefedescri, :jefestatus, :jefefecisys, :jefehorisys, :jefeusuisys, :jefeestisys, :jefefecmsys, :jefehormsys, :jefeusumsys, :jefeestmsys, :jefecomisiona)
+                        """
+                        ),
+                        {
+                            "ciacodigo": sCodCia,
+                            "jefecodigo": "0000",
+                            "jefedescri": "SIN JEFE",
+                            "jefestatus": "A",
+                            "jefefecisys": sFecISys,
+                            "jefehorisys": sHorISys,
+                            "jefeusuisys": sUsuario,
+                            "jefeestisys": sNomEst,
+                            "jefefecmsys": sFecISys,
+                            "jefehormsys": sHorISys,
+                            "jefeusumsys": sUsuario,
+                            "jefeestmsys": sNomEst,
+                            "jefecomisiona": 0,
+                        },
+                    )
+
+                    # 5. INSERT en cxcbformapag
+                    connection.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM cxcbformapag WHERE ciacodigo = :ciacodigo AND factippag = :factippag)
+                            INSERT INTO cxcbformapag (ciacodigo, factippag, fordescri, fordias, fortipo, forcuotas, forstatus, forfecisys, forhorisys, forusuisys, forfecmsys, forhormsys, forusumsys, foranticipo, forintmen, fordocgen, foraplianti, foraplirango, formondesde, formonhasta, forapligrac, fordiasgrac, forcuoinigr, forguiarem, forcarven, forprenda, forcompnego, forentrecep, foruso, forpromocion, fordescuento, forfecini, forhorini, forfecfin, forhorfin, forlistapv, foraprocredito, foraprologistica, foraprocliente)
+                            VALUES (:ciacodigo, :factippag, :fordescri, :fordias, :fortipo, :forcuotas, :forstatus, :forfecisys, :forhorisys, :forusuisys, :forfecmsys, :forhormsys, :forusumsys, :foranticipo, :forintmen, :fordocgen, :foraplianti, :foraplirango, :formondesde, :formonhasta, :forapligrac, :fordiasgrac, :forcuoinigr, :forguiarem, :forcarven, :forprenda, :forcompnego, :forentrecep, :foruso, :forpromocion, :fordescuento, :forfecini, :forhorini, :forfecfin, :forhorfin, :forlistapv, :foraprocredito, :foraprologistica, :foraprocliente)
+                        """
+                        ),
+                        {
+                            "ciacodigo": sCodCia,
+                            "factippag": "EFE",
+                            "fordescri": "AL CONTADO",
+                            "fordias": 0,
+                            "fortipo": "CC",
+                            "forcuotas": 1,
+                            "forstatus": "A",
+                            "forfecisys": sFecISys,
+                            "forhorisys": sHorISys,
+                            "forusuisys": sUsuario,
+                            "forfecmsys": sFecISys,
+                            "forhormsys": sHorISys,
+                            "forusumsys": sUsuario,
+                            "foranticipo": 0,
+                            "forintmen": 0,
+                            "fordocgen": "N",
+                            "foraplianti": 0,
+                            "foraplirango": 0,
+                            "formondesde": 0,
+                            "formonhasta": 0,
+                            "forapligrac": 0,
+                            "fordiasgrac": 0,
+                            "forcuoinigr": 0,
+                            "forguiarem": 0,
+                            "forcarven": 0,
+                            "forprenda": 0,
+                            "forcompnego": 0,
+                            "forentrecep": 0,
+                            "foruso": "F",
+                            "forpromocion": 0,
+                            "fordescuento": 0,
+                            "forfecini": sFecISys,
+                            "forhorini": sHorISys,
+                            "forfecfin": sFecISys,
+                            "forhorfin": sHorISys,
+                            "forlistapv": 0,
+                            "foraprocredito": 0,
+                            "foraprologistica": 0,
+                            "foraprocliente": 0,
+                        },
+                    )
+
+                    # 6. INSERT en inblin
+                    connection.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM inblin WHERE ciacodigo = :ciacodigo AND lincodigo = :lincodigo)
+                            INSERT INTO inblin (ciacodigo, lincodigo, lindescri, linlindes, coscodigo, linnivel, lintipo, linstatus, linfecisys, linhorisys, linusuisys, linfecmsys, linhormsys, linusumsys, numsecini, numseccont, lincodigo1)
+                            VALUES (:ciacodigo, :lincodigo, :lindescri, :linlindes, :coscodigo, :linnivel, :lintipo, :linstatus, :linfecisys, :linhorisys, :linusuisys, :linfecmsys, :linhormsys, :linusumsys, :numsecini, :numseccont, :lincodigo1)
+                        """
+                        ),
+                        {
+                            "ciacodigo": sCodCia,
+                            "lincodigo": "000000",
+                            "lindescri": "ESTANDAR",
+                            "linlindes": None,
+                            "coscodigo": None,
+                            "linnivel": 1,
+                            "lintipo": "T",
+                            "linstatus": "A",
+                            "linfecisys": sFecISys,
+                            "linhorisys": sHorISys,
+                            "linusuisys": sUsuario,
+                            "linfecmsys": sFecISys,
+                            "linhormsys": sHorISys,
+                            "linusumsys": sUsuario,
+                            "numsecini": None,
+                            "numseccont": None,
+                            "lincodigo1": "000000",
+                        },
+                    )
+
+                    # 7. INSERT en inbmar
+                    connection.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM inbmar WHERE ciacodigo = :ciacodigo AND marcodigo = :marcodigo)
+                            INSERT INTO inbmar (ciacodigo, marcodigo, mardescri, marstatus, marfecisys, marhorisys, marusuisys, marfecmsys, marhormsys, marusumsys)
+                            VALUES (:ciacodigo, :marcodigo, :mardescri, :marstatus, :marfecisys, :marhorisys, :marusuisys, :marfecmsys, :marhormsys, :marusumsys)
+                        """
+                        ),
+                        {
+                            "ciacodigo": sCodCia,
+                            "marcodigo": "S/M",
+                            "mardescri": "S/M",
+                            "marstatus": "A",
+                            "marfecisys": sFecISys,
+                            "marhorisys": sHorISys,
+                            "marusuisys": sUsuario,
+                            "marfecmsys": sFecISys,
+                            "marhormsys": sHorISys,
+                            "marusumsys": sUsuario,
+                        },
+                    )
+
+                    # 8. INSERT en inbmed
+                    connection.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM inbmed WHERE ciacodigo = :ciacodigo AND medcodigo = :medcodigo)
+                            INSERT INTO inbmed (ciacodigo, medcodigo, meddescri, medstatus, medfecisys, medhorisys, medusuisys, medfecmsys, medhormsys, medusumsys)
+                            VALUES (:ciacodigo, :medcodigo, :meddescri, :medstatus, :medfecisys, :medhorisys, :medusuisys, :medfecmsys, :medhormsys, :medusumsys)
+                        """
+                        ),
+                        {
+                            "ciacodigo": sCodCia,
+                            "medcodigo": "SM",
+                            "meddescri": "S/M",
+                            "medstatus": "A",
+                            "medfecisys": sFecISys,
+                            "medhorisys": sHorISys,
+                            "medusuisys": sUsuario,
+                            "medfecmsys": sFecISys,
+                            "medhormsys": sHorISys,
+                            "medusumsys": sUsuario,
+                        },
+                    )
+
+                    # 9. INSERT en inbpre
+                    connection.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM inbpre WHERE ciacodigo = :ciacodigo AND precodigo = :precodigo)
+                            INSERT INTO inbpre (ciacodigo, precodigo, predescri, prestatus, prefecisys, prehorisys, preusuisys, prefecmsys, prehormsys, preusumsys)
+                            VALUES (:ciacodigo, :precodigo, :predescri, :prestatus, :prefecisys, :prehorisys, :preusuisys, :prefecmsys, :prehormsys, :preusumsys)
+                        """
+                        ),
+                        {
+                            "ciacodigo": sCodCia,
+                            "precodigo": "SP",
+                            "predescri": "SP",
+                            "prestatus": "A",
+                            "prefecisys": sFecISys,
+                            "prehorisys": sHorISys,
+                            "preusuisys": sUsuario,
+                            "prefecmsys": sFecISys,
+                            "prehormsys": sHorISys,
+                            "preusumsys": sUsuario,
+                        },
+                    )
+
+                    # 10. INSERT en cxcmcli
+                    connection.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM cxcmcli WHERE ciacodigo = :ciacodigo AND clicodigo = :clicodigo)
+                            INSERT INTO cxcmcli (ciacodigo, clicodigo, clinombre, cliaparta, cliruc, clidirec, clirepres, clitelef1, clitelef2, clifax, clidiascrs, climontocrs, clisalaplis, clidiascrd, climontocrd, clisalaplid, cliprefac, clistatus, clifecisys, clihorisys, cliusuisys, clifecmsys, clihormsys, cliusumsys, zoncodigo, regcodigo, cliapliiva, procodigo, cliestciv, cliprofesion, tipcodigo, clibloqueo, cliobserva, clifecnac, cliemail, calificacion, website, cliidencon, clidirec2, ciucodigo, usrcodigo, cliruccon, clinombrecon, clidireccon, cliprofesioncon, cliivaped, clirucmatriz, clinommatriz, cliintersec, clinumestable, tarenviosta, clirucrepres, cliidentifica, fecenvioxml, cliidenrep, clicuotaven, activicodigo, sectorcodigo, clidiapago, clihorapagodesde, clihorapagohasta, clidiasrecibefac1, clidiaentregafac, cliestisys, cliestmsys, cliconespecial, clitelpref1, clitelpref2, clitelext1, clitelext2, calfcodigo, clisexo, clipersona, cliorigening, clidemanda, clicastigada, parrocodigo, cliparterel, clitipodomicilio, clitiempodomicilio, cliubicacionrapido, clireferencia1, cliparentesco1, clireftelefono1, clireferencia2, cliparentesco2, clireftelefono2, paicodigonac, clilugarlabora, cliactivos, clipasivos, cliingresos, cliegresos, clipatrimonioneto, capcodigo, clifonocon, cliemailcon, activicodigocon, cliingresoscon, cliesfuncionario, cliinstitfuncionario, clienpolitica, clipartidopolitico, clifondosorigen, clifondosdestino, clifonorepres, clidirecrepres, cliemailrepres, apocodigo, clifonolabora, clicontactonombre, clicontactoemail, clipaicodigocon, clicertvotacion, clicertvotacioncon)
+                            VALUES (:ciacodigo, :clicodigo, :clinombre, :cliaparta, :cliruc, :clidirec, :clirepres, :clitelef1, :clitelef2, :clifax, :clidiascrs, :climontocrs, :clisalaplis, :clidiascrd, :climontocrd, :clisalaplid, :cliprefac, :clistatus, :clifecisys, :clihorisys, :cliusuisys, :clifecmsys, :clihormsys, :cliusumsys, :zoncodigo, :regcodigo, :cliapliiva, :procodigo, :cliestciv, :cliprofesion, :tipcodigo, :clibloqueo, :cliobserva, :clifecnac, :cliemail, :calificacion, :website, :cliidencon, :clidirec2, :ciucodigo, :usrcodigo, :cliruccon, :clinombrecon, :clidireccon, :cliprofesioncon, :cliivaped, :clirucmatriz, :clinommatriz, :cliintersec, :clinumestable, :tarenviosta, :clirucrepres, :cliidentifica, :fecenvioxml, :cliidenrep, :clicuotaven, :activicodigo, :sectorcodigo, :clidiapago, :clihorapagodesde, :clihorapagohasta, :clidiasrecibefac1, :clidiaentregafac, :cliestisys, :cliestmsys, :cliconespecial, :clitelpref1, :clitelpref2, :clitelext1, :clitelext2, :calfcodigo, :clisexo, :clipersona, :cliorigening, :clidemanda, :clicastigada, :parrocodigo, :cliparterel, :clitipodomicilio, :clitiempodomicilio, :cliubicacionrapido, :clireferencia1, :cliparentesco1, :clireftelefono1, :clireferencia2, :cliparentesco2, :clireftelefono2, :paicodigonac, :clilugarlabora, :cliactivos, :clipasivos, :cliingresos, :cliegresos, :clipatrimonioneto, :capcodigo, :clifonocon, :cliemailcon, :activicodigocon, :cliingresoscon, :cliesfuncionario, :cliinstitfuncionario, :clienpolitica, :clipartidopolitico, :clifondosorigen, :clifondosdestino, :clifonorepres, :clidirecrepres, :cliemailrepres, :apocodigo, :clifonolabora, :clicontactonombre, :clicontactoemail, :clipaicodigocon, :clicertvotacion, :clicertvotacioncon)
+                        """
+                        ),
+                        {
+                            "ciacodigo": sCodCia,
+                            "clicodigo": "000001",
+                            "clinombre": "CONSUMIDOR FINAL",
+                            "cliaparta": None,
+                            "cliruc": "9999999999999",
+                            "clidirec": "GUAYAQUIL",
+                            "clirepres": None,
+                            "clitelef1": "42222222",
+                            "clitelef2": None,
+                            "clifax": None,
+                            "clidiascrs": 0,
+                            "climontocrs": 0,
+                            "clisalaplis": 0,
+                            "clidiascrd": 0,
+                            "climontocrd": 0,
+                            "clisalaplid": 0,
+                            "cliprefac": 1,
+                            "clistatus": "A",
+                            "clifecisys": sFecISys,
+                            "clihorisys": sHorISys,
+                            "cliusuisys": sUsuario,
+                            "clifecmsys": sFecISys,
+                            "clihormsys": sHorISys,
+                            "cliusumsys": sUsuario,
+                            "zoncodigo": "000",
+                            "regcodigo": "000",
+                            "cliapliiva": -1,
+                            "procodigo": None,
+                            "cliestciv": "SOLTERO",
+                            "cliprofesion": None,
+                            "tipcodigo": "FIN",
+                            "clibloqueo": 0,
+                            "cliobserva": None,
+                            "clifecnac": None,
+                            "cliemail": "otros@gmail.com",
+                            "calificacion": "0",
+                            "website": None,
+                            "cliidencon": "O",
+                            "clidirec2": None,
+                            "ciucodigo": None,
+                            "usrcodigo": None,
+                            "cliruccon": None,
+                            "clinombrecon": None,
+                            "clidireccon": None,
+                            "cliprofesioncon": None,
+                            "cliivaped": 0,
+                            "clirucmatriz": "9999999999999",
+                            "clinommatriz": "CLIENTE FINAL",
+                            "cliintersec": None,
+                            "clinumestable": None,
+                            "tarenviosta": "D",
+                            "clirucrepres": None,
+                            "cliidentifica": "O",
+                            "fecenvioxml": None,
+                            "cliidenrep": "O",
+                            "clicuotaven": 0,
+                            "activicodigo": None,
+                            "sectorcodigo": None,
+                            "clidiapago": 2,
+                            "clihorapagodesde": fecha_formato_1900,
+                            "clihorapagohasta": fecha_formato_1900,
+                            "clidiasrecibefac1": 0,
+                            "clidiaentregafac": 0,
+                            "cliestisys": sNomEst,
+                            "cliestmsys": sNomEst,
+                            "cliconespecial": 0,
+                            "clitelpref1": None,
+                            "clitelpref2": None,
+                            "clitelext1": None,
+                            "clitelext2": None,
+                            "calfcodigo": None,
+                            "clisexo": "M",
+                            "clipersona": "N",
+                            "cliorigening": "I",
+                            "clidemanda": 0,
+                            "clicastigada": 0,
+                            "parrocodigo": None,
+                            "cliparterel": 0,
+                            "clitipodomicilio": None,
+                            "clitiempodomicilio": None,
+                            "cliubicacionrapido": None,
+                            "clireferencia1": None,
+                            "cliparentesco1": None,
+                            "clireftelefono1": None,
+                            "clireferencia2": None,
+                            "cliparentesco2": None,
+                            "clireftelefono2": None,
+                            "paicodigonac": None,
+                            "clilugarlabora": None,
+                            "cliactivos": None,
+                            "clipasivos": None,
+                            "cliingresos": None,
+                            "cliegresos": None,
+                            "clipatrimonioneto": None,
+                            "capcodigo": None,
+                            "clifonocon": None,
+                            "cliemailcon": None,
+                            "activicodigocon": None,
+                            "cliingresoscon": None,
+                            "cliesfuncionario": None,
+                            "cliinstitfuncionario": None,
+                            "clienpolitica": None,
+                            "clipartidopolitico": None,
+                            "clifondosorigen": None,
+                            "clifondosdestino": None,
+                            "clifonorepres": None,
+                            "clidirecrepres": None,
+                            "cliemailrepres": None,
+                            "apocodigo": None,
+                            "clifonolabora": None,
+                            "clicontactonombre": None,
+                            "clicontactoemail": None,
+                            "clipaicodigocon": None,
+                            "clicertvotacion": None,
+                            "clicertvotacioncon": None,
+                        },
+                    )
+
                 # Actualizo el Registro
                 if sOpcion == "Edit":
                     data_siaccusr_update = {

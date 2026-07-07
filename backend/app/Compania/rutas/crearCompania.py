@@ -190,17 +190,22 @@ def validate_field_length(field_name, field_value):
 
 
 def generate_cliciagrupo(nombre, codigo):
-    """Genera cliciagrupo: iniciales de cada palabra en mayusculas + código"""
+    """Genera cliciagrupo: iniciales de cada palabra en mayusculas + código. Ej: empresa prueba web -> EPW+CODIGO"""
     iniciales = "".join([palabra[0].upper() for palabra in nombre.split() if palabra])
     return f"{iniciales}{codigo}"
 
 
-# def generate_usuario_extra(nombre):
-#     """Genera usuario extra: solo letras, todo unido y en minúsculas"""
-#     # Eliminar todo lo que no sea letra o espacio
-#     solo_letras = re.sub(r"[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]", "", nombre)
-#     # Unir todo y convertir a minúsculas
-#     return solo_letras.replace(" ", "").lower()
+def generate_usuario_extra(nombre):
+    """Genera usuario extra: alias@generate_cliciagrupo()"""
+    try:
+        usr_nombre = nombre.strip().lower()
+        if len(usr_nombre) > 10:
+            raise f"El nombre de usuario {nombre} excede los 10 caracteres"
+
+        return usr_nombre
+
+    except Exception as error:
+        raise (error)
 
 
 @bp.route("/crearCompania", methods=["POST"])
@@ -427,7 +432,10 @@ def crearCompania():
             # SiacDesignsoft: siaccia + siaccusr (1 usuario) + 14 tablas maestras
             #   - cxcbreg, fapzona, inbinv, intartjefe, cxcbformapag,
             #     inblin, inbmar, inbmed, inbpre, cxcbtipcli, cxcmcli,
-            #     cgblocal, siac_local_sin_licencia,siactloc (2 usuarios)
+            #     cgblocal, siac_local_sin_licencia, siactloc (2 usuarios)
+            #   - siactusr (módulos) + siactusrweb (opciones menú) +
+            #     siactusrwebbar (acciones) - Copia permisos usuario 1 desde
+            #     compañía origen y asigna mismos permisos al usuario 2
             # SiacFSBS: fsbsmclicia + fsbsmcliusu (2 usuarios)
             # Si algo falla → ROLLBACK en ambas
             # ══════════════════════════════════════════════════════════════════
@@ -512,8 +520,8 @@ def crearCompania():
                     },
                 )
 
-                # Segundo usuario: nuevo usuario extra
-                fsbs_new_cliciausu = "admin"
+                # Segundo usuario: nuevo usuario extra (iniciales sin código de compania)
+                fsbs_new_cliciausu = generate_usuario_extra(ciaalias)
                 conn_fsbs.execute(
                     insert_fsbsmcliusu_query,
                     {
@@ -1315,6 +1323,245 @@ def crearCompania():
                     },
                 )
 
+                # ============================================================
+                # COPIAR PERMISOS DEL USUARIO 1 (COMPAÑÍA ORIGEN → COMPAÑÍA NUEVA)
+                # ============================================================
+
+                # Obtener el ciacodigo de la compañía origen (donde el usuario hizo login)
+                ciacodigo_origen = claims["seleccion"]["cliciaciacodigo"]
+
+                # 1. Copiar módulos (siactusr) del usuario 1 de la compañía origen a la nueva compañía
+                siactusr_usuario1 = (
+                    conn_company.execute(
+                        text(
+                            """
+                        SELECT modcodigo, usracceso, usraccion
+                        FROM siactusr
+                        WHERE usrcodigo = :usrcodigo AND ciacodigo = :ciacodigo_origen
+                    """
+                        ),
+                        {"usrcodigo": encriptar(sUsuario), "ciacodigo_origen": ciacodigo_origen},
+                    )
+                    .mappings()
+                    .fetchall()
+                )
+
+                for siactusr in siactusr_usuario1:
+                    conn_company.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM siactusr WHERE usrcodigo = :usrcodigo AND ciacodigo = :ciacodigo AND modcodigo = :modcodigo)
+                            INSERT INTO siactusr (ciacodigo, usrcodigo, modcodigo, usracceso, usrfecisys, usrhorisys, usrusuisys, usrestisys, usraccion)
+                            VALUES (:ciacodigo, :usrcodigo, :modcodigo, :usracceso, :usrfecisys, :usrhorisys, :usrusuisys, :usrestisys, :usraccion)
+                        """
+                        ),
+                        {
+                            "ciacodigo": ciacodigo,
+                            "usrcodigo": encriptar(sUsuario),
+                            "modcodigo": siactusr["modcodigo"],
+                            "usracceso": siactusr["usracceso"],
+                            "usrfecisys": fecha_actual,
+                            "usrhorisys": hora_sys,
+                            "usrusuisys": sUsuario,
+                            "usrestisys": ipUser,
+                            "usraccion": "CREATE",
+                        },
+                    )
+
+                # 2. Copiar opciones de menú (siactusrweb) del usuario 1 de la compañía origen a la nueva compañía
+                siactusrweb_usuario1 = (
+                    conn_company.execute(
+                        text(
+                            """
+                        SELECT modcodigo, opctag, id_item
+                        FROM siactusrweb
+                        WHERE usrcodigo = :usrcodigo AND ciacodigo = :ciacodigo_origen
+                    """
+                        ),
+                        {"usrcodigo": encriptar(sUsuario), "ciacodigo_origen": ciacodigo_origen},
+                    )
+                    .mappings()
+                    .fetchall()
+                )
+
+                for siactusrweb in siactusrweb_usuario1:
+                    conn_company.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM siactusrweb WHERE usrcodigo = :usrcodigo AND ciacodigo = :ciacodigo AND modcodigo = :modcodigo AND opctag = :opctag)
+                            INSERT INTO siactusrweb (ciacodigo, usrcodigo, modcodigo, opctag, usrfecisys, usrusuisys, usrestisys, id_item)
+                            VALUES (:ciacodigo, :usrcodigo, :modcodigo, :opctag, :usrfecisys, :usrusuisys, :usrestisys, :id_item)
+                        """
+                        ),
+                        {
+                            "ciacodigo": ciacodigo,
+                            "usrcodigo": encriptar(sUsuario),
+                            "modcodigo": siactusrweb["modcodigo"],
+                            "opctag": siactusrweb["opctag"],
+                            "usrfecisys": fecha_actual,
+                            "usrusuisys": sUsuario,
+                            "usrestisys": ipUser,
+                            "id_item": siactusrweb.get("id_item"),
+                        },
+                    )
+
+                # 3. Copiar acciones (siactusrwebbar) del usuario 1 de la compañía origen a la nueva compañía
+                siactusrwebbar_usuario1 = (
+                    conn_company.execute(
+                        text(
+                            """
+                        SELECT modcodigo, opctag, opccontroller, acccaption, id_item
+                        FROM siactusrwebbar
+                        WHERE usrcodigo = :usrcodigo AND ciacodigo = :ciacodigo_origen
+                    """
+                        ),
+                        {"usrcodigo": encriptar(sUsuario), "ciacodigo_origen": ciacodigo_origen},
+                    )
+                    .mappings()
+                    .fetchall()
+                )
+
+                for siactusrwebbar in siactusrwebbar_usuario1:
+                    conn_company.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM siactusrwebbar WHERE usrcodigo = :usrcodigo AND ciacodigo = :ciacodigo AND modcodigo = :modcodigo AND opctag = :opctag AND acccaption = :acccaption)
+                            INSERT INTO siactusrwebbar (ciacodigo, usrcodigo, modcodigo, opctag, opccontroller, acccaption, usrfecisys, usrusuisys, usrestisys, id_item)
+                            VALUES (:ciacodigo, :usrcodigo, :modcodigo, :opctag, :opccontroller, :acccaption, :usrfecisys, :usrusuisys, :usrestisys, :id_item)
+                        """
+                        ),
+                        {
+                            "ciacodigo": ciacodigo,
+                            "usrcodigo": encriptar(sUsuario),
+                            "modcodigo": siactusrwebbar["modcodigo"],
+                            "opctag": siactusrwebbar["opctag"],
+                            "opccontroller": siactusrwebbar.get("opccontroller"),
+                            "acccaption": siactusrwebbar["acccaption"],
+                            "usrfecisys": fecha_actual,
+                            "usrusuisys": sUsuario,
+                            "usrestisys": ipUser,
+                            "id_item": siactusrwebbar.get("id_item"),
+                        },
+                    )
+
+                # ============================================================
+                # COPIAR PERMISOS DEL USUARIO 1 AL USUARIO 2 (MISMA COMPAÑÍA NUEVA)
+                # ============================================================
+
+                # 4. Copiar módulos del usuario 1 al usuario 2 en la NUEVA compañía
+                siactusr_para_usuario2 = (
+                    conn_company.execute(
+                        text(
+                            """
+                        SELECT modcodigo, usracceso, usraccion
+                        FROM siactusr
+                        WHERE usrcodigo = :usrcodigo AND ciacodigo = :ciacodigo
+                    """
+                        ),
+                        {"usrcodigo": encriptar(sUsuario), "ciacodigo": ciacodigo},
+                    )
+                    .mappings()
+                    .fetchall()
+                )
+
+                for siactusr in siactusr_para_usuario2:
+                    conn_company.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM siactusr WHERE usrcodigo = :usrcodigo AND ciacodigo = :ciacodigo AND modcodigo = :modcodigo)
+                            INSERT INTO siactusr (ciacodigo, usrcodigo, modcodigo, usracceso, usrfecisys, usrhorisys, usrusuisys, usrestisys, usraccion)
+                            VALUES (:ciacodigo, :usrcodigo, :modcodigo, :usracceso, :usrfecisys, :usrhorisys, :usrusuisys, :usrestisys, :usraccion)
+                        """
+                        ),
+                        {
+                            "ciacodigo": ciacodigo,
+                            "usrcodigo": encriptar(fsbs_new_cliciausu),
+                            "modcodigo": siactusr["modcodigo"],
+                            "usracceso": siactusr["usracceso"],
+                            "usrfecisys": fecha_actual,
+                            "usrhorisys": hora_sys,
+                            "usrusuisys": sUsuario,
+                            "usrestisys": ipUser,
+                            "usraccion": "CREATE",
+                        },
+                    )
+
+                # 5. Copiar opciones de menú del usuario 1 al usuario 2 en la NUEVA compañía
+                siactusrweb_para_usuario2 = (
+                    conn_company.execute(
+                        text(
+                            """
+                        SELECT modcodigo, opctag, id_item
+                        FROM siactusrweb
+                        WHERE usrcodigo = :usrcodigo AND ciacodigo = :ciacodigo
+                    """
+                        ),
+                        {"usrcodigo": encriptar(sUsuario), "ciacodigo": ciacodigo},
+                    )
+                    .mappings()
+                    .fetchall()
+                )
+
+                for siactusrweb in siactusrweb_para_usuario2:
+                    conn_company.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM siactusrweb WHERE usrcodigo = :usrcodigo AND ciacodigo = :ciacodigo AND modcodigo = :modcodigo AND opctag = :opctag)
+                            INSERT INTO siactusrweb (ciacodigo, usrcodigo, modcodigo, opctag, usrfecisys, usrusuisys, usrestisys, id_item)
+                            VALUES (:ciacodigo, :usrcodigo, :modcodigo, :opctag, :usrfecisys, :usrusuisys, :usrestisys, :id_item)
+                        """
+                        ),
+                        {
+                            "ciacodigo": ciacodigo,
+                            "usrcodigo": encriptar(fsbs_new_cliciausu),
+                            "modcodigo": siactusrweb["modcodigo"],
+                            "opctag": siactusrweb["opctag"],
+                            "usrfecisys": fecha_actual,
+                            "usrusuisys": sUsuario,
+                            "usrestisys": ipUser,
+                            "id_item": siactusrweb.get("id_item"),
+                        },
+                    )
+
+                # 6. Copiar acciones del usuario 1 al usuario 2 en la NUEVA compañía
+                siactusrwebbar_para_usuario2 = (
+                    conn_company.execute(
+                        text(
+                            """
+                        SELECT modcodigo, opctag, opccontroller, acccaption, id_item
+                        FROM siactusrwebbar
+                        WHERE usrcodigo = :usrcodigo AND ciacodigo = :ciacodigo
+                    """
+                        ),
+                        {"usrcodigo": encriptar(sUsuario), "ciacodigo": ciacodigo},
+                    )
+                    .mappings()
+                    .fetchall()
+                )
+
+                for siactusrwebbar in siactusrwebbar_para_usuario2:
+                    conn_company.execute(
+                        text(
+                            """
+                            IF NOT EXISTS (SELECT 1 FROM siactusrwebbar WHERE usrcodigo = :usrcodigo AND ciacodigo = :ciacodigo AND modcodigo = :modcodigo AND opctag = :opctag AND acccaption = :acccaption)
+                            INSERT INTO siactusrwebbar (ciacodigo, usrcodigo, modcodigo, opctag, opccontroller, acccaption, usrfecisys, usrusuisys, usrestisys, id_item)
+                            VALUES (:ciacodigo, :usrcodigo, :modcodigo, :opctag, :opccontroller, :acccaption, :usrfecisys, :usrusuisys, :usrestisys, :id_item)
+                        """
+                        ),
+                        {
+                            "ciacodigo": ciacodigo,
+                            "usrcodigo": encriptar(fsbs_new_cliciausu),
+                            "modcodigo": siactusrwebbar["modcodigo"],
+                            "opctag": siactusrwebbar["opctag"],
+                            "opccontroller": siactusrwebbar.get("opccontroller"),
+                            "acccaption": siactusrwebbar["acccaption"],
+                            "usrfecisys": fecha_actual,
+                            "usrusuisys": sUsuario,
+                            "usrestisys": ipUser,
+                            "id_item": siactusrwebbar.get("id_item"),
+                        },
+                    )
+
                 # Commit en AMBAS (solo si todo fue exitoso)
                 trans_company.commit()
                 trans_fsbs.commit()
@@ -1324,4 +1571,4 @@ def crearCompania():
                 trans_fsbs.rollback()
                 raise APIError(e)
 
-    return {"data": "Compañía creada exitosamente"}
+    return {"data": f"Compania creada exitosamente. Usuarios creados (2): {sUsuario}@{fsbs_cliciagrupo}, {fsbs_new_cliciausu}@{fsbs_cliciagrupo}"}

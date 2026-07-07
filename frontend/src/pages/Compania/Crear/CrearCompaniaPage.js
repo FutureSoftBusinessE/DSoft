@@ -8,7 +8,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider"
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns"
 import esLocale from "date-fns/locale/es"
 import CustomBackdrop from "../../../components/CustomBackdrop"
-import { useMutation, api, showWarning, showError } from "../../../api"
+import { useMutation, api, showWarning, showError, notificationService } from "../../../api"
 import { GlobalContext } from "../../../contexts/GlobalContext"
 import getIconComponent from "../../utils/getIconComponent"
 import CompaniaTabsForm, { COMPANIA_DEFAULT_VALUES } from "../components/CompaniaTabsForm"
@@ -59,8 +59,11 @@ const CrearCompania = () => {
       return response.data
     },
     showError: false,
-    showSuccess: "toast",
-    onSuccess: () => navigate(-1),
+    showSuccess: "none",
+    onSuccess: (data, variables, context, message) => {
+      notificationService.showSuccess(data, "modal")
+      navigate(-1)
+    },
   })
 
   const { mutateAsync: GetSiguienteCodigoCompania } = useMutation({

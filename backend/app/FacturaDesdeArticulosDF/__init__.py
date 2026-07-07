@@ -23,5 +23,8 @@ from app.FacturaDesdeArticulosDF import recuperarPayloadFactura
 from app.FacturaDesdeArticulosDF import getProforma
 from app.FacturaDesdeArticulosDF import editarPedido
 from app.FacturaDesdeArticulosDF import getProformaFacturaBuscar
+from app.FacturaDesdeArticulosDF import getCajas
+from app.FacturaDesdeArticulosDF import getFacturaParaClonar
+from app.FacturaDesdeArticulosDF import anularFactura
 
 from app.FacturaDesdeArticulosDF.utils import construir_payload_sri

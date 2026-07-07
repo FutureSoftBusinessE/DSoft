@@ -35,7 +35,7 @@ def getProforma(pednumped):
                 tipcodigo, pedporrec, pedporiva, pedapliiva,
                 fordias, fortipo, forcuotas, fordescuento,
                 foraprocredito, foraprologistica, foraprocliente,
-                forpromocion, foranticipo, foraplianti
+                forpromocion, foranticipo, foraplianti, cjacodigo
             FROM facped
             WHERE ciacodigo = :ciacodigo
             AND loccodigo = :loccodigo
@@ -47,7 +47,7 @@ def getProforma(pednumped):
         if not cabecera:
             raise NotFoundError(f"Proforma {pednumped} no encontrada")
 
-        # 2. Obtener información completa del cliente (usando el mismo query que getInfoCliente)
+        # 2. Obtener información completa del cliente
         query_cliente = """
             SELECT DISTINCT
                 cxcmcli.clicodigo,
@@ -87,7 +87,7 @@ def getProforma(pednumped):
 
         cliente_info = dict(cliente_result) if cliente_result else {}
 
-        # 3. Obtener información de la forma de pago (usando el mismo query que getFormaPago)
+        # 3. Obtener información de la forma de pago
         query_formapago = """
             SELECT c.*
             FROM cxcbformapag c
@@ -139,6 +139,7 @@ def getProforma(pednumped):
                 fatped.artpeso,
                 fatped.artserie,
                 fatped.artservicio,
+                fatped.peddetalleadicional,
                 inmart.artcantactual,
                 inmart.artdescri as artdescri_completa,
                 inmart.precodigo as precodigo_inmart,
@@ -156,7 +157,18 @@ def getProforma(pednumped):
 
         detalles = connection.execute(text(query_detalles), {"ciacodigo": ciacodigo, "loccodigo": loccodigo, "pednumped": pednumped}).mappings().all()
 
-        # 6. Construir respuesta completa
+        # 6. Obtener información adicional general
+        query_info_adicional = """
+            SELECT pedclave, pedvalor, pedorden
+            FROM pedinfoadicional
+            WHERE ciacodigo = :ciacodigo
+            AND loccodigo = :loccodigo
+            AND pednumped = :pednumped
+            ORDER BY pedorden
+        """
+        info_adicional = connection.execute(text(query_info_adicional), {"ciacodigo": ciacodigo, "loccodigo": loccodigo, "pednumped": pednumped}).mappings().all()
+
+        # 7. Construir respuesta completa
         proforma_data = {
             "cabecera": {
                 "pednumped": cabecera["pednumped"],
@@ -175,10 +187,19 @@ def getProforma(pednumped):
                 "pediva": float(cabecera["pediva"] or 0),
                 "pedtotal": float(cabecera["pedtotal"] or 0),
                 "pedapliiva": cabecera["pedapliiva"],
+                "cjacodigo": cabecera["cjacodigo"],
             },
-            "cliente": cliente_info,  # Ahora incluye TODA la información del cliente
-            "formaPago": formapago_info,  # Información completa de la forma de pago
-            "vendedor": vendedor_info,  # Información del vendedor
+            "cliente": cliente_info,
+            "formaPago": formapago_info,
+            "vendedor": vendedor_info,
+            "infoAdicional": [
+                {
+                    "pedclave": info["pedclave"],
+                    "pedvalor": info["pedvalor"],
+                    "pedorden": info["pedorden"],
+                }
+                for info in info_adicional
+            ],
             "productos": [
                 {
                     "pedsecuen": det["pedsecuen"],
@@ -199,14 +220,7 @@ def getProforma(pednumped):
                     "lincodigo": det["lincodigo"] or det.get("lincodigo_inmart", ""),
                     "medcodigo": det["medcodigo"] or det.get("medcodigo_inmart", ""),
                     "marcodigo": det["marcodigo"] or det.get("marcodigo_inmart", ""),
-                    "lindescri": det.get("lindescri", ""),
-                    "meddescri": det.get("meddescri", ""),
-                    "predescri": det.get("predescri", ""),
-                    "mardescri": det.get("mardescri", ""),
-                    "imagen": det.get("imagen", ""),
-                    "artpeso": float(det["artpeso"] or 0) if det.get("artpeso") else 0,
-                    "artserie": det.get("artserie", ""),
-                    "artservicio": det.get("artservicio", ""),
+                    "peddetalleadicional": det["peddetalleadicional"] or "",
                 }
                 for det in detalles
             ],

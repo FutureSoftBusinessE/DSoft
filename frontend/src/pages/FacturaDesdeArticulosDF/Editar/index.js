@@ -32,6 +32,7 @@ import CustomDatePicker from "../../../components/CustomDatePicker"
 import CustomTextField from "../../../components/CustomTextField"
 import CustomTextFieldReadable from "../../../components/CustomTextFieldReadable"
 import CustomHelperDetail from "../../../components/CustomHelperDetail"
+import CustomAutocomplete from "../../../components/CustomAutocomplete"
 import DescriptionIcon from "@mui/icons-material/Description"
 import ShoppingBagIcon from "@mui/icons-material/ShoppingBag"
 import VendedorAutocomplete from "../components/VendedorAutocomplete"
@@ -63,7 +64,7 @@ const ContainerCabecera = styled(Box)(({ theme }) => ({
   gridTemplateRows: "auto auto",
   gridTemplateAreas: `
     "Codigo Codigo Codigo Codigo FormaPago FormaPago FormaPago FormaPago Vendedor Vendedor Vendedor Vendedor"
-    "FechaE FechaE FechaV FechaV Observacion Observacion Observacion Observacion Observacion Observacion Observacion Observacion"
+    "FechaE FechaE FechaV FechaV CajaSRI CajaSRI CajaSRI CajaSRI Observacion Observacion Observacion Observacion"
   `,
   gap: "8px",
   alignItems: "center",
@@ -73,6 +74,7 @@ const ContainerCabecera = styled(Box)(({ theme }) => ({
       "Codigo Codigo Codigo Codigo Codigo Codigo FormaPago FormaPago FormaPago FormaPago FormaPago FormaPago"
       "Vendedor Vendedor Vendedor Vendedor Vendedor Vendedor Observacion Observacion Observacion Observacion Observacion Observacion"
       "FechaE FechaE FechaE FechaE FechaE FechaE FechaV FechaV FechaV FechaV FechaV FechaV"
+      "CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI"
     `,
   },
 }))
@@ -107,6 +109,7 @@ const Codigo = styled(Box)({ gridArea: "Codigo" })
 const FormaPago = styled(Box)({ gridArea: "FormaPago" })
 const Vendedor = styled(Box)({ gridArea: "Vendedor" })
 const Observacion = styled(Box)({ gridArea: "Observacion" })
+const CajaSRI = styled(Box)({ gridArea: "CajaSRI" })
 
 // --- HOOKS DE CARGA DE DATOS ---
 function useGetProformaDF(pednumped) {
@@ -140,6 +143,24 @@ function useGetInfoCliente(clicodigo) {
     },
     refetchOnWindowFocus: false,
     enabled: false,
+  })
+}
+
+// Hook para obtener cajas SRI
+function useGetCajas() {
+  return useQuery({
+    queryKey: ["cajasSRI_DF_Editar"],
+    queryFn: async () => {
+      const options = {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      }
+      let response = await fetchwrapper(`/FacturaDesdeArticulosDF/getCajas`, options)
+      response = await response.json()
+      return response?.data ?? []
+    },
+    refetchOnWindowFocus: false,
+    enabled: true,
   })
 }
 
@@ -212,6 +233,7 @@ const ComboArticuloRow = ({ index, row, productosAgregados, setProductosAgregado
             precioUnitario: Number(val.artprecventa1 || val.precioUnitario || 0),
             descuentoPorcentaje: 0,
             ivaPorcentaje: porcIva,
+            peddetalleadicional: row.peddetalleadicional || "", // Mantener detalle adicional si existe
           }
         } else {
           newArr[index] = {
@@ -220,6 +242,7 @@ const ComboArticuloRow = ({ index, row, productosAgregados, setProductosAgregado
             precioUnitario: 0,
             descuentoPorcentaje: 0,
             ivaPorcentaje: 0,
+            peddetalleadicional: "",
           }
         }
         setProductosAgregados(newArr)
@@ -252,6 +275,16 @@ const EditarFacturaDesdeArticulosDF = () => {
 
   const [expandedInfoGeneral, setExpandedInfoGeneral] = useState(true)
   const [expandedInfoCliente, setExpandedInfoCliente] = useState(true)
+  const [expandedInfoAdicional, setExpandedInfoAdicional] = useState(true)
+
+  // Estado para caja SRI seleccionada
+  const [cajaSeleccionada, setCajaSeleccionada] = useState(null)
+
+  // Estado para información adicional
+  const [infoAdicional, setInfoAdicional] = useState([])
+
+  // Hook para obtener cajas SRI
+  const { data: cajasSRI = [], isLoading: isLoadingCajas } = useGetCajas()
 
   const [cabeceraProforma, setCabeceraProforma] = useState({
     cliente: { clicodigo: "" },
@@ -351,6 +384,19 @@ const EditarFacturaDesdeArticulosDF = () => {
         observacion: safeTrim(cabeceraInfo.peddetalle) || "",
       })
 
+      // Cargar info adicional
+      if (proformaData.infoAdicional && proformaData.infoAdicional.length > 0) {
+        setInfoAdicional(proformaData.infoAdicional)
+      }
+
+      // Cargar caja SRI
+      if (cabeceraInfo.cjacodigo) {
+        const cajaEncontrada = cajasSRI.find((c) => c.value === cabeceraInfo.cjacodigo)
+        if (cajaEncontrada) {
+          setCajaSeleccionada(cajaEncontrada)
+        }
+      }
+
       if (proformaData.productos && proformaData.productos.length > 0) {
         const productosFormateados = proformaData.productos.map((prod) => ({
           ...prod,
@@ -359,11 +405,12 @@ const EditarFacturaDesdeArticulosDF = () => {
           ivaPorcentaje: Number(prod.ivaPorcentaje || 0),
           descuentoPorcentaje: Number(prod.descuentoPorcentaje || 0),
           cantidadPedido: Number(prod.cantidadPedido || 1),
+          peddetalleadicional: prod.peddetalleadicional || "",
         }))
         setProductosAgregados(productosFormateados)
       }
     }
-  }, [proformaData])
+  }, [proformaData, cajasSRI])
 
   // --- CARGA DINÁMICA DE CLIENTE ---
   const { data: fetchedInfoCliente = {}, refetch: refetchInfoCliente } = useGetInfoCliente(
@@ -386,6 +433,32 @@ const EditarFacturaDesdeArticulosDF = () => {
   }, [fetchedInfoCliente])
 
   const handleSetCabeceraProforma = (k, v) => setCabeceraProforma((prev) => ({ ...prev, [k]: v }))
+
+  // Funciones para manejar información adicional
+  const handleAgregarInfoAdicional = () => {
+    setInfoAdicional([...infoAdicional, { pedclave: "", pedvalor: "", pedorden: infoAdicional.length + 1 }])
+  }
+
+  const handleEliminarInfoAdicional = (index) => {
+    const nuevaInfo = infoAdicional.filter((_, i) => i !== index)
+    setInfoAdicional(nuevaInfo)
+  }
+
+  const handleChangeInfoAdicional = (index, campo, valor) => {
+    const nuevaInfo = [...infoAdicional]
+    nuevaInfo[index][campo] = valor
+    setInfoAdicional(nuevaInfo)
+  }
+
+  // Función para actualizar detalle adicional de un producto
+  const handleChangeDetalleAdicional = (index, valor) => {
+    const nuevosProductos = [...productosAgregados]
+    nuevosProductos[index] = {
+      ...nuevosProductos[index],
+      peddetalleadicional: valor,
+    }
+    setProductosAgregados(nuevosProductos)
+  }
 
   // --- MUTACIÓN PARA ACTUALIZAR ---
   const { mutate: actualizarPedidoMutation, isPending: isUpdating } = useMutation({
@@ -431,6 +504,10 @@ const EditarFacturaDesdeArticulosDF = () => {
       Swal.fire({ icon: "warning", title: "Falta Vendedor", text: "Debe seleccionar un vendedor." })
       return
     }
+    if (!cajaSeleccionada?.value) {
+      Swal.fire({ icon: "warning", title: "Falta Caja SRI", text: "Debe seleccionar una caja SRI." })
+      return
+    }
 
     Swal.fire({
       title: "Actualizando documento...",
@@ -457,10 +534,13 @@ const EditarFacturaDesdeArticulosDF = () => {
         descuentoPorcentaje: Number(p.descuentoPorcentaje),
         imagen: p.imagen,
         cantidadPedido: Number(p.cantidadPedido),
+        peddetalleadicional: p.peddetalleadicional || "",
       })),
       formaPago: cabeceraProforma.factippag,
       vendedor: cabeceraProforma.vendedor,
       observacion: cabeceraProforma.observacion,
+      infoAdicional: infoAdicional.filter((i) => i.pedclave.trim() !== ""),
+      cjacodigo: cajaSeleccionada.value,
     }
 
     await actualizarPedidoMutation(payload)
@@ -555,7 +635,7 @@ const EditarFacturaDesdeArticulosDF = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <CustomBackdrop isLoading={isUpdating || isLoadingFP} />
+      <CustomBackdrop isLoading={isUpdating || isLoadingFP || isLoadingCajas} />
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
@@ -593,6 +673,19 @@ const EditarFacturaDesdeArticulosDF = () => {
                   isOptional={true}
                 />
               </FechaV>
+
+              {/* SELECTOR DE CAJA SRI */}
+              <CajaSRI>
+                <CustomAutocomplete
+                  label="Caja SRI"
+                  disabled={isLoadingCajas}
+                  selectedOption={cajaSeleccionada}
+                  setSelectedOption={setCajaSeleccionada}
+                  options={cajasSRI}
+                  isOptionEqualToValue={(option, value) => option.value === value?.value}
+                  getOptionLabel={(option) => option.label || ""}
+                />
+              </CajaSRI>
 
               {/* COMBO FORMA DE PAGO REFORZADO */}
               <FormaPago>
@@ -688,6 +781,46 @@ const EditarFacturaDesdeArticulosDF = () => {
           </CustomFieldsetAccordion>
           <br />
 
+          {/* INFORMACIÓN ADICIONAL */}
+          <CustomFieldsetAccordion
+            title="Información Adicional"
+            expanded={expandedInfoAdicional}
+            onToggle={() => setExpandedInfoAdicional(!expandedInfoAdicional)}
+          >
+            <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {infoAdicional.map((info, index) => (
+                <Box key={index} sx={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                  <TextField
+                    label="Clave"
+                    value={info.pedclave}
+                    onChange={(e) => handleChangeInfoAdicional(index, "pedclave", e.target.value)}
+                    size="small"
+                    sx={{ flex: 1 }}
+                  />
+                  <TextField
+                    label="Valor"
+                    value={info.pedvalor}
+                    onChange={(e) => handleChangeInfoAdicional(index, "pedvalor", e.target.value)}
+                    size="small"
+                    sx={{ flex: 2 }}
+                  />
+                  <IconButton color="error" onClick={() => handleEliminarInfoAdicional(index)}>
+                    <DeleteIcon />
+                  </IconButton>
+                </Box>
+              ))}
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={handleAgregarInfoAdicional}
+                sx={{ alignSelf: "flex-start" }}
+              >
+                Agregar Campo
+              </Button>
+            </Box>
+          </CustomFieldsetAccordion>
+          <br />
+
           {/* GRILLA DE PRODUCTOS */}
           <Paper id="productos" sx={{ width: "100%", p: 2, mb: 4, borderRadius: "10px", border: "1px solid #ddd" }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
@@ -701,7 +834,14 @@ const EditarFacturaDesdeArticulosDF = () => {
                 onClick={() => {
                   setProductosAgregados([
                     ...productosAgregados,
-                    { isNew: true, cantidadPedido: 1, precioUnitario: 0, descuentoPorcentaje: 0, ivaPorcentaje: 0 },
+                    {
+                      isNew: true,
+                      cantidadPedido: 1,
+                      precioUnitario: 0,
+                      descuentoPorcentaje: 0,
+                      ivaPorcentaje: 0,
+                      peddetalleadicional: "",
+                    },
                   ])
                 }}
               >
@@ -729,6 +869,7 @@ const EditarFacturaDesdeArticulosDF = () => {
                     <TableCell width="80px" align="center">
                       % IVA
                     </TableCell>
+                    <TableCell width="200px">Detalle Adicional</TableCell>
                     <TableCell width="140px" align="right">
                       Total
                     </TableCell>
@@ -737,7 +878,7 @@ const EditarFacturaDesdeArticulosDF = () => {
                 <TableBody>
                   {productosAgregados.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                         <Typography color="text.secondary">
                           Haga clic en "Añadir Línea" para buscar y agregar productos.
                         </Typography>
@@ -831,6 +972,16 @@ const EditarFacturaDesdeArticulosDF = () => {
                           </TableCell>
                           <TableCell align="center" sx={{ pt: 2 }}>
                             <Typography variant="body2">{iva}%</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              size="small"
+                              disabled={row.isNew || !row.artcodigo}
+                              value={row.peddetalleadicional || ""}
+                              onChange={(e) => handleChangeDetalleAdicional(index, e.target.value)}
+                              placeholder="Detalle opcional..."
+                              fullWidth
+                            />
                           </TableCell>
                           <TableCell align="right" sx={{ pt: 2 }}>
                             <Typography variant="body2" fontWeight="bold">

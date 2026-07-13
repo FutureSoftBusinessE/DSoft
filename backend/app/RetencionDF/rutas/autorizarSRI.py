@@ -225,7 +225,7 @@ def autorizar_sri_retencion():
 
         if estado_sri == "AUTORIZADO":
             from app.IntegracionFacturacionElectronica.utils.sri_services import build_autorizacion_xml
-            from app.IntegracionFacturacionElectronica.utils.generate_ride_pdf import generate_ride_pdf
+            from app.IntegracionFacturacionElectronica.utils.generate_ride_pdf_retencion import generate_ride_pdf_retencion
             import pathlib
 
             xml_autorizado_final = build_autorizacion_xml(auth_data, clave_acceso)
@@ -240,6 +240,10 @@ def autorizar_sri_retencion():
                     "secuencial": str(doc["retnumero"]).strip().zfill(9),
                     "dir_matriz": doc["ciadirec"] or "S/N",
                     "logo_bytes": logo_bytes,
+                    # --- AGREGADOS PARA EL NUEVO PDF ---
+                    "resolucion_agente": doc.get("cianumresolucion", ""),
+                    "telefono": doc.get("ciatelefono1", ""),  # TODO: falta valor en SELECT
+                    "correo": doc.get("ciaemail", ""),  # TODO: falta valor en SELECT
                 },
                 "info_factura": {
                     "dir_establecimiento": doc["locciadirec"] or "S/N",
@@ -250,13 +254,17 @@ def autorizar_sri_retencion():
                     "periodo_fiscal": periodo_fiscal,
                 },
                 "detalles": [dict(d) for d in detalles],
-                "info_adicional": [{"nombre": "Email", "valor": doc["proemail"] or "S/N"}],
+                "info_adicional": [
+                    {"nombre": "Email", "valor": doc["proemail"] or "S/N"},
+                    # --- AGREGADO PARA QUE EL PDF LO LEA EN LA INFO DEL PROVEEDOR ---
+                    {"nombre": "Direccion", "valor": doc["retdirec"] or "S/N"},
+                ],
                 "tipo_emision": tipo_emision,
             }
 
             try:
-                dir_base = pathlib.Path(__file__).resolve().parent.parent.parent / "IntegracionFacturacionElectronica" / "facturas_rides"
-                ruta_ride, _, _ = generate_ride_pdf(retencion_data, auth_data, clave_acceso, dir_base)
+                dir_base = pathlib.Path(__file__).resolve().parent.parent.parent / "IntegracionFacturacionElectronica" / "retenciones_rides"
+                ruta_ride, _, _ = generate_ride_pdf_retencion(retencion_data, auth_data, clave_acceso, dir_base)
                 if ruta_ride:
                     with open(ruta_ride, "rb") as f:
                         pdf_content = f.read()

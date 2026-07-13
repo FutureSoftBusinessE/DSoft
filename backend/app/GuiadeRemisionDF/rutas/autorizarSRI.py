@@ -280,34 +280,50 @@ def autorizar_sri_guia():
 
         if estado_sri == "AUTORIZADO":
             from app.IntegracionFacturacionElectronica.utils.sri_services import build_autorizacion_xml
-            from app.IntegracionFacturacionElectronica.utils.generate_ride_pdf import generate_ride_pdf
+            from app.IntegracionFacturacionElectronica.utils.generate_ride_pdf_remision import generate_ride_pdf_remision
 
             xml_autorizado_final = build_autorizacion_xml(auth_data, clave_acceso)
 
             guia_data = {
                 "tipo_documento_nombre": "GUÍA DE REMISIÓN",
-                "info_tributaria": {"razon_social": doc["ciaciadescri"], "ruc": ciaciaruc, "estab": sriserie01, "pto_emi": sriserie02, "secuencial": secuencial, "dir_matriz": doc["ciaciadirec"] or "S/N", "logo_bytes": logo_bytes},
-                "info_factura": {
+                "info_tributaria": {
+                    "razon_social": doc["ciaciadescri"],
+                    "ruc": ciaciaruc,
+                    "estab": sriserie01,
+                    "pto_emi": sriserie02,
+                    "secuencial": secuencial,
+                    "dir_matriz": doc["ciaciadirec"] or "S/N",
+                    "logo_bytes": logo_bytes,
+                    "contribuyente_especial": doc.get("contribuyente_especial", ""),  # TODO: falta valor en SELECT
+                    "resolucion_agente": doc.get("cianumresolucion", ""),  # TODO: falta valor en SELECT
+                    "exportador_habitual": doc.get("exportador_habitual", ""),  # TODO: falta valor en SELECT
+                    "telefono": doc.get("ciatelefono1", ""),  # TODO: falta valor en SELECT
+                    "correo": doc.get("ciaemail", ""),  # TODO: falta valor en SELECT
+                },
+                "info_guia": {
                     "dir_establecimiento": doc["dirEstablecimiento"] or "S/N",
                     "obligado_contabilidad": "SI",
-                    "razon_social_comprador": doc["clinombre"] or "CONSUMIDOR FINAL",
-                    "identificacion_comprador": cliruc,
-                    "fecha_emision": fecha_ini_str,
-                    "guia_remision": "",
-                    "total_sin_impuestos": 0.0,
-                    "total_descuento": 0.0,
-                    "propina": 0.0,
-                    "importe_total": 0.0,
+                    "identificacion_transportista": transruc,
+                    "razon_social_transportista": doc["transdescri"],
+                    "placa": placa,
+                    "punto_partida": doc.get("ciaciadirec", "S/N"),  # TODO: falta valor en BD (no existe campo, se usa dir_matriz)
+                    "fecha_inicio_transporte": fecha_ini_str,
+                    "fecha_fin_transporte": doc.get("guifecfintrans", fecha_ini_str),  # TODO: verificar nombre correcto en BD (guifecfintrans)
+                    "motivo_traslado": doc["Motivo"] or "VENTA",
+                    "destino": doc.get("guidirent", "S/N"),  # TODO: falta valor en BD (no existe campo, se usa guidirent)
+                    "identificacion_destinatario": cliruc,
+                    "razon_social_destinatario": doc["clinombre"] or "CONSUMIDOR FINAL",
+                    "ruta": ruta_str,
+                    "cod_estab_destino": "001",  # TODO: falta valor en BD (no existe campo, valor fijo SRI)
+                    "comprobante_venta": num_sustento if num_sustento else "",
+                    "fecha_emision_comprobante": "",  # TODO: falta valor (opcional, no se usa)
+                    "num_aut_comprobante": "",  # TODO: falta valor (opcional, no se usa)
+                    "doc_aduanero": "",  # TODO: falta valor en BD (no existe campo)
                 },
-                "detalles": [{"codigo_principal": det["artcodigo"], "cantidad": float(det["guicantdoc"] or 0), "descripcion": det["artdescri"], "precio_unitario": 0.0, "descuento": 0.0, "precio_total_sin_impuesto": 0.0} for det in detalles],
-                "totales_impuestos": [],
-                "pagos": [],
+                "detalles": [{"cantidad": float(det["guicantdoc"] or 0), "descripcion": det["artdescri"], "codigo_principal": det["artcodigo"], "codigo_auxiliar": ""} for det in detalles],  # TODO: falta valor en BD (no existe en IntGuia)
                 "info_adicional": [
-                    {"nombre": "Motivo", "valor": doc["Motivo"] or "VENTA"},
-                    {"nombre": "Placa", "valor": placa},
-                    {"nombre": "Transportista", "valor": doc["transdescri"]},
-                    {"nombre": "RUC Transportista", "valor": transruc},
-                    {"nombre": "Ruta", "valor": ruta_str},
+                    {"nombre": "Telefono", "valor": doc.get("ciatelefono1", "S/N")},  # TODO: falta valor en SELECT
+                    {"nombre": "Email", "valor": doc.get("ciaemail", doc.get("cliemail", "S/N"))},  # TODO: falta valor en SELECT
                 ],
                 "tipo_emision": tipo_emision,
             }
@@ -316,8 +332,8 @@ def autorizar_sri_guia():
                 guia_data["info_adicional"].append({"nombre": "Documento Sustento", "valor": num_sustento})
 
             try:
-                dir_base = pathlib.Path(__file__).resolve().parent.parent.parent / "IntegracionFacturacionElectronica" / "facturas_rides"
-                ruta_ride, _, _ = generate_ride_pdf(guia_data, auth_data, clave_acceso, dir_base)
+                dir_base = pathlib.Path(__file__).resolve().parent.parent.parent / "IntegracionFacturacionElectronica" / "remisiones_rides"
+                ruta_ride, _, _ = generate_ride_pdf_remision(guia_data, auth_data, clave_acceso, dir_base)
                 if ruta_ride:
                     with open(ruta_ride, "rb") as f:
                         pdf_content = f.read()

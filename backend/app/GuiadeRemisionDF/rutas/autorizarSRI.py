@@ -56,12 +56,17 @@ def autorizar_sri_guia():
         sql_cabecera = text(
             """
             SELECT
-                g.guinumero, g.facnumfac, g.clinombre, g.cliruc, g.guidirent,
+                g.guinumero, g.facnumfac, g.clinombre, g.cliruc, g.guidirent, g.clidirec,
                 g.transdescri, g.transruc, g.guiplacafinal, g.Motivo,
                 g.guifecha, g.guifecfintrans, g.cliemail, g.ciucodigo,
                 g.sriserie01, g.sriserie02, g.guianumero,
                 g.ciaciaruc, g.ciaciadescri, g.ciaciadirec,
                 g.fasriserie01, g.fasriserie02, g.fasrisecfin, g.fasriautnumero, g.fasriautfecemi,
+                g.ciaciatelefono1,
+                g.cianumresolucion,
+                g.numsolanusri,
+                g.ciaobligadocon,
+                g.clicodigo,
                 l.ciadirec as dirEstablecimiento
             FROM IncGuia g
             LEFT JOIN cgblocal l ON g.ciacodigo = l.ciacodigo AND g.loccodigo = l.loccodigo
@@ -82,9 +87,26 @@ def autorizar_sri_guia():
                 if ciu_row:
                     ciudescri = safe_strip(ciu_row[0])
 
-            sql_cia = text("SELECT cialogo FROM siaccia WHERE ciacodigo = :ciacodigo")
-            cia_row = conn.execute(sql_cia, {"ciacodigo": ciacodigo}).first()
-            logo_bytes = cia_row[0] if cia_row and cia_row[0] else None
+            sql_cia = text("SELECT cialogo, ciaemail FROM siaccia WHERE ciacodigo = :ciacodigo")
+            cia_row = conn.execute(sql_cia, {"ciacodigo": ciacodigo}).mappings().first()
+            logo_bytes = cia_row["cialogo"] if cia_row and cia_row["cialogo"] else None
+            email_compania = cia_row["ciaemail"] if cia_row else ""
+
+            # Info cliente
+            telefono_cliente = ""
+            clicodigo = doc.get("clicodigo")
+            if clicodigo:
+                sql_cliente = text(
+                    """
+                    SELECT clitelef1
+                    FROM cxcmcli
+                    WHERE ciacodigo = :ciacodigo AND clicodigo = :clicodigo
+                """
+                )
+                cliente_row = conn.execute(sql_cliente, {"ciacodigo": ciacodigo, "clicodigo": clicodigo}).mappings().first()
+
+                if cliente_row:
+                    telefono_cliente = cliente_row.get("clitelef1", "") or ""
 
             sql_detalles = text(
                 """
@@ -294,11 +316,11 @@ def autorizar_sri_guia():
                     "secuencial": secuencial,
                     "dir_matriz": doc["ciaciadirec"] or "S/N",
                     "logo_bytes": logo_bytes,
-                    "contribuyente_especial": doc.get("contribuyente_especial", ""),  # TODO: falta valor en SELECT
-                    "resolucion_agente": doc.get("cianumresolucion", ""),  # TODO: falta valor en SELECT
-                    "exportador_habitual": doc.get("exportador_habitual", ""),  # TODO: falta valor en SELECT
-                    "telefono": doc.get("ciatelefono1", ""),  # TODO: falta valor en SELECT
-                    "correo": doc.get("ciaemail", ""),  # TODO: falta valor en SELECT
+                    "contribuyente_especial": doc.get("cianumresolucion", ""),
+                    "resolucion_agente": doc.get("numsolanusri", ""),
+                    "exportador_habitual": "",
+                    "telefono": doc.get("ciaciatelefono1", ""),
+                    "correo": email_compania,  # Email de comapania
                 },
                 "info_guia": {
                     "dir_establecimiento": doc["dirEstablecimiento"] or "S/N",
@@ -306,24 +328,24 @@ def autorizar_sri_guia():
                     "identificacion_transportista": transruc,
                     "razon_social_transportista": doc["transdescri"],
                     "placa": placa,
-                    "punto_partida": doc.get("ciaciadirec", "S/N"),  # TODO: falta valor en BD (no existe campo, se usa dir_matriz)
+                    "punto_partida": doc.get("ciaciadirec", "S/N"),
                     "fecha_inicio_transporte": fecha_ini_str,
-                    "fecha_fin_transporte": doc.get("guifecfintrans", fecha_ini_str),  # TODO: verificar nombre correcto en BD (guifecfintrans)
+                    "fecha_fin_transporte": doc.get("guifecfintrans", fecha_ini_str),
                     "motivo_traslado": doc["Motivo"] or "VENTA",
-                    "destino": doc.get("guidirent", "S/N"),  # TODO: falta valor en BD (no existe campo, se usa guidirent)
+                    "destino": doc.get("clidirec", "S/N"),
                     "identificacion_destinatario": cliruc,
                     "razon_social_destinatario": doc["clinombre"] or "CONSUMIDOR FINAL",
                     "ruta": ruta_str,
-                    "cod_estab_destino": "001",  # TODO: falta valor en BD (no existe campo, valor fijo SRI)
+                    "cod_estab_destino": "",
                     "comprobante_venta": num_sustento if num_sustento else "",
-                    "fecha_emision_comprobante": "",  # TODO: falta valor (opcional, no se usa)
-                    "num_aut_comprobante": "",  # TODO: falta valor (opcional, no se usa)
-                    "doc_aduanero": "",  # TODO: falta valor en BD (no existe campo)
+                    "fecha_emision_comprobante": "",
+                    "num_aut_comprobante": "",
+                    "doc_aduanero": "",
                 },
-                "detalles": [{"cantidad": float(det["guicantdoc"] or 0), "descripcion": det["artdescri"], "codigo_principal": det["artcodigo"], "codigo_auxiliar": ""} for det in detalles],  # TODO: falta valor en BD (no existe en IntGuia)
+                "detalles": [{"cantidad": float(det["guicantdoc"] or 0), "descripcion": det["artdescri"], "codigo_principal": det["artcodigo"], "codigo_auxiliar": ""} for det in detalles],
                 "info_adicional": [
-                    {"nombre": "Telefono", "valor": doc.get("ciatelefono1", "S/N")},  # TODO: falta valor en SELECT
-                    {"nombre": "Email", "valor": doc.get("ciaemail", doc.get("cliemail", "S/N"))},  # TODO: falta valor en SELECT
+                    {"nombre": "Telefono", "valor": telefono_cliente or "S/N"},  # Telefono cliente
+                    {"nombre": "Email", "valor": doc.get("cliemail", "")},
                 ],
                 "tipo_emision": tipo_emision,
             }

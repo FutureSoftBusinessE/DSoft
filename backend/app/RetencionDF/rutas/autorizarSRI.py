@@ -242,8 +242,8 @@ def autorizar_sri_retencion():
                     "logo_bytes": logo_bytes,
                     # --- AGREGADOS PARA EL NUEVO PDF ---
                     "resolucion_agente": doc.get("cianumresolucion", ""),
-                    "telefono": doc.get("ciatelefono1", ""),  # TODO: falta valor en SELECT
-                    "correo": doc.get("ciaemail", ""),  # TODO: falta valor en SELECT
+                    "telefono": "",
+                    "correo": doc.get("proemail", ""),
                 },
                 "info_factura": {
                     "dir_establecimiento": doc["locciadirec"] or "S/N",

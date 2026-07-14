@@ -18,6 +18,7 @@ import {
   handleAllExportDataCSV,
 } from "../utils/reactTableActions/exportToolbarActions"
 import ModalImportCSV from "../../components/CustomCSVImportButton"
+import ModalReplicarImpuesto from "./components/ModalReplicarImpuesto"
 
 const StyledRoot = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -78,6 +79,9 @@ const ImpuestosRetenciones = () => {
   const { selectedMenuInfo } = useContext(GlobalContext)
   const [openModal, setOpenModal] = useState(false)
 
+  const [openModalReplica, setOpenModalReplica] = useState(false)
+  const [impuestoSeleccionado, setImpuestoSeleccionado] = useState(null)
+
   const { mutateAsync: SaveEliminacionImpuestoRetencion, isPending: isDeletingImpuestoRetencion } = useMutation({
     queryKey: ["isDeletingImpuestoRetencion"],
     fn: async (data) => {
@@ -134,18 +138,34 @@ const ImpuestosRetenciones = () => {
             onImportComplete={() => qc.invalidateQueries({ queryKey: ["ImpuestosRetenciones"] })}
           />
 
+          {/* Modal de replicacion */}
+          <ModalReplicarImpuesto
+            open={openModalReplica}
+            onClose={() => {
+              setOpenModalReplica(false)
+              setImpuestoSeleccionado(null)
+            }}
+            impuestoOrigen={impuestoSeleccionado}
+            onReplicaCompleta={() => {
+              qc.invalidateQueries({ queryKey: ["ImpuestosRetenciones"] })
+            }}
+          />
+
           <CustomConditionalActionsTableServer
             endpoint="/ImpuestosRetenciones/getAllImpuestosRetenciones"
             errorMsgFilterSearch="Error en cargar datos"
             queryKeyModal="ImpuestosRetenciones"
             perPage={10}
-            rowActionsWidthTable={120}
+            rowActionsWidthTable={180}
             rowActions={(row) => {
               const editarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action?.acccaption === "EDITAR",
               )
               const eliminarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action?.acccaption === "ELIMINAR",
+              )
+              const replicarAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (action) => action?.acccaption === "REPLICAR",
               )
 
               return [
@@ -167,6 +187,15 @@ const ImpuestosRetenciones = () => {
                     } catch (err) {
                       console.error("Error eliminando impuesto/retención:", err)
                     }
+                  },
+                },
+                {
+                  label: replicarAction?.acccaption,
+                  key: replicarAction?.acccaption,
+                  icon: getIconComponent(replicarAction?.accnameicono, replicarAction?.acctipoico),
+                  onClick: (r) => {
+                    setImpuestoSeleccionado(r.original)
+                    setOpenModalReplica(true)
                   },
                 },
               ]

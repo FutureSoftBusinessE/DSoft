@@ -13,3 +13,5 @@ from app.ImpuestosRetenciones.rutas import getAllImpuestosRetenciones
 from app.ImpuestosRetenciones.rutas import validarImpuestosRetencionesIMP
 from app.ImpuestosRetenciones.rutas import insertarImpuestosRetencionesIMP
 from app.ImpuestosRetenciones.rutas import getCuentasContables
+from app.ImpuestosRetenciones.rutas import getCompaniasParaReplica
+from app.ImpuestosRetenciones.rutas import replicarImpuesto

@@ -173,7 +173,8 @@ def getCompaniaByCodigo():
                     ciafacDeVariosLoc,
                     cialistprecdefweb,
                     ciavalidaemp,
-                    ciabasepuntos
+                    ciabasepuntos,
+                    ciatipocompania
                 FROM siaccia
                 WHERE ciacodigo = :ciacodigo
                 """

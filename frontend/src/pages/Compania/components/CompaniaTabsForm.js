@@ -155,6 +155,7 @@ export const COMPANIA_DEFAULT_VALUES = {
   cialistprecdefweb: 1,
   ciavalidaemp: 0,
   ciabasepuntos: 0,
+  ciatipocompania: "",
 }
 
 const statusOptions = [

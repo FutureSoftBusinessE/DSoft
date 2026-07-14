@@ -174,6 +174,7 @@ FIELD_MAX_LENGTHS = {
     "ciacedgerente": 10,
     "ciausuisys": 10,
     "ciausumsys": 10,
+    "ciatipocompania": 3,
 }
 
 
@@ -251,6 +252,11 @@ def crearCompania():
     ciasrirazon = data.get("ciasrirazon") or ""
     if not ciasrirazon or str(ciasrirazon).strip() == "":
         raise ValidationError("ciasrirazon es requerido")
+
+    # ════════════════════════════════════════════════════════════════════════
+    # Tipo de compañía
+    # ════════════════════════════════════════════════════════════════════════
+    ciatipocompania = data.get("ciatipocompania") or None
 
     # ════════════════════════════════════════════════════════════════════════
     # NOT NULL con DEFAULT en BD (aplicar defaults si no se proporciona)
@@ -676,6 +682,7 @@ def crearCompania():
                     "cialistprecdefweb": cialistprecdefweb,
                     "ciavalidaemp": ciavalidaemp,
                     "ciabasepuntos": ciabasepuntos,
+                    "ciatipocompania": ciatipocompania,
                 }
 
                 insert_query = text(
@@ -711,7 +718,7 @@ def crearCompania():
                         ciainmobiliaria, ciancdevcxccia, ciadiasretencion, ciadiasemitirretencion,
                         ciapropina, ciacontabilidad, ciaetiquetaadiret, ciavaloradiret,
                         ciasolautclcxp, ciaaproautclcxp, cialogo, ciaselloagua, ciaivaporproducto,
-                        ciafacDeVariosLoc, cialistprecdefweb, ciavalidaemp, ciabasepuntos
+                        ciafacDeVariosLoc, cialistprecdefweb, ciavalidaemp, ciabasepuntos, ciatipocompania
                     ) VALUES (
                         :ciacodigo, :ciaanioejer, :ciaauxcredito, :ciacontador, :ciadescri, :ciaalias,
                         :ciaruc, :ciadirec, :ciafax, :ciafecisys, :ciafecminacc, :ciafecmsys,
@@ -743,7 +750,7 @@ def crearCompania():
                         :ciainmobiliaria, :ciancdevcxccia, :ciadiasretencion, :ciadiasemitirretencion,
                         :ciapropina, :ciacontabilidad, :ciaetiquetaadiret, :ciavaloradiret,
                         :ciasolautclcxp, :ciaaproautclcxp, :cialogo, :ciaselloagua, :ciaivaporproducto,
-                        :ciafacDeVariosLoc, :cialistprecdefweb, :ciavalidaemp, :ciabasepuntos
+                        :ciafacDeVariosLoc, :cialistprecdefweb, :ciavalidaemp, :ciabasepuntos, :ciatipocompania
                     )
                     """
                 )

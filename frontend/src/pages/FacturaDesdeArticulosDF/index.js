@@ -401,7 +401,7 @@ const FacturaDesdeArticulosDF = () => {
             fontSize: "25px",
           }}
         >
-          <b>Listado de Facturas</b>
+          <b>Listado de Cotizaciones</b>
         </div>
 
         <Box className={StyledRoot}>
@@ -649,15 +649,15 @@ const FacturaDesdeArticulosDF = () => {
                           return handleExportDataPdfSMScreen(
                             columns,
                             data,
-                            "Listado de Facturas",
-                            `Listado de Facturas ${new Date().toLocaleString()}`,
+                            "Listado de Cotizaciones",
+                            `Listado de Cotizaciones ${new Date().toLocaleString()}`,
                           )
                         }
                         handleExportDataPdfLGScreen(
                           columns,
                           table.getCoreRowModel().rows,
-                          "Listado de Facturas",
-                          `Listado de Facturas ${new Date().toLocaleString()}`,
+                          "Listado de Cotizaciones",
+                          `Listado de Cotizaciones ${new Date().toLocaleString()}`,
                         )
                       },
                     },
@@ -666,7 +666,7 @@ const FacturaDesdeArticulosDF = () => {
                       key: "exportarCSV",
                       icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                       onClick: ({ data }) => {
-                        handleAllExportDataCSV(data, `Listado de Facturas ${new Date().toLocaleString()}`)
+                        handleAllExportDataCSV(data, `Listado de Cotizaciones ${new Date().toLocaleString()}`)
                       },
                     },
                   ],

@@ -13,3 +13,4 @@ from app.PlanesServicios.rutas import getAllPlanesServicios
 from app.PlanesServicios.rutas import validarPlanesServiciosIMP
 from app.PlanesServicios.rutas import insertarPlanesServiciosIMP
 from app.PlanesServicios.rutas import getInventariosSelect
+from app.PlanesServicios.rutas import getTarifasIVA

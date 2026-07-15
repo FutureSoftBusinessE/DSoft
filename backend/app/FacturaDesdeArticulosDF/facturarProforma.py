@@ -532,12 +532,12 @@ def facturarProforma():
 
             info_adicional = [{"nombre": row["pedclave"], "valor": row["pedvalor"]} for row in info_adicional_rows]
 
-    # ========== PASO 10: CONSTRUIR PAYLOAD Y DEVOLVER ==========
-    # Usar la secuencia actualizada
-    secuencia_sri_actualizada = dict(secuencia_sri)
-    secuencia_sri_actualizada["srisecact"] = secuencia_actual
+            # ========== PASO 10: CONSTRUIR PAYLOAD Y DEVOLVER ==========
+            # Usar la secuencia actualizada
+            secuencia_sri_actualizada = dict(secuencia_sri)
+            secuencia_sri_actualizada["srisecact"] = secuencia_actual
 
-    payload_sri = construir_payload_sri(
-        proforma=proforma, detalles=detalles_proforma, secuencia_sri=secuencia_sri_actualizada, datos_empresa=datos_empresa, datos_cliente=datos_cliente, forma_pago=forma_pago, ciacodigo=ciacodigo, loccodigo=loccodigo, facnumfac=facnumfac, info_adicional=info_adicional
-    )
+            payload_sri = construir_payload_sri(
+                proforma=proforma, detalles=detalles_proforma, secuencia_sri=secuencia_sri_actualizada, datos_empresa=datos_empresa, datos_cliente=datos_cliente, forma_pago=forma_pago, ciacodigo=ciacodigo, loccodigo=loccodigo, facnumfac=facnumfac, info_adicional=info_adicional, connection=connection
+            )
     return {"success": True, "message": "Factura creada exitosamente. Payload listo para enviar al SRI.", "facnumfac": facnumfac, "pednumped": pednumped, "payload_sri": payload_sri}  # Este es el payload que mandarás a emisionFactura

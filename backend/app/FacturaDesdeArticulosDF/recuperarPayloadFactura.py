@@ -1,3 +1,4 @@
+# flake8: noqa
 from flask import jsonify, request
 from app.FacturaDesdeArticulosDF import bp
 from app.extensions import db
@@ -203,19 +204,29 @@ def recuperarPayloadFactura():
 
         info_adicional = [{"nombre": row["pedclave"], "valor": row["pedvalor"]} for row in info_adicional_rows]
 
-    # PASO 7: Construir payload (misma función que usa facturarProforma)
-    payload_sri = construir_payload_sri(
-        proforma=factura, detalles=detalles_factura, secuencia_sri=secuencia_sri, datos_empresa=datos_empresa, datos_cliente=datos_cliente, forma_pago=forma_pago, ciacodigo=ciacodigo, loccodigo=loccodigo, facnumfac=facnumfac, info_adicional=info_adicional  # AHORA sí tiene formato facped
-    )
+        # PASO 7: Construir payload (misma función que usa facturarProforma)
+        payload_sri = construir_payload_sri(
+            proforma=factura,
+            detalles=detalles_factura,
+            secuencia_sri=secuencia_sri,
+            datos_empresa=datos_empresa,
+            datos_cliente=datos_cliente,
+            forma_pago=forma_pago,
+            ciacodigo=ciacodigo,
+            loccodigo=loccodigo,
+            facnumfac=facnumfac,
+            info_adicional=info_adicional,
+            connection=connection,  # AHORA sí tiene formato facped
+        )
 
-    # Agregar datos adicionales que necesita emisionFactura
-    payload_sri["ciacodigo"] = ciacodigo
-    payload_sri["facnumfac"] = facnumfac
-    payload_sri["loccodigo"] = loccodigo
-    payload_sri["datos_cliente"] = {
-        "email": datos_cliente.get("email", ""),
-        "clinombre": datos_cliente.get("clinombre", ""),
-        "cliruc": datos_cliente.get("cliruc", ""),
-    }
+        # Agregar datos adicionales que necesita emisionFactura
+        payload_sri["ciacodigo"] = ciacodigo
+        payload_sri["facnumfac"] = facnumfac
+        payload_sri["loccodigo"] = loccodigo
+        payload_sri["datos_cliente"] = {
+            "email": datos_cliente.get("email", ""),
+            "clinombre": datos_cliente.get("clinombre", ""),
+            "cliruc": datos_cliente.get("cliruc", ""),
+        }
 
     return {"success": True, "message": "Payload recuperado exitosamente", "facnumfac": facnumfac, "payload_sri": payload_sri}

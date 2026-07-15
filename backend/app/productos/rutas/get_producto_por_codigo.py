@@ -32,7 +32,7 @@ def truncateNumber(num, size=2):
     return int(num * factor) / factor  # Trunca el número a la cantidad de decimales indicada
 
 
-def obtenerIvaArticulo(ciaivaporproducto, sysiva, codigosTarifasIva, artapliiva):
+def obtenerIvaArticulo(ciaivaporproducto, sysiva, codigosTarifasIva, artapliiva, excepcionIVA=None):
     # En el sistema para saber que iva aplica un articulo determinado, existen 2 tipos de iva
     # el que es global(que se aplica a todos los productos de una empresa)
     # y el que es personalizado(en donde cada producto tiene una tarifa especifica de iva que se puede encontrar en siacsritarifaiva)
@@ -44,6 +44,10 @@ def obtenerIvaArticulo(ciaivaporproducto, sysiva, codigosTarifasIva, artapliiva)
     # se encuentra en siacsritarifaiva
     # Y si no(o sea si ciaivaporproducto es igual 0) todos los productos que tengan artapliiva !=0 van a tener el mismo
     # porcentaje de iva del campo sysiva en SiacSys, y sino (osea que artapliiva == 0) entonces su iva es 0
+
+    # Si hay una excepcion de IVA activa por tipo de compania, tiene prioridad absoluta. La variable excepcionIVA es todo el registro encontrado de la tabla siacivaexcepcion
+    if excepcionIVA is not None:
+        return excepcionIVA["iveporcentajeresolucion"]
 
     iva = 0
     if ciaivaporproducto != 0:
@@ -126,9 +130,10 @@ def get_producto_por_codigo():
     try:
         #
         # saca que tipo de iva es
-        queryIva = db.session.query(siaccia.ciaivaporproducto, siaccia.cialistprecdefweb).filter(siaccia.ciacodigo == cliciaciacodigo).first()
+        queryIva = db.session.query(siaccia.ciaivaporproducto, siaccia.cialistprecdefweb, siaccia.ciatipocompania).filter(siaccia.ciacodigo == cliciaciacodigo).first()
         tipoIVA = queryIva[0]
         numIvaDescuento = queryIva[1]  # Obtener la lista
+        tipoCompania = queryIva[2]  # Obtener el tipo de compania
 
         # saca el iva configurado en la tabla siacsys (GLOBAL)
         sys = db.session.query(SiacSys.sysiva).first()
@@ -146,6 +151,22 @@ def get_producto_por_codigo():
             }
             for tarifa in tarifasIVA
         ]
+
+        # NUEVO: Obtener excepcion de IVA por tipo de compania
+        excepcionIVA = None
+        try:
+            if tipoCompania:
+                query_excepcion = """
+                    SELECT iveporcentajeresolucion
+                    FROM siacivaexcepcion
+                    WHERE ivetipocompania = :tipoCompania
+                    AND ivestatus = 'A'
+                    AND GETDATE() BETWEEN ivefecinicio AND ivefectermino
+                """
+                excepcionIVA = db.session.execute(db.text(query_excepcion), {"tipoCompania": tipoCompania}).mappings().first()
+                excepcionIVA = dict(excepcionIVA) if excepcionIVA else None
+        except Exception:
+            excepcionIVA = None
 
     except Exception as e:
         raise ValueError(f"Error retrieving IVA:{e} ")
@@ -207,7 +228,7 @@ def get_producto_por_codigo():
     ]
 
     precioUnitario = listaDePrecios[numIvaDescuento - 1]
-    iva = obtenerIvaArticulo(tipoIVA, globalIVA, tarifasIVA, str(query_product["artapliiva"]))
+    iva = obtenerIvaArticulo(tipoIVA, globalIVA, tarifasIVA, str(query_product["artapliiva"]), excepcionIVA)
 
     hasDescuento = False
     descuentoValor = 0

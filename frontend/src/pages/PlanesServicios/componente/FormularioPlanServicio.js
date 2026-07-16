@@ -49,6 +49,14 @@ const FormularioPlanServicio = forwardRef(
           const response = await api.get("/PlanesServicios/getTarifasIVA")
           const tarifas = response.data?.data?.data || []
           setTarifasIVA(tarifas)
+
+          //  Solo en modo crear, recomendar IVA 15%
+          if (modo === "crear") {
+            const ivaRecomendado = tarifas.find((t) => t.porcentaje === 15)
+            if (ivaRecomendado) {
+              setArtapliiva(ivaRecomendado.codigo) // Si existe, usarlo
+            }
+          }
         } catch (error) {
           console.error("Error cargando tarifas IVA:", error)
           showWarning("No se pudieron cargar las tarifas de IVA")

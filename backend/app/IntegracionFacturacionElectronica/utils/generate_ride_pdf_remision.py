@@ -17,8 +17,6 @@ def generate_ride_pdf_remision(guia_data: dict, auth_data: dict, clave_acceso: s
     Genera el PDF RIDE exclusivo para Guías de Remisión.
     """
     try:
-        if output_dir is None:
-            output_dir = Path(__file__).parent.parent / "remisiones_rides"
         output_dir.mkdir(parents=True, exist_ok=True)
 
         ruta_pdf = output_dir / f"{clave_acceso}.pdf"

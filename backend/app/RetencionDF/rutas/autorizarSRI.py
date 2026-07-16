@@ -8,11 +8,15 @@ from app.db import get_session
 from datetime import datetime
 import time
 import json
-
+from pathlib import Path
 from app.IntegracionFacturacionElectronica.utils.generate_clave_acceso import generate_clave_acceso
 from app.IntegracionFacturacionElectronica.utils.sign_xml import sign_xml
 from app.IntegracionFacturacionElectronica.utils.sri_services import send_receipt, send_authorization, parse_authorization_response
 from services.encrip_desencrip import desencriptar
+from dotenv import load_dotenv
+from decouple import config as config_env
+
+load_dotenv()
 
 
 def escape_xml(text_val):
@@ -226,7 +230,6 @@ def autorizar_sri_retencion():
         if estado_sri == "AUTORIZADO":
             from app.IntegracionFacturacionElectronica.utils.sri_services import build_autorizacion_xml
             from app.IntegracionFacturacionElectronica.utils.generate_ride_pdf_retencion import generate_ride_pdf_retencion
-            import pathlib
 
             xml_autorizado_final = build_autorizacion_xml(auth_data, clave_acceso)
 
@@ -263,11 +266,14 @@ def autorizar_sri_retencion():
             }
 
             try:
-                dir_base = pathlib.Path(__file__).resolve().parent.parent.parent / "IntegracionFacturacionElectronica" / "retenciones_rides"
-                ruta_ride, _, _ = generate_ride_pdf_retencion(retencion_data, auth_data, clave_acceso, dir_base)
-                if ruta_ride:
-                    with open(ruta_ride, "rb") as f:
-                        pdf_content = f.read()
+                if config_env("DOC_ELECTRONICOS_RIDES_RETENCION_PDF_ENABLED") == "true":
+                    ahora = datetime.now()
+                    ride_dir = Path(config_env("DOC_ELECTRONICOS_RIDES_RETENCION_PDF_PATH")) / "Retenciones" / str(ahora.year) / f"{ahora.month:02d}" / f"{ahora.day:02d}"
+                    ruta_ride, _, _ = generate_ride_pdf_retencion(retencion_data, auth_data, clave_acceso, ride_dir)
+
+                    if ruta_ride:
+                        with open(ruta_ride, "rb") as f:
+                            pdf_content = f.read()
             except Exception as e:
                 print(f"Advertencia RIDE: No se pudo generar PDF: {e}")
 

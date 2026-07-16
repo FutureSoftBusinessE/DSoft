@@ -17,8 +17,6 @@ def generate_ride_pdf_retencion(retencion_data: dict, auth_data: dict, clave_acc
     Genera el PDF RIDE para Retenciones con diseño SRI exacto.
     """
     try:
-        if output_dir is None:
-            output_dir = Path(__file__).parent.parent / "retenciones_rides"
         output_dir.mkdir(parents=True, exist_ok=True)
 
         ruta_pdf = output_dir / f"{clave_acceso}.pdf"

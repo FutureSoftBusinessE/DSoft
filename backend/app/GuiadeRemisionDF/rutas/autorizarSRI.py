@@ -8,7 +8,7 @@ from app.db import get_session
 from datetime import datetime
 import time
 import json
-import pathlib
+from pathlib import Path
 import re
 
 # =========================================================================
@@ -18,6 +18,10 @@ from app.IntegracionFacturacionElectronica.utils.generate_clave_acceso import ge
 from app.IntegracionFacturacionElectronica.utils.sign_xml import sign_xml
 from app.IntegracionFacturacionElectronica.utils.sri_services import send_receipt, send_authorization, parse_authorization_response
 from services.encrip_desencrip import desencriptar
+from dotenv import load_dotenv
+from decouple import config as config_env
+
+load_dotenv()
 
 
 def escape_xml(text_val):
@@ -354,11 +358,14 @@ def autorizar_sri_guia():
                 guia_data["info_adicional"].append({"nombre": "Documento Sustento", "valor": num_sustento})
 
             try:
-                dir_base = pathlib.Path(__file__).resolve().parent.parent.parent / "IntegracionFacturacionElectronica" / "remisiones_rides"
-                ruta_ride, _, _ = generate_ride_pdf_remision(guia_data, auth_data, clave_acceso, dir_base)
-                if ruta_ride:
-                    with open(ruta_ride, "rb") as f:
-                        pdf_content = f.read()
+                if config_env("DOC_ELECTRONICOS_RIDES_REMISION_PDF_ENABLED") == "true":
+                    ahora = datetime.now()
+                    ride_dir = Path(config_env("DOC_ELECTRONICOS_RIDES_REMISION_PDF_PATH")) / "GuiasRemision" / str(ahora.year) / f"{ahora.month:02d}" / f"{ahora.day:02d}"
+                    ruta_ride, _, _ = generate_ride_pdf_remision(guia_data, auth_data, clave_acceso, ride_dir)
+
+                    if ruta_ride:
+                        with open(ruta_ride, "rb") as f:
+                            pdf_content = f.read()
             except Exception as e:
                 print(f"Advertencia RIDE: No se pudo generar PDF automáticamente: {e}")
 

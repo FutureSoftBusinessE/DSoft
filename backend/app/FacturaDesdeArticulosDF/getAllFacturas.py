@@ -65,6 +65,7 @@ def getAllFacturas():
                 f.pedestisys,
                 -- NUEVOS CAMPOS: Datos de la factura electrónica
                 fa.facnumfac,
+                fa.facstatus,
                 fa.audnumxml,
                 fa.facelectronica,
                 fa.sriautnumero,

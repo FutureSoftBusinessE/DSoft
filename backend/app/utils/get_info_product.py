@@ -5,7 +5,7 @@ from sqlalchemy import text
 # lista de precios, descuento
 
 
-def obtenerIvaArticulo(ciaivaporproducto, sysiva, codigosTarifasIva, artapliiva):
+def obtenerIvaArticulo(ciaivaporproducto, sysiva, codigosTarifasIva, artapliiva, excepcionIVA=None):
     # En el sistema para saber que iva aplica un articulo determinado, existen 2 tipos de iva
     # el que es global(que se aplica a todos los productos de una empresa)
     # y el que es personalizado(en donde cada producto tiene una tarifa especifica de iva que se puede encontrar en siacsritarifaiva)
@@ -17,6 +17,10 @@ def obtenerIvaArticulo(ciaivaporproducto, sysiva, codigosTarifasIva, artapliiva)
     # se encuentra en siacsritarifaiva
     # Y si no(o sea si ciaivaporproducto es igual 0) todos los productos que tengan artapliiva !=0 van a tener el mismo
     # porcentaje de iva del campo sysiva en SiacSys, y sino (osea que artapliiva == 0) entonces su iva es 0
+
+    # Si hay una excepcion de IVA activa por tipo de compania, tiene prioridad absoluta. La variable excepcionIVA es todo el registro encontrado de la tabla siacivaexcepcion
+    if excepcionIVA is not None:
+        return excepcionIVA["iveporcentajeresolucion"]
 
     iva = 0
     if ciaivaporproducto != 0:
@@ -44,6 +48,7 @@ def get_info_product(conn, ciacodigo, loccodigo, artcodigo, clicodigo="000001", 
         tarifasIVA = None
         ivaProducto = None
         descuentoValor = 0
+        excepcionIVA = None
 
         # ----------------------------------------------------
         # OBTENER INFO DEL CLIENTE
@@ -109,6 +114,30 @@ def get_info_product(conn, ciacodigo, loccodigo, artcodigo, clicodigo="000001", 
         precioUnitario = listaDePrecios[numPrecioDescuento - 1]
 
         # ----------------------------------------------------
+        # OBTENER EXCEPCION DE IVA POR TIPO DE COMPANIA
+        # ----------------------------------------------------
+        try:
+            query_tipoCompania = """
+                SELECT ciatipocompania
+                FROM siaccia
+                WHERE ciacodigo = :ciacodigo
+            """
+            tipoCompania_result = conn.execute(text(query_tipoCompania), {"ciacodigo": ciacodigo}).mappings().first()
+
+            if tipoCompania_result and tipoCompania_result["ciatipocompania"]:
+                query_excepcionIva = """
+                    SELECT iveporcentajeresolucion
+                    FROM siacivaexcepcion
+                    WHERE ivetipocompania = :tipoCompania
+                    AND ivestatus = 'A'
+                    AND GETDATE() BETWEEN ivefecinicio AND ivefectermino
+                """
+                excepcionIVA_result = conn.execute(text(query_excepcionIva), {"tipoCompania": tipoCompania_result["ciatipocompania"]}).mappings().first()
+                excepcionIVA = dict(excepcionIVA_result) if excepcionIVA_result else None
+        except Exception:
+            excepcionIVA = None
+
+        # ----------------------------------------------------
         # OBTENER EL IVA
         # ----------------------------------------------------
         try:
@@ -148,7 +177,7 @@ def get_info_product(conn, ciacodigo, loccodigo, artcodigo, clicodigo="000001", 
                 print(f"No se encontraron tarifas de IVA para ciacodigo {ciacodigo}")  # Hay empresas que no tienen iva personalizado, asi que siempre usan el global
 
             # Obtener IVA del producto
-            ivaProducto = obtenerIvaArticulo(tipoIVA, globalIVA, tarifasIVA, str(producto["artapliiva"]))
+            ivaProducto = obtenerIvaArticulo(tipoIVA, globalIVA, tarifasIVA, str(producto["artapliiva"]), excepcionIVA)
 
         except Exception as error:
             raise ValueError(f"Error retrieving IVA: {error}")

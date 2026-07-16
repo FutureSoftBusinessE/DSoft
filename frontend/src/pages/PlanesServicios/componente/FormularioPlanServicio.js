@@ -1,6 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react"
-import { Box, Paper, MenuItem, Select, FormControl, FormLabel, TextField } from "@mui/material"
-import { showWarning } from "../../../api"
+import { Box, Paper, MenuItem, Select, FormControl, FormLabel, TextField, CircularProgress } from "@mui/material"
+import { showWarning, api } from "../../../api"
 import ImagenTab from "../componente/ImagenTab"
 
 const StyledRoot = {
@@ -13,21 +13,15 @@ const StyledRoot = {
   boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
 }
 
-const normalizeCheckboxValue = (value) => {
-  const numericValue = Number(value)
-  if (Number.isNaN(numericValue)) return 0
-  return numericValue === 0 ? 0 : -1
-}
-
 const FormularioPlanServicio = forwardRef(
   (
     {
       initialData = {
-        invcodigo: "01", // Valor por defecto
+        invcodigo: "01",
         artcodigo: "",
         artdescri: "",
         artprecventa1: "",
-        artapliiva: 0,
+        artapliiva: "",
         artstatus: "A",
       },
       isLoading = false,
@@ -36,25 +30,64 @@ const FormularioPlanServicio = forwardRef(
     },
     ref,
   ) => {
-    // Inicializamos con "01" como valor por defecto para el inventario de servicios
     const [invcodigo, setInvcodigo] = useState("01")
     const [artcodigo, setArtcodigo] = useState("")
     const [artdescri, setArtdescri] = useState("")
     const [artprecventa1, setArtprecventa1] = useState("")
-    const [artapliiva, setArtapliiva] = useState(0)
+    const [artapliiva, setArtapliiva] = useState("")
     const [artstatus, setArtstatus] = useState("A")
 
+    // Estado para las tarifas IVA
+    const [tarifasIVA, setTarifasIVA] = useState([])
+    const [loadingTarifas, setLoadingTarifas] = useState(true) // Iniciar como true
+
+    // Cargar tarifas IVA disponibles
     useEffect(() => {
-      // Solo en editar, pre-llenar datos
-      if (modo === "editar" && initialData) {
+      const cargarTarifas = async () => {
+        setLoadingTarifas(true)
+        try {
+          const response = await api.get("/PlanesServicios/getTarifasIVA")
+          const tarifas = response.data?.data?.data || []
+          setTarifasIVA(tarifas)
+        } catch (error) {
+          console.error("Error cargando tarifas IVA:", error)
+          showWarning("No se pudieron cargar las tarifas de IVA")
+        } finally {
+          setLoadingTarifas(false)
+        }
+      }
+      cargarTarifas()
+    }, [])
+
+    // Cargar datos iniciales SOLO cuando las tarifas ya estén cargadas
+    useEffect(() => {
+      if (modo === "editar" && initialData && !loadingTarifas && tarifasIVA.length > 0) {
         setInvcodigo(initialData.invcodigo || "01")
         setArtcodigo(initialData.artcodigo || "")
         setArtdescri(initialData.artdescri || "")
         setArtprecventa1(String(initialData.artprecventa1 || ""))
-        setArtapliiva(normalizeCheckboxValue(initialData.artapliiva))
+
+        // Convertir el número de la BD al formato de código de tarifa
+        const codigoNumerico = initialData.artapliiva
+        let codigoIVA = ""
+
+        // Intentar con formato de 2 dígitos: 5 -> "05"
+        const codigoConPad = String(Math.abs(codigoNumerico)).padStart(2, "0")
+        // Intentar con formato sin padding: 5 -> "5"
+        const codigoSinPad = String(Math.abs(codigoNumerico))
+
+        // Verificar cuál existe en las tarifas cargadas
+        if (tarifasIVA.some((t) => t.codigo === codigoConPad)) {
+          codigoIVA = codigoConPad
+        } else if (tarifasIVA.some((t) => t.codigo === codigoSinPad)) {
+          codigoIVA = codigoSinPad
+        }
+        // Si no existe ninguno, dejar vacío
+
+        setArtapliiva(codigoIVA)
         setArtstatus(initialData.artstatus || "A")
       }
-    }, [modo, initialData])
+    }, [modo, initialData, loadingTarifas, tarifasIVA])
 
     const handleSubmit = async (e) => {
       if (e) e.preventDefault()
@@ -72,15 +105,19 @@ const FormularioPlanServicio = forwardRef(
         showWarning("Precio debe ser un número mayor a 0")
         return
       }
+      if (!artapliiva) {
+        showWarning("Debe seleccionar una tarifa de IVA")
+        return
+      }
 
       const payload =
         modo === "crear"
           ? {
-              invcodigo, // Se enviará "01" automáticamente
+              invcodigo,
               artcodigo,
               artdescri,
               artprecventa1: parseFloat(artprecventa1),
-              artapliiva: normalizeCheckboxValue(artapliiva),
+              artapliiva,
               artstatus: "A",
             }
           : {
@@ -88,7 +125,7 @@ const FormularioPlanServicio = forwardRef(
               artcodigoOld: initialData.artcodigo,
               artdescriNew: artdescri,
               artprecventa1New: parseFloat(artprecventa1),
-              artaplivaNew: normalizeCheckboxValue(artapliiva),
+              artaplivaNew: artapliiva,
               artstatus,
             }
 
@@ -99,7 +136,6 @@ const FormularioPlanServicio = forwardRef(
       }
     }
 
-    // Exponer el método submit al componente padre mediante ref
     useImperativeHandle(ref, () => ({
       handleSubmit,
     }))
@@ -119,7 +155,7 @@ const FormularioPlanServicio = forwardRef(
               <FormLabel>Código de Artículo *</FormLabel>
               <TextField
                 value={artcodigo}
-                onChange={(e) => setArtcodigo(e.target.value.toUpperCase())} // Forzamos a mayúsculas como buena práctica
+                onChange={(e) => setArtcodigo(e.target.value.toUpperCase())}
                 variant="outlined"
                 size="small"
                 disabled={modo === "editar"}
@@ -132,7 +168,7 @@ const FormularioPlanServicio = forwardRef(
               <FormLabel>Descripción *</FormLabel>
               <TextField
                 value={artdescri}
-                onChange={(e) => setArtdescri(e.target.value.toUpperCase())} // Forzamos a mayúsculas
+                onChange={(e) => setArtdescri(e.target.value.toUpperCase())}
                 variant="outlined"
                 multiline
                 rows={2}
@@ -156,12 +192,44 @@ const FormularioPlanServicio = forwardRef(
             </FormControl>
           </Box>
 
+          {/* Select de Tarifa IVA */}
           <Box sx={{ mb: 3 }}>
             <FormControl fullWidth size="small">
-              <FormLabel>Aplica IVA</FormLabel>
-              <Select value={artapliiva} onChange={(e) => setArtapliiva(normalizeCheckboxValue(e.target.value))}>
-                <MenuItem value={0}>No</MenuItem>
-                <MenuItem value={-1}>Sí</MenuItem>
+              <FormLabel>Aplica IVA *</FormLabel>
+              <Select
+                value={artapliiva}
+                onChange={(e) => setArtapliiva(e.target.value)}
+                disabled={loadingTarifas || isLoading}
+                displayEmpty
+                renderValue={(selected) => {
+                  if (!selected) {
+                    return <em style={{ color: "#888" }}>-- Seleccione una tarifa --</em>
+                  }
+                  // Buscar la tarifa por código exacto para mostrar la descripción
+                  const tarifaSeleccionada = tarifasIVA.find((t) => t.codigo === selected)
+                  if (tarifaSeleccionada) {
+                    return `${tarifaSeleccionada.descripcion} (${tarifaSeleccionada.porcentaje}%)`
+                  }
+                  // Si no se encuentra, mostrar el código
+                  return `Código: ${selected}`
+                }}
+              >
+                <MenuItem value="" disabled>
+                  <em>-- Seleccione una tarifa --</em>
+                </MenuItem>
+
+                {loadingTarifas ? (
+                  <MenuItem value="" disabled>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    Cargando tarifas...
+                  </MenuItem>
+                ) : (
+                  tarifasIVA.map((tarifa) => (
+                    <MenuItem key={tarifa.codigo} value={tarifa.codigo}>
+                      {tarifa.descripcion} ({tarifa.porcentaje}%)
+                    </MenuItem>
+                  ))
+                )}
               </Select>
             </FormControl>
           </Box>

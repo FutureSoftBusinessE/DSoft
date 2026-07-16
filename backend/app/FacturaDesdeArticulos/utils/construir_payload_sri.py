@@ -2,12 +2,14 @@ from datetime import datetime
 from dotenv import load_dotenv
 from decouple import config as config_env
 import base64
+from sqlalchemy import text
+from error_handling import APIError
 
 # Cargar variables de entorno
 load_dotenv()  # Carga .env por defecto
 
 
-def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, datos_cliente, forma_pago, ciacodigo, loccodigo, facnumfac, info_adicional=None):
+def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, datos_cliente, forma_pago, ciacodigo, loccodigo, facnumfac, info_adicional=None, connection=None):
     """
     Construye el payload JSON para la API de facturación electrónica.
     Este payload será enviado a /IntegracionFacturacionElectronica/emisionFactura
@@ -26,18 +28,30 @@ def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, dato
     else:
         codigo_sri_pago = "01"  # Sin utilización del sistema financiero
 
+    # ========== OBTENER TARIFAS DE IVA DESDE LA BD ==========
+    tarifas_iva = []
+    if connection is not None:
+        try:
+            query_tarifas = """
+                SELECT codigo, porcentaje
+                FROM siacsritarifaiva
+            """
+            tarifas_iva_rows = connection.execute(text(query_tarifas)).mappings().all()
+            tarifas_iva = [dict(row) for row in tarifas_iva_rows]
+        except Exception:
+            raise APIError("Tabla de Tarifas de iva no configurada en la base de datos")
+
     # ========== FUNCIONES AUXILIARES ==========
     def mapear_codigo_porcentaje_iva(porcentaje):
         """
         Mapea el porcentaje de IVA al código del SRI.
-        TODO: Verificar si hay más porcentajes según catálogo SRI
+        Busca en las tarifas de IVA de la tabla siacsritarifaiva
         """
-        mapeo = {
-            0: "0",  # 0%
-            12: "2",  # 12%
-            15: "4",  # 15%
-        }
-        return mapeo.get(int(porcentaje), "4")
+        for tarifa in tarifas_iva:
+            if float(tarifa["porcentaje"]) == float(porcentaje):
+                return tarifa["codigo"]
+        # Si no encuentra el porcentaje en las tarifas, lanza error
+        raise APIError(f"No se encontró el código SRI para el porcentaje de IVA: {porcentaje}%. Verifique la tabla siacsritarifaiva.")
 
     def get_tipo_identificacion(ruc):
         """Determina el tipo de identificación según el RUC"""

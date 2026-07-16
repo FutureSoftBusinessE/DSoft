@@ -16,15 +16,14 @@ import base64
 
 
 # Obtener todas las opciones de un modulo (en este api siempre WEB)asignadas un usuario
-# En app/AccesoAOpcionesPorModulos/bp.py - Modificar getAllOpcionesModulo
 @bp.route("/getAllOpcionesModuloOptimizado", methods=["POST"])
 @jwt_required()
 def getAllOpcionesModuloOptimizado():
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
-    ciacodigo = claims["seleccion"]["cliciaciacodigo"]
 
     data = request.get_json()
+    ciacodigo = data.get("ciacodigo")
     usrcodigo = data.get("usrcodigo")
     modcodigo = data.get("modcodigo")
 

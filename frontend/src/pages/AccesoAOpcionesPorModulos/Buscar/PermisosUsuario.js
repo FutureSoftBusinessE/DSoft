@@ -604,7 +604,7 @@ const PermisosUsuario = ({ usuario, esPerfil = false }) => {
       const response = await fetchwrapper("/AccesoAOpcionesPorModulos/getAllOpcionesModuloOptimizado", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usrcodigo, modcodigo }),
+        body: JSON.stringify({ usrcodigo, modcodigo, ciacodigo }),
       })
       const result = await response.json()
       return result.data

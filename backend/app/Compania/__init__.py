@@ -15,3 +15,4 @@ from app.Compania.rutas import validarCompaniaIMP
 from app.Compania.rutas import insertarCompaniaIMP
 from app.Compania.rutas import getSiguienteCodigoCompania
 from app.Compania.rutas import getCompaniaByCodigo
+from app.Compania.rutas import getTiposCompania

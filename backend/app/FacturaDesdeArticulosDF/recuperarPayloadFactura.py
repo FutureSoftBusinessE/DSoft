@@ -1,3 +1,4 @@
+# flake8: noqa
 from flask import jsonify, request
 from app.FacturaDesdeArticulosDF import bp
 from app.extensions import db
@@ -79,6 +80,7 @@ def recuperarPayloadFactura():
             "clicodigo": factura_raw["clicodigo"],
             "factippag": factura_raw["factippag"],
             "vencodigo": factura_raw["vencodigo"],
+            "cjacodigo": factura_raw["cjacodigo"],
         }
         # PASO 2: Leer detalles de la factura
         query_detalles = """
@@ -116,6 +118,7 @@ def recuperarPayloadFactura():
                 "pedsolsinstock": detalle["facsolsinstock"],
                 # Columnas que mantienen el mismo nombre
                 "artcodigo": detalle["artcodigo"],
+                "peddetalleadicional": detalle.get("facdetalleadicional", ""),
                 "artdescri": detalle["artdescri"],
                 "invcodigo": detalle["invcodigo"],
                 "precodigo": detalle["precodigo"],
@@ -173,11 +176,11 @@ def recuperarPayloadFactura():
             FROM siactsriseries
             WHERE ciacodigo = :ciacodigo
             AND sripreauto = 'E'
-            AND cjacodigo = '103'
+            AND cjacodigo = :cjacodigo
             AND srisecdoc = '01'
         """
 
-        secuencia_sri = connection.execute(text(query_secuencia), {"ciacodigo": ciacodigo}).mappings().first()
+        secuencia_sri = connection.execute(text(query_secuencia), {"ciacodigo": ciacodigo, "cjacodigo": factura["cjacodigo"]}).mappings().first()
 
         if not secuencia_sri:
             raise APIError("No se encontró la secuencia SRI configurada")
@@ -188,19 +191,42 @@ def recuperarPayloadFactura():
         # Reemplazar por la misma secuencia con la que se guardo la factura
         secuencia_sri["srisecact"] = factura_raw["facnumero"]
 
-    # PASO 7: Construir payload (misma función que usa facturarProforma)
-    payload_sri = construir_payload_sri(
-        proforma=factura, detalles=detalles_factura, secuencia_sri=secuencia_sri, datos_empresa=datos_empresa, datos_cliente=datos_cliente, forma_pago=forma_pago, ciacodigo=ciacodigo, loccodigo=loccodigo, facnumfac=facnumfac  # AHORA sí tiene formato facped  # AHORA sí tiene formato fatped
-    )
+        # ========== LEER INFO ADICIONAL DE LA PROFROMA ==========
+        query_info = """
+            SELECT pedclave, pedvalor
+            FROM pedinfoadicional
+            WHERE ciacodigo = :ciacodigo
+                AND pednumped = :pednumped
+                AND loccodigo = :loccodigo
+            ORDER BY pedorden
+        """
+        info_adicional_rows = connection.execute(text(query_info), {"ciacodigo": ciacodigo, "pednumped": factura.get("pednumped"), "loccodigo": loccodigo}).mappings().all()  # Tomo la info adicional aosiciada a la proforma
 
-    # Agregar datos adicionales que necesita emisionFactura
-    payload_sri["ciacodigo"] = ciacodigo
-    payload_sri["facnumfac"] = facnumfac
-    payload_sri["loccodigo"] = loccodigo
-    payload_sri["datos_cliente"] = {
-        "email": datos_cliente.get("email", ""),
-        "clinombre": datos_cliente.get("clinombre", ""),
-        "cliruc": datos_cliente.get("cliruc", ""),
-    }
+        info_adicional = [{"nombre": row["pedclave"], "valor": row["pedvalor"]} for row in info_adicional_rows]
+
+        # PASO 7: Construir payload (misma función que usa facturarProforma)
+        payload_sri = construir_payload_sri(
+            proforma=factura,
+            detalles=detalles_factura,
+            secuencia_sri=secuencia_sri,
+            datos_empresa=datos_empresa,
+            datos_cliente=datos_cliente,
+            forma_pago=forma_pago,
+            ciacodigo=ciacodigo,
+            loccodigo=loccodigo,
+            facnumfac=facnumfac,
+            info_adicional=info_adicional,
+            connection=connection,  # AHORA sí tiene formato facped
+        )
+
+        # Agregar datos adicionales que necesita emisionFactura
+        payload_sri["ciacodigo"] = ciacodigo
+        payload_sri["facnumfac"] = facnumfac
+        payload_sri["loccodigo"] = loccodigo
+        payload_sri["datos_cliente"] = {
+            "email": datos_cliente.get("email", ""),
+            "clinombre": datos_cliente.get("clinombre", ""),
+            "cliruc": datos_cliente.get("cliruc", ""),
+        }
 
     return {"success": True, "message": "Payload recuperado exitosamente", "facnumfac": facnumfac, "payload_sri": payload_sri}

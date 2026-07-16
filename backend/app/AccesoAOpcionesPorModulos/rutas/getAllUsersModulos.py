@@ -38,6 +38,8 @@ def getAllUsersModulos():
             # por defecto son FILTER_VALUE_TYPE.STRING
             allowed_columns = [
                 {"usrcodigo": FILTER_VALUE_TYPE.ENCRYPTED},
+                {"usrnombre": FILTER_VALUE_TYPE.ENCRYPTED},
+                {"modcodigo": FILTER_VALUE_TYPE.STRING},
             ]
 
             base_query = """

@@ -33,6 +33,7 @@ import CustomDatePicker from "../../../components/CustomDatePicker"
 import CustomTextField from "../../../components/CustomTextField"
 import CustomTextFieldReadable from "../../../components/CustomTextFieldReadable"
 import CustomHelperDetail from "../../../components/CustomHelperDetail"
+import CustomAutocomplete from "../../../components/CustomAutocomplete"
 import DescriptionIcon from "@mui/icons-material/Description"
 import ShoppingBagIcon from "@mui/icons-material/ShoppingBag"
 import FormaDePagoAutocomplete from "../components/FormaDePagoAutocomplete"
@@ -41,7 +42,7 @@ import dayjs from "dayjs"
 import BackIcon from "../../../components/BackIcon"
 import DeleteIcon from "@mui/icons-material/Delete"
 import AddIcon from "@mui/icons-material/Add"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 
 const StyledRoot = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -62,10 +63,10 @@ const theme = createTheme({
 const ContainerCabecera = styled(Box)(({ theme }) => ({
   display: "grid",
   gridTemplateColumns: "repeat(12, 1fr)",
-  gridTemplateRows: "auto auto",
+  gridTemplateRows: "auto auto auto",
   gridTemplateAreas: `
     "Codigo Codigo Codigo Codigo FormaPago FormaPago FormaPago FormaPago Vendedor Vendedor Vendedor Vendedor"
-    "FechaE FechaE FechaV FechaV Observacion Observacion Observacion Observacion Observacion Observacion Observacion Observacion"
+    "FechaE FechaE FechaV FechaV CajaSRI CajaSRI CajaSRI CajaSRI Observacion Observacion Observacion Observacion"
   `,
   gap: "8px",
   alignItems: "center",
@@ -75,6 +76,7 @@ const ContainerCabecera = styled(Box)(({ theme }) => ({
       "Codigo Codigo Codigo Codigo Codigo Codigo FormaPago FormaPago FormaPago FormaPago FormaPago FormaPago"
       "Vendedor Vendedor Vendedor Vendedor Vendedor Vendedor Observacion Observacion Observacion Observacion Observacion Observacion"
       "FechaE FechaE FechaE FechaE FechaE FechaE FechaV FechaV FechaV FechaV FechaV FechaV"
+      "CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI CajaSRI"
     `,
   },
 }))
@@ -109,6 +111,7 @@ const Codigo = styled(Box)({ gridArea: "Codigo" })
 const FormaPago = styled(Box)({ gridArea: "FormaPago" })
 const Vendedor = styled(Box)({ gridArea: "Vendedor" })
 const Observacion = styled(Box)({ gridArea: "Observacion" })
+const CajaSRI = styled(Box)({ gridArea: "CajaSRI" })
 
 // Hooks
 function useGetInfoCliente(clicodigo) {
@@ -145,6 +148,41 @@ function useGetCodigoPedidoTemporal() {
     refetchOnWindowFocus: false,
     enabled: true,
     retry: false,
+  })
+}
+
+// Hook para obtener cajas SRI
+function useGetCajas() {
+  return useQuery({
+    queryKey: ["cajasSRI_DF"],
+    queryFn: async () => {
+      const options = {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      }
+      let response = await fetchwrapper(`/FacturaDesdeArticulosDF/getCajas`, options)
+      response = await response.json()
+      return response?.data ?? []
+    },
+    refetchOnWindowFocus: false,
+    enabled: true,
+  })
+}
+
+// Hook para obtener datos de proforma para clonar
+function useGetProformaParaClonar(pednumped) {
+  return useQuery({
+    queryKey: ["proformaParaClonarDF", pednumped],
+    queryFn: async () => {
+      const response = await fetchwrapper(`/FacturaDesdeArticulosDF/getProforma/${pednumped}`)
+      const data = await response.json()
+      if (!data.success) {
+        throw new Error(data.message || "Error al cargar proforma para clonar")
+      }
+      return data.data
+    },
+    refetchOnWindowFocus: false,
+    enabled: !!pednumped,
   })
 }
 
@@ -218,6 +256,7 @@ const ComboArticuloRow = ({ index, row, productosAgregados, setProductosAgregado
             precioUnitario: Number(val.artprecventa1 || 0), // Toma el precio 1 de la base de datos
             descuentoPorcentaje: 0, // Inicia sin descuento manual
             ivaPorcentaje: porcIva,
+            peddetalleadicional: row.peddetalleadicional || "", // Mantener detalle adicional si existe
           }
         } else {
           newArr[index] = {
@@ -226,6 +265,7 @@ const ComboArticuloRow = ({ index, row, productosAgregados, setProductosAgregado
             precioUnitario: 0,
             descuentoPorcentaje: 0,
             ivaPorcentaje: 0,
+            peddetalleadicional: "",
           }
         }
         setProductosAgregados(newArr)
@@ -253,9 +293,21 @@ const ComboArticuloRow = ({ index, row, productosAgregados, setProductosAgregado
 
 const CrearFacturaDesdeArticulosDF = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const datosClonacion = location.state
+  // Detectar si es clonación (viene del botón CLONAR con pednumped)
+  const esClonacion = !!datosClonacion?.pednumped
+
   const [expandedInfoGeneral, setExpandedInfoGeneral] = useState(true)
   const [expandedInfoCliente, setExpandedInfoCliente] = useState(true)
+  const [expandedInfoAdicional, setExpandedInfoAdicional] = useState(true)
   const [codigoFactura, setCodigoFactura] = useState("")
+
+  // Estado para caja SRI seleccionada
+  const [cajaSeleccionada, setCajaSeleccionada] = useState(null)
+
+  // Estado para información adicional
+  const [infoAdicional, setInfoAdicional] = useState([])
 
   const {
     data: codigoPedidoTemporal,
@@ -264,6 +316,14 @@ const CrearFacturaDesdeArticulosDF = () => {
     isLoading: isLoadingCodigo,
     refetch: refetchCodigoPedido,
   } = useGetCodigoPedidoTemporal()
+
+  // Hook para obtener cajas SRI
+  const { data: cajasSRI = [], isLoading: isLoadingCajas } = useGetCajas()
+
+  // Hook para obtener datos de la proforma a clonar
+  const { data: datosProformaClonar, isLoading: isLoadingClonacion } = useGetProformaParaClonar(
+    datosClonacion?.pednumped,
+  )
 
   useEffect(() => {
     refetchCodigoPedido()
@@ -301,6 +361,75 @@ const CrearFacturaDesdeArticulosDF = () => {
     cabeceraFactura.cliente.clicodigo,
   )
 
+  // Efecto para cargar datos de clonacion
+  useEffect(() => {
+    if (datosProformaClonar) {
+      const clienteInfo = datosProformaClonar.cliente || {}
+      const formaPagoInfo = datosProformaClonar.formaPago || {}
+      const vendedorInfo = datosProformaClonar.vendedor || {}
+      const cabeceraInfo = datosProformaClonar.cabecera || {}
+
+      setCabeceraFactura({
+        cliente: {
+          clicodigo: clienteInfo.clicodigo || "",
+          clinombre: clienteInfo.clinombre || "",
+          clidirec: clienteInfo.clidirec || "",
+          cliruc: clienteInfo.cliruc || "",
+          clitelef1: clienteInfo.clitelef1 || "",
+        },
+        direccion: clienteInfo.clidirec || "",
+        ruc: clienteInfo.cliruc || "",
+        telefono: clienteInfo.clitelef1 || "",
+        fordescri: formaPagoInfo.fordescri || "",
+        fortipo: cabeceraInfo.fortipo || formaPagoInfo.fortipo || "",
+        fordias: parseFloat(cabeceraInfo.fordias || formaPagoInfo.fordias || 0),
+        fordescuento: parseFloat(cabeceraInfo.fordescuento || formaPagoInfo.fordescuento || 0),
+        vendedor: {
+          vencodigo: vendedorInfo.vencodigo || cabeceraInfo.vencodigo || "",
+          vennombre: vendedorInfo.vennombre || "",
+          pedidossiac: "",
+          pedidosweb: "",
+        },
+        observacion: cabeceraInfo.peddetalle || "",
+      })
+
+      // Cargar productos de la proforma a clonar
+      if (datosProformaClonar.productos && datosProformaClonar.productos.length > 0) {
+        const productosFormateados = datosProformaClonar.productos.map((prod) => ({
+          artcodigo: prod.artcodigo,
+          artdescri: prod.artdescri,
+          meddescri: prod.meddescri || "",
+          predescri: prod.predescri || "",
+          lindescri: prod.lindescri || "",
+          artcantactual: prod.artcantactual || 0,
+          mardescri: prod.mardescri || "",
+          precioUnitario: prod.precioUnitario,
+          ivaPorcentaje: prod.ivaPorcentaje,
+          artapliiva: prod.artapliiva,
+          descuentoPorcentaje: prod.descuentoPorcentaje,
+          imagen: prod.imagen,
+          cantidadPedido: prod.cantidadPedido,
+          peddetalleadicional: prod.peddetalleadicional || "",
+          isNew: false,
+        }))
+        setProductosAgregados(productosFormateados)
+      }
+
+      // Cargar info adicional si existe
+      if (datosProformaClonar.infoAdicional && datosProformaClonar.infoAdicional.length > 0) {
+        setInfoAdicional(datosProformaClonar.infoAdicional)
+      }
+
+      // Cargar caja SRI si existe en la proforma clonada
+      if (cabeceraInfo.cjacodigo) {
+        const cajaEncontrada = cajasSRI.find((c) => c.value === cabeceraInfo.cjacodigo)
+        if (cajaEncontrada) {
+          setCajaSeleccionada(cajaEncontrada)
+        }
+      }
+    }
+  }, [datosProformaClonar, cajasSRI])
+
   useEffect(() => {
     if (cabeceraFactura.cliente.clicodigo) refetchInfoCliente()
   }, [cabeceraFactura.cliente.clicodigo])
@@ -317,6 +446,32 @@ const CrearFacturaDesdeArticulosDF = () => {
   }, [fetchedInfoCliente])
 
   const handleSetCabeceraFactura = (k, v) => setCabeceraFactura((prev) => ({ ...prev, [k]: v }))
+
+  // Funciones para manejar información adicional
+  const handleAgregarInfoAdicional = () => {
+    setInfoAdicional([...infoAdicional, { pedclave: "", pedvalor: "", pedorden: infoAdicional.length + 1 }])
+  }
+
+  const handleEliminarInfoAdicional = (index) => {
+    const nuevaInfo = infoAdicional.filter((_, i) => i !== index)
+    setInfoAdicional(nuevaInfo)
+  }
+
+  const handleChangeInfoAdicional = (index, campo, valor) => {
+    const nuevaInfo = [...infoAdicional]
+    nuevaInfo[index][campo] = valor
+    setInfoAdicional(nuevaInfo)
+  }
+
+  // Función para actualizar detalle adicional de un producto
+  const handleChangeDetalleAdicional = (index, valor) => {
+    const nuevosProductos = [...productosAgregados]
+    nuevosProductos[index] = {
+      ...nuevosProductos[index],
+      peddetalleadicional: valor,
+    }
+    setProductosAgregados(nuevosProductos)
+  }
 
   const { mutate: guardarPedidoMutation, isPending: isSavingPedido } = useMutation({
     queryKey: ["guardarPedidoDF"],
@@ -338,6 +493,7 @@ const CrearFacturaDesdeArticulosDF = () => {
         confirmButtonText: "Aceptar",
       }).then(() => {
         setProductosAgregados([])
+        setInfoAdicional([])
         navigate(-1)
       })
     },
@@ -360,6 +516,10 @@ const CrearFacturaDesdeArticulosDF = () => {
     }
     if (!cabeceraFactura.vendedor.vencodigo) {
       Swal.fire({ icon: "warning", title: "Falta Vendedor", text: "Debe seleccionar un vendedor." })
+      return
+    }
+    if (!cajaSeleccionada?.value) {
+      Swal.fire({ icon: "warning", title: "Falta Caja SRI", text: "Debe seleccionar una caja SRI." })
       return
     }
 
@@ -387,10 +547,13 @@ const CrearFacturaDesdeArticulosDF = () => {
         descuentoPorcentaje: Number(p.descuentoPorcentaje),
         imagen: p.imagen,
         cantidadPedido: Number(p.cantidadPedido),
+        peddetalleadicional: p.peddetalleadicional || "",
       })),
       formaPago: cabeceraFactura.factippag,
       vendedor: cabeceraFactura.vendedor,
       observacion: cabeceraFactura.observacion,
+      infoAdicional: infoAdicional.filter((i) => i.pedclave.trim() !== ""),
+      cjacodigo: cajaSeleccionada.value,
     }
 
     await guardarPedidoMutation(payload)
@@ -471,13 +634,13 @@ const CrearFacturaDesdeArticulosDF = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <CustomBackdrop isLoading={isLoadingCodigo || isSavingPedido} />
+      <CustomBackdrop isLoading={isLoadingCodigo || isSavingPedido || isLoadingClonacion} />
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
         <div style={{ display: "flex", justifyContent: "center", margin: "0 30px 30px 30px", fontSize: "25px" }}>
           {/* CAMBIO 1: Título de la página */}
-          <b>Crear Proforma</b>
+          <b>{esClonacion ? "Clonar Proforma" : "Crear Proforma"}</b>
         </div>
         <FloatingMenu />
 
@@ -511,6 +674,17 @@ const CrearFacturaDesdeArticulosDF = () => {
                   isOptional={true}
                 />
               </FechaV>
+              <CajaSRI>
+                <CustomAutocomplete
+                  label="Caja SRI"
+                  disabled={isLoadingCajas}
+                  selectedOption={cajaSeleccionada}
+                  setSelectedOption={setCajaSeleccionada}
+                  options={cajasSRI}
+                  isOptionEqualToValue={(option, value) => option.value === value?.value}
+                  getOptionLabel={(option) => option.label || ""}
+                />
+              </CajaSRI>
               <FormaPago>
                 <InputLabel>Forma de pago</InputLabel>
                 <FormaDePagoAutocomplete cabeceraProforma={cabeceraFactura} setCabeceraProforma={setCabeceraFactura} />
@@ -575,6 +749,46 @@ const CrearFacturaDesdeArticulosDF = () => {
           </CustomFieldsetAccordion>
           <br />
 
+          {/* INFORMACIÓN ADICIONAL */}
+          <CustomFieldsetAccordion
+            title="Información Adicional"
+            expanded={expandedInfoAdicional}
+            onToggle={() => setExpandedInfoAdicional(!expandedInfoAdicional)}
+          >
+            <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {infoAdicional.map((info, index) => (
+                <Box key={index} sx={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                  <TextField
+                    label="Clave"
+                    value={info.pedclave}
+                    onChange={(e) => handleChangeInfoAdicional(index, "pedclave", e.target.value)}
+                    size="small"
+                    sx={{ flex: 1 }}
+                  />
+                  <TextField
+                    label="Valor"
+                    value={info.pedvalor}
+                    onChange={(e) => handleChangeInfoAdicional(index, "pedvalor", e.target.value)}
+                    size="small"
+                    sx={{ flex: 2 }}
+                  />
+                  <IconButton color="error" onClick={() => handleEliminarInfoAdicional(index)}>
+                    <DeleteIcon />
+                  </IconButton>
+                </Box>
+              ))}
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={handleAgregarInfoAdicional}
+                sx={{ alignSelf: "flex-start" }}
+              >
+                Agregar Campo
+              </Button>
+            </Box>
+          </CustomFieldsetAccordion>
+          <br />
+
           {/* GRILLA DE PRODUCTOS */}
           <Paper id="productos" sx={{ width: "100%", p: 2, mb: 4, borderRadius: "10px", border: "1px solid #ddd" }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
@@ -588,7 +802,14 @@ const CrearFacturaDesdeArticulosDF = () => {
                 onClick={() => {
                   setProductosAgregados([
                     ...productosAgregados,
-                    { isNew: true, cantidadPedido: 1, precioUnitario: 0, descuentoPorcentaje: 0, ivaPorcentaje: 0 },
+                    {
+                      isNew: true,
+                      cantidadPedido: 1,
+                      precioUnitario: 0,
+                      descuentoPorcentaje: 0,
+                      ivaPorcentaje: 0,
+                      peddetalleadicional: "",
+                    },
                   ])
                 }}
               >
@@ -616,6 +837,7 @@ const CrearFacturaDesdeArticulosDF = () => {
                     <TableCell width="80px" align="center">
                       % IVA
                     </TableCell>
+                    <TableCell width="200px">Detalle Adicional</TableCell>
                     <TableCell width="140px" align="right">
                       Total
                     </TableCell>
@@ -624,7 +846,7 @@ const CrearFacturaDesdeArticulosDF = () => {
                 <TableBody>
                   {productosAgregados.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                         <Typography color="text.secondary">
                           Haga clic en "Añadir Línea" para buscar y agregar productos.
                         </Typography>
@@ -713,6 +935,16 @@ const CrearFacturaDesdeArticulosDF = () => {
                           </TableCell>
                           <TableCell align="center" sx={{ pt: 2 }}>
                             <Typography variant="body2">{iva}%</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              size="small"
+                              disabled={row.isNew || !row.artcodigo}
+                              value={row.peddetalleadicional || ""}
+                              onChange={(e) => handleChangeDetalleAdicional(index, e.target.value)}
+                              placeholder="Detalle opcional..."
+                              fullWidth
+                            />
                           </TableCell>
                           <TableCell align="right" sx={{ pt: 2 }}>
                             <Typography variant="body2" fontWeight="bold">

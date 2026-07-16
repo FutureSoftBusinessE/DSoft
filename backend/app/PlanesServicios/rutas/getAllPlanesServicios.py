@@ -43,23 +43,29 @@ def getAllPlanesServicios():
                 {"artusumsys": FILTER_VALUE_TYPE.STRING},
             ]
 
+            # MODIFICADO: Agregar JOIN con siacsritarifaiva y seleccionar descripción y porcentaje
             base_query = f"""
             SELECT
-                ciacodigo,
-                invcodigo,
-                artcodigo,
-                artdescri,
-                artstatus,
-                artapliiva,
-                artprecventa1,
-                artfecisys,
-                arthorisys,
-                artusuisys,
-                artfecmsys,
-                arthormsys,
-                artusumsys
-            FROM inmart
-            WHERE ciacodigo = '{sCodCia}'
+                i.ciacodigo,
+                i.invcodigo,
+                i.artcodigo,
+                i.artdescri,
+                i.artstatus,
+                i.artapliiva,
+                i.artprecventa1,
+                i.artfecisys,
+                i.arthorisys,
+                i.artusuisys,
+                i.artfecmsys,
+                i.arthormsys,
+                i.artusumsys,
+                ISNULL(t.descripcion, 'No especificada') as tarifa_iva_descripcion,
+                ISNULL(t.porcentaje, 0) as tarifa_iva_porcentaje,
+                ISNULL(t.codigo, '') as tarifa_iva_codigo
+            FROM inmart i
+            LEFT JOIN siacsritarifaiva t
+                ON CAST(i.artapliiva AS VARCHAR(2)) = t.codigo
+            WHERE i.ciacodigo = '{sCodCia}'
             """
 
             # Construir consulta paginada con filtros usando la función auxiliar
@@ -101,6 +107,16 @@ def getAllPlanesServicios():
                             row["artapliiva"] = int(row["artapliiva"])
                         except (ValueError, TypeError):
                             row["artapliiva"] = 0
+
+                # Garantizar que tarifa_iva_porcentaje sea float
+                if "tarifa_iva_porcentaje" in row:
+                    if row["tarifa_iva_porcentaje"] is None:
+                        row["tarifa_iva_porcentaje"] = 0.0
+                    else:
+                        try:
+                            row["tarifa_iva_porcentaje"] = float(row["tarifa_iva_porcentaje"])
+                        except (ValueError, TypeError):
+                            row["tarifa_iva_porcentaje"] = 0.0
 
     return (
         jsonify(

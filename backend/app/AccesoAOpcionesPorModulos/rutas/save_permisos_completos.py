@@ -18,7 +18,6 @@ def save_permisos_completos():
     """
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
-    ciacodigo = claims["seleccion"]["cliciaciacodigo"]
     sUsuario = claims["user"]
     sNomEst = request.headers.get("X-Forwarded-For", request.remote_addr)
 
@@ -26,6 +25,7 @@ def save_permisos_completos():
     txtUsrCodigo = data.get("txtUsrCodigo")
     usrflagperfil = data.get("usrflagperfil", 0)
     updateAllPerfiles = data.get("updateAllPerfiles", False)
+    ciacodigo = data.get("dcbCia")  # Codigo de la compania del usario que se van a crear los permisos
     dcbMod = data.get("dcbMod")
     opciones = data.get("opciones", [])
     acciones = data.get("acciones", [])

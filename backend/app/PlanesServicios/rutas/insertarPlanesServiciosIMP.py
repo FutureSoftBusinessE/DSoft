@@ -11,15 +11,6 @@ from error_handling import api_endpoint
 from app.PlanesServicios.rutas.validarPlanesServiciosIMP import validar_planes_servicios
 
 
-def normalize_checkbox_to_db(value):
-    try:
-        numeric_value = int(value)
-    except (ValueError, TypeError):
-        numeric_value = 0
-
-    return 0 if numeric_value == 0 else -1
-
-
 @bp.route("/insertarPlanesServiciosIMP", methods=["POST"])
 @jwt_required()
 @api_endpoint
@@ -68,6 +59,13 @@ def insertarPlanesServiciosIMP():
             to_insert = []
 
             for fila in rows:
+                # MODIFICADO: Convertir artapliiva de string a INT para guardar en inmart
+                artapliiva_valor = fila.get("artapliiva", "0")
+                try:
+                    artapliiva_int = int(str(artapliiva_valor))
+                except (ValueError, TypeError):
+                    artapliiva_int = 0
+
                 to_insert.append(
                     {
                         "ciacodigo": sCodCia,
@@ -79,7 +77,7 @@ def insertarPlanesServiciosIMP():
                         "medcodigo": "SM",
                         "precodigo": "SP",
                         "artprecventa1": float(fila.get("artprecventa1", 0)),
-                        "artapliiva": normalize_checkbox_to_db(fila.get("artapliiva", 0)),
+                        "artapliiva": artapliiva_int,  # MODIFICADO: Ahora es INT
                         "artstatus": "A",
                         "artalias": fila.get("artdescri"),
                         "artdecimal": 0,

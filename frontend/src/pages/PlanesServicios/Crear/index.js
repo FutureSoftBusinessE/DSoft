@@ -13,6 +13,7 @@ import { GlobalContext } from "../../../contexts/GlobalContext"
 import getIconComponent from "../../utils/getIconComponent"
 import FormularioPlanServicio from "../componente/FormularioPlanServicio"
 
+// CORREGIDO: Tema definido fuera del componente para evitar recreación en cada render
 const theme = createTheme({
   palette: {
     primary: { main: "#196C87" },
@@ -28,6 +29,7 @@ const CrearPlanServicio = () => {
   const { mutateAsync: SaveCreacion, isPending: isSaving } = useMutation({
     queryKey: ["isCreatingPlanServicio"],
     fn: async (data) => {
+      // El formData ya incluye artapliiva como string (ej: "01", "02")
       const response = await api.post("/PlanesServicios/crearPlanesServicios", data)
       return response.data
     },
@@ -39,6 +41,7 @@ const CrearPlanServicio = () => {
   const ejecutarAction = selectedMenuInfo?.data?.barraAcciones?.find((action) => action?.acccaption === "GRABAR")
 
   const handleSubmit = async (formData) => {
+    // El FormularioPlanServicio ya envía artapliiva como código string
     await SaveCreacion(formData)
   }
 
@@ -63,9 +66,10 @@ const CrearPlanServicio = () => {
             )}
           </Box>
 
-          <div style={{ textAlign: "center", fontSize: "25px", mb: 3 }}>
+          {/* CORREGIDO: Cambiado de div a Box para que mb funcione correctamente */}
+          <Box sx={{ textAlign: "center", fontSize: "25px", mb: 3 }}>
             <b>Crear Nuevo Plan de Servicio</b>
-          </div>
+          </Box>
 
           <CustomBackdrop isLoading={isSaving} />
 

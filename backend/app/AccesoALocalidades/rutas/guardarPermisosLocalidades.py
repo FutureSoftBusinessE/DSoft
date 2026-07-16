@@ -20,10 +20,10 @@ import base64
 def guardar_permisos_localidades():
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
-    ciacodigo = claims["seleccion"]["cliciaciacodigo"]
     usuario_actual = claims["user"]
 
     data = request.get_json()
+    ciacodigo = data.get("ciacodigo")
 
     if not data or "permisos" not in data:
         return jsonify({"error": {"success": False, "msg": "Datos de permisos requeridos"}}), 500

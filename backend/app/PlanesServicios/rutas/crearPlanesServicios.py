@@ -9,15 +9,6 @@ from datetime import datetime
 from error_handling import api_endpoint, ValidationError
 
 
-def normalize_checkbox_to_db(value, field_name: str):
-    try:
-        numeric_value = int(value)
-    except (ValueError, TypeError):
-        raise ValidationError(f"{field_name} debe ser numérico")
-
-    return 0 if numeric_value == 0 else -1
-
-
 # Esta api crea un plan de servicios
 @bp.route("/crearPlanesServicios", methods=["POST"])
 @jwt_required()
@@ -33,17 +24,44 @@ def crearPlanesServicios():
     hora_sys = datetime.now().replace(year=1900, month=1, day=1, microsecond=0)
 
     # Obtener los parámetros de la solicitud
-    data = request.get_json()  # Esto permite obtener los parámetros de la consulta (URL query parameters)
+    data = request.get_json()
     invcodigo = data.get("invcodigo")
     artcodigo = data.get("artcodigo")
     artdescri = data.get("artdescri")
     artprecventa1 = data.get("artprecventa1")
-    artapliiva = data.get("artapliiva", 0)
+    artapliiva = data.get("artapliiva")  # Ahora recibe el código de tarifa IVA (string)
 
-    if not artdescri or not artcodigo or artprecventa1 is None or not invcodigo or artdescri.strip() == "" or artcodigo.strip() == "" or invcodigo.strip() == "":
+    # Validación de campos requeridos
+    if not artdescri or not artcodigo or artprecventa1 is None or not invcodigo or not artapliiva:
         raise ValidationError("Campos requeridos: invcodigo, artcodigo, artdescri, artprecventa1, artapliiva")
 
-    artapliiva = normalize_checkbox_to_db(artapliiva, "artapliiva")
+    if artdescri.strip() == "" or artcodigo.strip() == "" or invcodigo.strip() == "":
+        raise ValidationError("Los campos invcodigo, artcodigo y artdescri no pueden estar vacíos")
+
+    # Validar que la tarifa IVA existe y está disponible
+    db.session = get_session(clicianonBD)
+    engine = db.session.bind
+
+    with engine.connect() as connection:
+        # Verificar que la tarifa existe en siacsritarifaiva y está disponible
+        query_tarifa = text(
+            """
+            SELECT codigo
+            FROM siacsritarifaiva
+            WHERE codigo = :codigo AND disponible = 1
+        """
+        )
+        result_tarifa = connection.execute(query_tarifa, {"codigo": str(artapliiva)}).fetchone()
+
+        if not result_tarifa:
+            raise ValidationError("La tarifa de IVA seleccionada no existe o no está disponible")
+
+    # NUEVO: Convertir el código de tarifa a INT para guardar en inmart
+    # "01" -> 1, "02" -> 2, etc.
+    try:
+        artapliiva_int = int(str(artapliiva))
+    except (ValueError, TypeError):
+        raise ValidationError("El código de tarifa IVA debe ser un valor numérico válido")
 
     try:
         artprecventa1 = float(artprecventa1)
@@ -58,11 +76,11 @@ def crearPlanesServicios():
         with connection.begin():
             data_inmart = {
                 "ciacodigo": sCodCia,
-                "invcodigo": "01",
+                "invcodigo": invcodigo,
                 "artcodigo": artcodigo,
                 "artdescri": artdescri,
                 "artprecventa1": artprecventa1,
-                "artapliiva": artapliiva,
+                "artapliiva": artapliiva_int,
                 "lincodigo": "000000",
                 "marcodigo": "S/M",
                 "medcodigo": "SM",

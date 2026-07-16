@@ -37,12 +37,17 @@ def editarPedido():
     formaPago = data.get("formaPago", "")
     vendedor = data.get("vendedor", {})
     observacion = str(data.get("observacion", ""))[:200]
+    cjacodigo = data.get("cjacodigo")
+    info_adicional = data.get("infoAdicional", [])
 
     if not pednumped:
         raise ValidationError("El código del documento (pednumped) es requerido para la edición.")
 
     if not productos:
         raise ValidationError("No hay productos válidos en el documento para guardar.")
+
+    if not cjacodigo:
+        raise ValidationError("Caja SRI no seleccionada")
 
     # Obtener la sesión de base de datos
     db.session = get_session(clicianonBD)
@@ -92,6 +97,9 @@ def editarPedido():
             )
             cliente_info = connection.execute(query_cliente, {"ciacodigo": ciacodigo, "clicodigo": cliente.get("clicodigo")}).mappings().first()
 
+            if not cliente_info:
+                raise NotFoundError(f"Cliente {cliente.get('clicodigo')} no encontrado")
+
             query_formapago = text(
                 """
                 SELECT
@@ -105,6 +113,9 @@ def editarPedido():
             """
             )
             formapago_info = connection.execute(query_formapago, {"ciacodigo": ciacodigo, "factippag": formaPago}).mappings().first()
+
+            if not formapago_info:
+                raise NotFoundError(f"Forma de pago {formaPago} no encontrada")
 
             query_sysIVA = text("SELECT sysiva FROM siacsys")
             globalIVA = connection.execute(query_sysIVA).mappings().first()
@@ -128,7 +139,7 @@ def editarPedido():
                     fordias = :fordias, fortipo = :fortipo, forcuotas = :forcuotas,
                     foraplianti = :foraplianti, foranticipo = :foranticipo, foraplirango = :foraplirango,
                     formondesde = :formondesde, formonhasta = :formonhasta, forapligrac = :forapligrac,
-                    fordiasgrac = :fordiasgrac, forcuoinigr = :forcuoinigr
+                    fordiasgrac = :fordiasgrac, forcuoinigr = :forcuoinigr, cjacodigo = :cjacodigo
                 WHERE ciacodigo = :ciacodigo AND loccodigo = :loccodigo AND pednumped = :pednumped
             """
             )
@@ -137,6 +148,7 @@ def editarPedido():
                 "ciacodigo": ciacodigo,
                 "loccodigo": loccodigo,
                 "pednumped": pednumped,
+                "cjacodigo": cjacodigo,
                 "factippag": formaPago,
                 "clicodigo": cliente.get("clicodigo"),
                 "garcodigo": cliente.get("clicodigo"),
@@ -154,31 +166,31 @@ def editarPedido():
                 "pedusumsys": usrcodigo,
                 "pedestmsys": ipUser,
                 "vencodigo": vendedor.get("vencodigo", ""),
-                "zoncodigo": cliente_info["zoncodigo"] if cliente_info else "",
+                "zoncodigo": cliente_info["zoncodigo"],
                 "peddesdirecto": calculos_totales["descuentoTotalGeneral"],
-                "tipcodigo": cliente_info["tipcodigo"] if cliente_info else "",
+                "tipcodigo": cliente_info["tipcodigo"],
                 "pedporiva": globalIVA,
                 "pedapliiva": calculos_totales["existeAlgunArticuloConIva"],
-                "foraprocredito": formapago_info["foraprocredito"] if formapago_info else 0,
-                "foraprologistica": formapago_info["foraprologistica"] if formapago_info else 0,
-                "foraprocliente": formapago_info["foraprocliente"] if formapago_info else 0,
-                "forpromocion": formapago_info["forpromocion"] if formapago_info else 0,
-                "fordescuento": formapago_info["fordescuento"] if formapago_info else 0,
-                "regcodigo": cliente_info["regcodigo"] if cliente_info else "",
-                "ciucodigo": cliente_info["ciucodigo"] if cliente_info else "",
-                "procodigo": cliente_info["procodigo"] if cliente_info else "",
-                "forintmen": formapago_info["forintmen"] if formapago_info else 0,
-                "fordias": formapago_info["fordias"] if formapago_info else 0,
-                "fortipo": formapago_info["fortipo"] if formapago_info else "",
-                "forcuotas": formapago_info["forcuotas"] if formapago_info else 0,
-                "foraplianti": formapago_info["foraplianti"] if formapago_info else 0,
-                "foranticipo": formapago_info["foranticipo"] if formapago_info else 0,
-                "foraplirango": formapago_info["foraplirango"] if formapago_info else 0,
-                "formondesde": formapago_info["formondesde"] if formapago_info else 0,
-                "formonhasta": formapago_info["formonhasta"] if formapago_info else 0,
-                "forapligrac": formapago_info["forapligrac"] if formapago_info else 0,
-                "fordiasgrac": formapago_info["fordiasgrac"] if formapago_info else 0,
-                "forcuoinigr": formapago_info["forcuoinigr"] if formapago_info else 0,
+                "foraprocredito": formapago_info["foraprocredito"],
+                "foraprologistica": formapago_info["foraprologistica"],
+                "foraprocliente": formapago_info["foraprocliente"],
+                "forpromocion": formapago_info["forpromocion"],
+                "fordescuento": formapago_info["fordescuento"],
+                "regcodigo": cliente_info["regcodigo"],
+                "ciucodigo": cliente_info["ciucodigo"],
+                "procodigo": cliente_info["procodigo"],
+                "forintmen": formapago_info["forintmen"],
+                "fordias": formapago_info["fordias"],
+                "fortipo": formapago_info["fortipo"],
+                "forcuotas": formapago_info["forcuotas"],
+                "foraplianti": formapago_info["foraplianti"],
+                "foranticipo": formapago_info["foranticipo"],
+                "foraplirango": formapago_info["foraplirango"],
+                "formondesde": formapago_info["formondesde"],
+                "formonhasta": formapago_info["formonhasta"],
+                "forapligrac": formapago_info["forapligrac"],
+                "fordiasgrac": formapago_info["fordiasgrac"],
+                "forcuoinigr": formapago_info["forcuoinigr"],
             }
 
             connection.execute(sql_update_cabecera, params_update)
@@ -206,7 +218,7 @@ def editarPedido():
                     pedpordesc, pedusudesc, artaplipro, pedvalinter, medcodigo,
                     marcodigo, artpeso, artserie, artservicio, artexpins, artfaccero,
                     integracodigo, proyectocodigo, pedcantfacturado, pedpordescori,
-                    pedprecioori, prosecuen, artdescri, pedfecposent
+                    pedprecioori, prosecuen, artdescri, pedfecposent, peddetalleadicional
                 ) VALUES (
                     :ciacodigo, :pednumped, :loccodigo, :pedsecuen, :pedtipo, :pedapliiva,
                     :factippag, :moncodigo, :pedcambio, :pedfecemi, :clicodigo, :cliprecio,
@@ -218,7 +230,7 @@ def editarPedido():
                     :pedpordesc, :pedusudesc, :artaplipro, :pedvalinter, :medcodigo,
                     :marcodigo, :artpeso, :artserie, :artservicio, :artexpins, :artfaccero,
                     :integracodigo, :proyectocodigo, :pedcantfacturado, :pedpordescori,
-                    :pedprecioori, :prosecuen, :artdescri, :pedfecposent
+                    :pedprecioori, :prosecuen, :artdescri, :pedfecposent, :peddetalleadicional
                 )
             """
             )
@@ -239,6 +251,9 @@ def editarPedido():
 
                 producto_info = connection.execute(query_producto, {"ciacodigo": ciacodigo, "artcodigo": producto.get("artcodigo")}).mappings().first()
 
+                if not producto_info:
+                    raise NotFoundError(f"Producto {producto.get('artcodigo')} no encontrado")
+
                 params_detalle = {
                     "ciacodigo": ciacodigo,
                     "pednumped": pednumped,
@@ -254,15 +269,15 @@ def editarPedido():
                     "cliprecio": 1,
                     "pedstatus": "C",
                     "bodcodigo": "",
-                    "invcodigo": producto_info["invcodigo"] if producto_info else "",
-                    "artcodigo": producto.get("artcodigo"),
-                    "precodigo": producto_info["precodigo"] if producto_info else "",
-                    "lincodigo": producto_info["lincodigo"] if producto_info else "",
+                    "invcodigo": producto_info["invcodigo"],
+                    "artcodigo": producto.get("artcodigo"),  # ✅ ESTA ES LA LÍNEA QUE FALTABA
+                    "precodigo": producto_info["precodigo"],
+                    "lincodigo": producto_info["lincodigo"],
                     "vencodigo": vendedor.get("vencodigo", ""),
-                    "zoncodigo": cliente_info["zoncodigo"] if cliente_info else "",
+                    "zoncodigo": cliente_info["zoncodigo"],
                     "pedcantidad": producto.get("cantidadPedido"),
-                    "pedcosto": producto_info["artcostoinicial"] if producto_info else 0,
-                    "pedcostodol": producto_info["artcostoactdol"] if producto_info else 0,
+                    "pedcosto": producto_info["artcostoinicial"],
+                    "pedcostodol": producto_info["artcostoactdol"],
                     "pedpreven": producto.get("precioUnitario"),
                     "pedvaldesglo": 0,
                     "pedvaldesc": producto_calculado.get("pedDescuentoTotal"),
@@ -279,28 +294,69 @@ def editarPedido():
                     "pedhormsys": fecha_formato_1900,
                     "pedusumsys": usrcodigo,
                     "pedestmsys": ipUser,
-                    "tipcodigo": cliente_info["tipcodigo"] if cliente_info else "",
+                    "tipcodigo": cliente_info["tipcodigo"],
                     "pedpordesc": producto.get("descuentoPorcentaje"),
                     "pedusudesc": usrcodigo if producto.get("descuentoPorcentaje") else "",
                     "artaplipro": 0,
                     "pedvalinter": 0,
-                    "medcodigo": producto_info["medcodigo"] if producto_info else "",
-                    "marcodigo": producto_info["marcodigo"] if producto_info else "",
-                    "artpeso": producto_info["artpeso"] if producto_info else 0,
-                    "artserie": producto_info["artserie"] if producto_info else "",
-                    "artservicio": producto_info["artservicio"] if producto_info else "",
-                    "artexpins": producto_info["artexpins"] if producto_info else "",
-                    "artfaccero": producto_info["artfaccero"] if producto_info else "",
+                    "medcodigo": producto_info["medcodigo"],
+                    "marcodigo": producto_info["marcodigo"],
+                    "artpeso": producto_info["artpeso"],
+                    "artserie": producto_info["artserie"],
+                    "artservicio": producto_info["artservicio"],
+                    "artexpins": producto_info["artexpins"],
+                    "artfaccero": producto_info["artfaccero"],
                     "integracodigo": "000",
                     "proyectocodigo": "000",
                     "pedcantfacturado": 0,
                     "pedpordescori": producto.get("descuentoPorcentaje"),
-                    "pedprecioori": producto_info["artprecventa1"] if producto_info else 0,
+                    "pedprecioori": producto_info["artprecventa1"],
                     "prosecuen": 1,
                     "artdescri": str(producto.get("artdescri", ""))[:150],
                     "pedfecposent": fecha_con_hora_cero,
+                    "peddetalleadicional": producto.get("peddetalleadicional", ""),
                 }
 
                 connection.execute(sql_insert_detalle, params_detalle)
 
-            return {"success": True, "message": "Documento actualizado exitosamente", "pednumped": pednumped, "total": calculos_totales.get("totalNeto", 0), "productos": len(productos)}
+            # 9. ELIMINAR info adicional existente
+            sql_delete_info = text(
+                """
+                DELETE FROM pedinfoadicional
+                WHERE ciacodigo = :ciacodigo
+                AND loccodigo = :loccodigo
+                AND pednumped = :pednumped
+            """
+            )
+
+            connection.execute(sql_delete_info, {"ciacodigo": ciacodigo, "loccodigo": loccodigo, "pednumped": pednumped})
+
+            # 10. INSERTAR nueva info adicional
+            for info in info_adicional:
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO pedinfoadicional (
+                            ciacodigo, loccodigo, pednumped, pedclave, pedvalor, pedorden,
+                            pedfecisys, pedhorisys, pedusuisys, pedestisys
+                        ) VALUES (
+                            :ciacodigo, :loccodigo, :pednumped, :pedclave, :pedvalor, :pedorden,
+                            :pedfecisys, :pedhorisys, :pedusuisys, :pedestisys
+                        )
+                    """
+                    ),
+                    {
+                        "ciacodigo": ciacodigo,
+                        "loccodigo": loccodigo,
+                        "pednumped": pednumped,
+                        "pedclave": info["pedclave"],
+                        "pedvalor": info["pedvalor"],
+                        "pedorden": info.get("pedorden", 1),
+                        "pedfecisys": fecha_con_hora_cero,
+                        "pedhorisys": fecha_formato_1900,
+                        "pedusuisys": usrcodigo,
+                        "pedestisys": ipUser,
+                    },
+                )
+
+            return {"success": True, "message": "Proforma actualizada exitosamente", "pednumped": pednumped, "total": calculos_totales.get("totalNeto", 0), "productos": len(productos)}

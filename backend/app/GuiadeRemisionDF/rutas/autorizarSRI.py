@@ -56,12 +56,17 @@ def autorizar_sri_guia():
         sql_cabecera = text(
             """
             SELECT
-                g.guinumero, g.facnumfac, g.clinombre, g.cliruc, g.guidirent,
+                g.guinumero, g.facnumfac, g.clinombre, g.cliruc, g.guidirent, g.clidirec,
                 g.transdescri, g.transruc, g.guiplacafinal, g.Motivo,
                 g.guifecha, g.guifecfintrans, g.cliemail, g.ciucodigo,
                 g.sriserie01, g.sriserie02, g.guianumero,
                 g.ciaciaruc, g.ciaciadescri, g.ciaciadirec,
                 g.fasriserie01, g.fasriserie02, g.fasrisecfin, g.fasriautnumero, g.fasriautfecemi,
+                g.ciaciatelefono1,
+                g.cianumresolucion,
+                g.numsolanusri,
+                g.ciaobligadocon,
+                g.clicodigo,
                 l.ciadirec as dirEstablecimiento
             FROM IncGuia g
             LEFT JOIN cgblocal l ON g.ciacodigo = l.ciacodigo AND g.loccodigo = l.loccodigo
@@ -82,9 +87,26 @@ def autorizar_sri_guia():
                 if ciu_row:
                     ciudescri = safe_strip(ciu_row[0])
 
-            sql_cia = text("SELECT cialogo FROM siaccia WHERE ciacodigo = :ciacodigo")
-            cia_row = conn.execute(sql_cia, {"ciacodigo": ciacodigo}).first()
-            logo_bytes = cia_row[0] if cia_row and cia_row[0] else None
+            sql_cia = text("SELECT cialogo, ciaemail FROM siaccia WHERE ciacodigo = :ciacodigo")
+            cia_row = conn.execute(sql_cia, {"ciacodigo": ciacodigo}).mappings().first()
+            logo_bytes = cia_row["cialogo"] if cia_row and cia_row["cialogo"] else None
+            email_compania = cia_row["ciaemail"] if cia_row else ""
+
+            # Info cliente
+            telefono_cliente = ""
+            clicodigo = doc.get("clicodigo")
+            if clicodigo:
+                sql_cliente = text(
+                    """
+                    SELECT clitelef1
+                    FROM cxcmcli
+                    WHERE ciacodigo = :ciacodigo AND clicodigo = :clicodigo
+                """
+                )
+                cliente_row = conn.execute(sql_cliente, {"ciacodigo": ciacodigo, "clicodigo": clicodigo}).mappings().first()
+
+                if cliente_row:
+                    telefono_cliente = cliente_row.get("clitelef1", "") or ""
 
             sql_detalles = text(
                 """
@@ -280,34 +302,50 @@ def autorizar_sri_guia():
 
         if estado_sri == "AUTORIZADO":
             from app.IntegracionFacturacionElectronica.utils.sri_services import build_autorizacion_xml
-            from app.IntegracionFacturacionElectronica.utils.generate_ride_pdf import generate_ride_pdf
+            from app.IntegracionFacturacionElectronica.utils.generate_ride_pdf_remision import generate_ride_pdf_remision
 
             xml_autorizado_final = build_autorizacion_xml(auth_data, clave_acceso)
 
             guia_data = {
                 "tipo_documento_nombre": "GUÍA DE REMISIÓN",
-                "info_tributaria": {"razon_social": doc["ciaciadescri"], "ruc": ciaciaruc, "estab": sriserie01, "pto_emi": sriserie02, "secuencial": secuencial, "dir_matriz": doc["ciaciadirec"] or "S/N", "logo_bytes": logo_bytes},
-                "info_factura": {
+                "info_tributaria": {
+                    "razon_social": doc["ciaciadescri"],
+                    "ruc": ciaciaruc,
+                    "estab": sriserie01,
+                    "pto_emi": sriserie02,
+                    "secuencial": secuencial,
+                    "dir_matriz": doc["ciaciadirec"] or "S/N",
+                    "logo_bytes": logo_bytes,
+                    "contribuyente_especial": doc.get("cianumresolucion", ""),
+                    "resolucion_agente": doc.get("numsolanusri", ""),
+                    "exportador_habitual": "",
+                    "telefono": doc.get("ciaciatelefono1", ""),
+                    "correo": email_compania,  # Email de comapania
+                },
+                "info_guia": {
                     "dir_establecimiento": doc["dirEstablecimiento"] or "S/N",
                     "obligado_contabilidad": "SI",
-                    "razon_social_comprador": doc["clinombre"] or "CONSUMIDOR FINAL",
-                    "identificacion_comprador": cliruc,
-                    "fecha_emision": fecha_ini_str,
-                    "guia_remision": "",
-                    "total_sin_impuestos": 0.0,
-                    "total_descuento": 0.0,
-                    "propina": 0.0,
-                    "importe_total": 0.0,
+                    "identificacion_transportista": transruc,
+                    "razon_social_transportista": doc["transdescri"],
+                    "placa": placa,
+                    "punto_partida": doc.get("ciaciadirec", "S/N"),
+                    "fecha_inicio_transporte": fecha_ini_str,
+                    "fecha_fin_transporte": doc.get("guifecfintrans", fecha_ini_str),
+                    "motivo_traslado": doc["Motivo"] or "VENTA",
+                    "destino": doc.get("clidirec", "S/N"),
+                    "identificacion_destinatario": cliruc,
+                    "razon_social_destinatario": doc["clinombre"] or "CONSUMIDOR FINAL",
+                    "ruta": ruta_str,
+                    "cod_estab_destino": "",
+                    "comprobante_venta": num_sustento if num_sustento else "",
+                    "fecha_emision_comprobante": "",
+                    "num_aut_comprobante": "",
+                    "doc_aduanero": "",
                 },
-                "detalles": [{"codigo_principal": det["artcodigo"], "cantidad": float(det["guicantdoc"] or 0), "descripcion": det["artdescri"], "precio_unitario": 0.0, "descuento": 0.0, "precio_total_sin_impuesto": 0.0} for det in detalles],
-                "totales_impuestos": [],
-                "pagos": [],
+                "detalles": [{"cantidad": float(det["guicantdoc"] or 0), "descripcion": det["artdescri"], "codigo_principal": det["artcodigo"], "codigo_auxiliar": ""} for det in detalles],
                 "info_adicional": [
-                    {"nombre": "Motivo", "valor": doc["Motivo"] or "VENTA"},
-                    {"nombre": "Placa", "valor": placa},
-                    {"nombre": "Transportista", "valor": doc["transdescri"]},
-                    {"nombre": "RUC Transportista", "valor": transruc},
-                    {"nombre": "Ruta", "valor": ruta_str},
+                    {"nombre": "Telefono", "valor": telefono_cliente or "S/N"},  # Telefono cliente
+                    {"nombre": "Email", "valor": doc.get("cliemail", "")},
                 ],
                 "tipo_emision": tipo_emision,
             }
@@ -316,8 +354,8 @@ def autorizar_sri_guia():
                 guia_data["info_adicional"].append({"nombre": "Documento Sustento", "valor": num_sustento})
 
             try:
-                dir_base = pathlib.Path(__file__).resolve().parent.parent.parent / "IntegracionFacturacionElectronica" / "facturas_rides"
-                ruta_ride, _, _ = generate_ride_pdf(guia_data, auth_data, clave_acceso, dir_base)
+                dir_base = pathlib.Path(__file__).resolve().parent.parent.parent / "IntegracionFacturacionElectronica" / "remisiones_rides"
+                ruta_ride, _, _ = generate_ride_pdf_remision(guia_data, auth_data, clave_acceso, dir_base)
                 if ruta_ride:
                     with open(ruta_ride, "rb") as f:
                         pdf_content = f.read()

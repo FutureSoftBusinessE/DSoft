@@ -1,12 +1,10 @@
-// app/FacturaDesdeArticulos/components/DetallePedido.jsx
-
 import React from "react"
 import { Box, Typography, List, Divider, Button, IconButton, TextField } from "@mui/material"
 import AddIcon from "@mui/icons-material/Add"
 import RemoveIcon from "@mui/icons-material/Remove"
 import DeleteIcon from "@mui/icons-material/Delete"
 
-const DetallePedido = ({ productosAgregados, setProductosAgregados, onRealizarPedido }) => {
+const DetallePedido = ({ productosAgregados, setProductosAgregados, onRealizarPedido, onchangeDetalleAdicional }) => {
   // Calcular totales
   const calcularTotales = () => {
     let subtotal = 0
@@ -97,7 +95,7 @@ const DetallePedido = ({ productosAgregados, setProductosAgregados, onRealizarPe
       </Typography>
 
       <List>
-        {productosAgregados.map((producto) => {
+        {productosAgregados.map((producto, index) => {
           const subtotalProducto = producto.precioUnitario * producto.cantidadPedido
           const descuentoProducto = subtotalProducto * ((producto.descuentoPorcentaje || 0) / 100)
           const ivaProducto = (subtotalProducto - descuentoProducto) * ((producto.ivaPorcentaje || 0) / 100)
@@ -156,6 +154,21 @@ const DetallePedido = ({ productosAgregados, setProductosAgregados, onRealizarPe
                   ${totalProducto.toFixed(2)}
                 </Typography>
               </Box>
+
+              {/* NUEVO: Campo opcional para detalle adicional */}
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Detalle adicional (opcional)"
+                value={producto.peddetalleadicional || ""}
+                onChange={(e) => {
+                  if (onchangeDetalleAdicional) {
+                    onchangeDetalleAdicional(index, e.target.value)
+                  }
+                }}
+                sx={{ mt: 1 }}
+                inputProps={{ maxLength: 300 }}
+              />
             </Box>
           )
         })}

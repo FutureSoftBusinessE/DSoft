@@ -13,6 +13,7 @@ import { GlobalContext } from "../../../contexts/GlobalContext"
 import getIconComponent from "../../utils/getIconComponent"
 import FormularioPlanServicio from "../componente/FormularioPlanServicio"
 
+// CORREGIDO: Tema definido fuera del componente
 const theme = createTheme({
   palette: {
     primary: { main: "#196C87" },
@@ -42,6 +43,7 @@ const EditarPlanServicio = () => {
   const ejecutarAction = selectedMenuInfo?.data?.barraAcciones?.find((action) => action?.acccaption === "GRABAR")
 
   const handleSubmit = async (formData) => {
+    // El FormularioPlanServicio ya envía artapliiva como código string
     await SaveEdicion(formData)
   }
 
@@ -66,9 +68,10 @@ const EditarPlanServicio = () => {
             )}
           </Box>
 
-          <div style={{ textAlign: "center", fontSize: "25px", mb: 3 }}>
+          {/* CORREGIDO: Cambiado de div a Box */}
+          <Box sx={{ textAlign: "center", fontSize: "25px", mb: 3 }}>
             <b>Editar Plan de Servicio</b>
-          </div>
+          </Box>
 
           <CustomBackdrop isLoading={isSaving} />
 

@@ -131,15 +131,30 @@ def facturarProforma():
                 raise APIError(f"No se encontró la forma de pago {proforma['factippag']}")
 
             # ========== PASO 5: OBTENER SECUENCIA SRI (SIN ACTUALIZAR AÚN) ==========
+            # Obtener el codigo de la caja guardada en el profroma facped
+            query_cjacodigo = """
+                SELECT cjacodigo
+                FROM facped
+                WHERE ciacodigo = :ciacodigo
+                AND loccodigo = :loccodigo
+                AND pednumped = :pednumped
+            """
+            result_cjacodigo = connection.execute(text(query_cjacodigo), {"ciacodigo": proforma["ciacodigo"], "loccodigo": proforma["loccodigo"], "pednumped": proforma["pednumped"]}).mappings().first()
+
+            if not result_cjacodigo:
+                raise APIError(f"No existe caja asociada a la proforma {proforma['pednumped']}")
+
+            result_cjacodigo = result_cjacodigo["cjacodigo"]
+
             query_secuencia = """
                 SELECT sriautnumero, sriserie01, sriserie02, srisecini, srisecfin, srisecact
                 FROM siactsriseries
                 WHERE ciacodigo = :ciacodigo
                   AND sripreauto = 'E'
-                  AND cjacodigo = '103'
+                  AND cjacodigo = :cjacodigo
                   AND srisecdoc = '01'
             """
-            secuencia_sri = connection.execute(text(query_secuencia), {"ciacodigo": ciacodigo}).mappings().first()
+            secuencia_sri = connection.execute(text(query_secuencia), {"ciacodigo": ciacodigo, "cjacodigo": result_cjacodigo}).mappings().first()
 
             if not secuencia_sri:
                 raise APIError("No se encontró la secuencia SRI configurada")
@@ -238,7 +253,7 @@ def facturarProforma():
                 "facusudes": usrcodigo,
                 "vencodigo": proforma["vencodigo"],
                 "zoncodigo": datos_cliente["zoncodigo"],
-                "cjacodigo": "103",
+                "cjacodigo": result_cjacodigo,
                 "ncompcodigo": None,
                 "facaplicomi": -1,
                 "cxcpagpor": None,
@@ -362,7 +377,7 @@ def facturarProforma():
                     porcumpcuotav, porcumpcuotaj, porcumplineav, porcomirentv, porcomirentj,
                     feccalcomiv, horcalcomiv, usucalcomiv, estcalcomiv, feccalcomij,
                     horcalcomij, usucalcomij, estcalcomij, stacalcomiv, stacalcomij,
-                    jefecodigo, porlispre, porpreven, artdescri, faccostolcdcfac, faccostolcdcing
+                    jefecodigo, porlispre, porpreven, artdescri, faccostolcdcfac, faccostolcdcing, facdetalleadicional
                 ) VALUES (
                     :ciacodigo, :facnumfac, :facsecuen, :factipo, :factippag, :moncodigo,
                     :faccambio, :facfecemi, :clicodigo, :loccodigo, :cliprecio, :facstatus,
@@ -379,7 +394,7 @@ def facturarProforma():
                     :porcumpcuotav, :porcumpcuotaj, :porcumplineav, :porcomirentv, :porcomirentj,
                     :feccalcomiv, :horcalcomiv, :usucalcomiv, :estcalcomiv, :feccalcomij,
                     :horcalcomij, :usucalcomij, :estcalcomij, :stacalcomiv, :stacalcomij,
-                    :jefecodigo, :porlispre, :porpreven, :artdescri, :faccostolcdcfac, :faccostolcdcing
+                    :jefecodigo, :porlispre, :porpreven, :artdescri, :faccostolcdcfac, :faccostolcdcing, :facdetalleadicional
                 )
             """
 
@@ -400,6 +415,7 @@ def facturarProforma():
                     "bodcodigo": detalle.get("bodcodigo", ""),
                     "invcodigo": detalle.get("invcodigo", ""),
                     "artcodigo": detalle["artcodigo"],
+                    "facdetalleadicional": detalle.get("peddetalleadicional", ""),
                     "precodigo": detalle.get("precodigo", ""),
                     "coscodigo": None,
                     "lincodigo": detalle["lincodigo"],
@@ -486,10 +502,10 @@ def facturarProforma():
                     sriusumsys = :usuario
                 WHERE ciacodigo = :ciacodigo
                   AND sripreauto = 'E'
-                  AND cjacodigo = '103'
+                  AND cjacodigo = :cjacodigo
                   AND srisecdoc = '01'
             """
-            connection.execute(text(update_secuencia), {"nueva_secuencia": nueva_secuencia, "fecha": fecha_con_hora_cero, "usuario": usrcodigo, "ciacodigo": ciacodigo})
+            connection.execute(text(update_secuencia), {"nueva_secuencia": nueva_secuencia, "fecha": fecha_con_hora_cero, "usuario": usrcodigo, "ciacodigo": ciacodigo, "cjacodigo": result_cjacodigo})
 
             # ========== PASO 9: ACTUALIZAR ESTADO PROFROMA P→F ==========
             update_proforma = """
@@ -503,11 +519,25 @@ def facturarProforma():
             """
             connection.execute(text(update_proforma), {"fecha": fecha_con_hora_cero, "usuario": usrcodigo, "ciacodigo": ciacodigo, "pednumped": pednumped, "loccodigo": loccodigo})
 
-    # ========== PASO 10: CONSTRUIR PAYLOAD Y DEVOLVER ==========
-    # Usar la secuencia actualizada
-    secuencia_sri_actualizada = dict(secuencia_sri)
-    secuencia_sri_actualizada["srisecact"] = secuencia_actual
+            # ========== LEER INFO ADICIONAL DE LA PROFROMA ==========
+            query_info = """
+                SELECT pedclave, pedvalor
+                FROM pedinfoadicional
+                WHERE ciacodigo = :ciacodigo
+                AND pednumped = :pednumped
+                AND loccodigo = :loccodigo
+                ORDER BY pedorden
+            """
+            info_adicional_rows = connection.execute(text(query_info), {"ciacodigo": ciacodigo, "pednumped": pednumped, "loccodigo": loccodigo}).mappings().all()
 
-    payload_sri = construir_payload_sri(proforma=proforma, detalles=detalles_proforma, secuencia_sri=secuencia_sri_actualizada, datos_empresa=datos_empresa, datos_cliente=datos_cliente, forma_pago=forma_pago, ciacodigo=ciacodigo, loccodigo=loccodigo, facnumfac=facnumfac)
+            info_adicional = [{"nombre": row["pedclave"], "valor": row["pedvalor"]} for row in info_adicional_rows]
 
+            # ========== PASO 10: CONSTRUIR PAYLOAD Y DEVOLVER ==========
+            # Usar la secuencia actualizada
+            secuencia_sri_actualizada = dict(secuencia_sri)
+            secuencia_sri_actualizada["srisecact"] = secuencia_actual
+
+            payload_sri = construir_payload_sri(
+                proforma=proforma, detalles=detalles_proforma, secuencia_sri=secuencia_sri_actualizada, datos_empresa=datos_empresa, datos_cliente=datos_cliente, forma_pago=forma_pago, ciacodigo=ciacodigo, loccodigo=loccodigo, facnumfac=facnumfac, info_adicional=info_adicional, connection=connection
+            )
     return {"success": True, "message": "Factura creada exitosamente. Payload listo para enviar al SRI.", "facnumfac": facnumfac, "pednumped": pednumped, "payload_sri": payload_sri}  # Este es el payload que mandarás a emisionFactura

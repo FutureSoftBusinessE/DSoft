@@ -80,6 +80,7 @@ TEXT_FIELD_MAX_LENGTHS = {
     "ciacedgerente": 10,
     "ciausuisys": 10,
     "ciausumsys": 10,
+    "ciatipocompania": 3,
 }
 
 IMAGE_FIELDS = {"cialogo", "ciaselloagua"}
@@ -430,6 +431,7 @@ ALLOWED_UPDATE_FIELDS = {
     "cialistprecdefweb",
     "ciavalidaemp",
     "ciabasepuntos",
+    "ciatipocompania",
 }
 
 

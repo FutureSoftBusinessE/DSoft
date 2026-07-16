@@ -9,15 +9,6 @@ from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
 
-def normalize_checkbox_to_db(value, field_name: str):
-    try:
-        numeric_value = int(value)
-    except (ValueError, TypeError):
-        raise ValueError(f"{field_name} debe ser numérico")
-
-    return 0 if numeric_value == 0 else -1
-
-
 # Helper para validar aqui y en insertar
 def validar_planes_servicios(connection, columns: list, required: list, key_columns: list, rows: list):
 
@@ -101,14 +92,27 @@ def validar_planes_servicios(connection, columns: list, required: list, key_colu
                 fila["feedback"] = "El precio debe ser un número válido"
                 continue
 
-        # Validar artapliiva
+        # MODIFICADO: Validar artapliiva contra siacsritarifaiva
         if fila.get("artapliiva") is not None:
-            try:
-                fila["artapliiva"] = normalize_checkbox_to_db(fila.get("artapliiva"), "artapliiva")
-            except ValueError:
+            artapliiva_valor = str(fila.get("artapliiva")).strip()
+
+            # Verificar que la tarifa existe y está disponible
+            query_tarifa = text(
+                """
+                SELECT codigo
+                FROM siacsritarifaiva
+                WHERE codigo = :codigo AND disponible = 1
+            """
+            )
+            tarifa_existe = connection.execute(query_tarifa, {"codigo": artapliiva_valor}).fetchone()
+
+            if not tarifa_existe:
                 fila["ok"] = False
-                fila["feedback"] = "artapliiva debe ser numérico"
+                fila["feedback"] = f"La tarifa de IVA '{artapliiva_valor}' no existe o no está disponible"
                 continue
+
+            # Guardar el código como string para luego convertir a INT en la inserción
+            fila["artapliiva"] = artapliiva_valor
 
         # Validar FK invcodigo existe
         ciacodigo = fila.get("ciacodigo")

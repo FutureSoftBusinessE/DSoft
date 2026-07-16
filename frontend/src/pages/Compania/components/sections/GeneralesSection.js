@@ -1,6 +1,24 @@
 import { Divider, Grid, Typography } from "@mui/material"
+import { useQuery } from "@tanstack/react-query"
+import { api } from "../../../../api"
 
 export default function GeneralesSection({ data, change, readOnly, errors, Field, Section, options }) {
+  const { data: tiposCompania } = useQuery({
+    queryKey: ["tiposCompania"],
+    queryFn: async () => {
+      const response = await api.post("/Compania/getTiposCompania", {})
+      return response?.data?.data?.data || []
+    },
+  })
+
+  const tipoCompaniaOptions = [
+    { value: "", label: "Seleccione..." },
+    ...(tiposCompania?.map((tipo) => ({
+      value: tipo.tpcodigo,
+      label: tipo.tpdescripcion,
+    })) || []),
+  ]
+
   return (
     <Section title="Generales">
       <Grid item xs={12}>
@@ -12,7 +30,18 @@ export default function GeneralesSection({ data, change, readOnly, errors, Field
       <Grid item xs={12} sm={3}>
         <Field label="Alias" name="ciaalias" value={data.ciaalias} onChange={change} readOnly={readOnly} />
       </Grid>
-      <Grid item xs={12} sm={9}>
+      <Grid item xs={12} sm={3}>
+        <Field
+          label="Tipo Compañía"
+          name="ciatipocompania"
+          value={data.ciatipocompania || ""}
+          onChange={change}
+          readOnly={readOnly}
+          select
+          options={tipoCompaniaOptions}
+        />
+      </Grid>
+      <Grid item xs={12} sm={6}>
         <Field
           label="Dirección"
           name="ciadirec"

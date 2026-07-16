@@ -10,15 +10,6 @@ from datetime import datetime
 from error_handling import api_endpoint, ValidationError
 
 
-def normalize_checkbox_to_db(value, field_name: str):
-    try:
-        numeric_value = int(value)
-    except (ValueError, TypeError):
-        raise ValidationError(f"{field_name} debe ser numérico")
-
-    return 0 if numeric_value == 0 else -1
-
-
 # Esta api actualiza un plan de servicios
 @bp.route("/editarPlanesServicios", methods=["POST"])
 @jwt_required()
@@ -39,7 +30,7 @@ def editarPlanesServicios():
     artcodigoOld = data.get("artcodigoOld")
     artdescriNew = data.get("artdescriNew")
     artprecventa1New = data.get("artprecventa1New")
-    artaplivaNew = data.get("artaplivaNew")
+    artaplivaNew = data.get("artaplivaNew")  # Ahora recibe código string ("01", "02", etc.)
     artstatus = data.get("artstatus")
 
     if not invcodigoOld or not artcodigoOld:
@@ -57,8 +48,31 @@ def editarPlanesServicios():
         except (ValueError, TypeError):
             raise ValidationError("El precio debe ser un número válido y mayor a 0")
 
+    # MODIFICADO: Validar y convertir artapliiva
     if artaplivaNew is not None:
-        artaplivaNew = normalize_checkbox_to_db(artaplivaNew, "artapliiva")
+        # Primero obtener la sesión para validar contra siacsritarifaiva
+        db.session = get_session(clicianonBD)
+        engine = db.session.bind
+
+        with engine.connect() as connection:
+            # Verificar que la tarifa existe y está disponible
+            query_tarifa = text(
+                """
+                SELECT codigo
+                FROM siacsritarifaiva
+                WHERE codigo = :codigo AND disponible = 1
+            """
+            )
+            result_tarifa = connection.execute(query_tarifa, {"codigo": str(artaplivaNew)}).fetchone()
+
+            if not result_tarifa:
+                raise ValidationError("La tarifa de IVA seleccionada no existe o no está disponible")
+
+        # Convertir el código a INT para guardar en inmart
+        try:
+            artaplivaNew = int(str(artaplivaNew))
+        except (ValueError, TypeError):
+            raise ValidationError("El código de tarifa IVA debe ser un valor numérico válido")
 
     if artstatus is not None:
         if artstatus not in ["A", "I"]:
@@ -75,7 +89,7 @@ def editarPlanesServicios():
                 "artcodigoOld": artcodigoOld,
                 "artdescriNew": artdescriNew,
                 "artprecventa1New": artprecventa1New,
-                "artaplivaNew": artaplivaNew,
+                "artaplivaNew": artaplivaNew,  # MODIFICADO: Ahora es INT
                 "artstatus": artstatus,
                 "artfecmsys": fecha_actual,
                 "arthormsys": hora_sys,

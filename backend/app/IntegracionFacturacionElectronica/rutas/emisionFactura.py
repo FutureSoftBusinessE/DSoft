@@ -227,7 +227,8 @@ def emisionFactura():
                             srifecmsys, srihormsys, sriusumsys, sriestmsys
                         ) VALUES (
                             :ciacodigo, :facnumfac, :loccodigo, :sriclave, :sridocumento,
-                            :srixmlorigen, :srixmlfirmado, :srixmlautorizado, :sripdf,
+                            CAST(:srixmlorigen AS VARBINARY(MAX)), CAST(:srixmlfirmado AS VARBINARY(MAX)),
+                            CAST(:srixmlautorizado AS VARBINARY(MAX)), CAST(:sripdf AS VARBINARY(MAX)),
                             :srifirmado, :sriautorizado, :sricontingencia, :srilote,
                             :sriprocesado, :sripath, :sridestinatario, :srisubject,
                             :srimensaje, :sriruc, :sristatus, :srienvio,
@@ -393,14 +394,17 @@ def guardar_error_sri(clicianonBD, ciacodigo, facnumfac, loccodigo, clave_acceso
                         """
                         INSERT INTO siacdocelectronicos (
                             ciacodigo, facnumfac, loccodigo, sriclave, sridocumento,
-                            srixmlfirmado, srifirmado, sriautorizado, sricontingencia, srilote,
+                            srixmlorigen, srixmlfirmado, srixmlautorizado, sripdf,
+                            srifirmado, sriautorizado, sricontingencia, srilote,
                             sriprocesado, sripath, sridestinatario, srisubject,
                             srimensaje, sriruc, sristatus, srienvio,
                             srifecisys, srihorisys, sriusuisys, sriestisys,
                             srifecmsys, srihormsys, sriusumsys, sriestmsys
                         ) VALUES (
                             :ciacodigo, :facnumfac, :loccodigo, :sriclave, :sridocumento,
-                            :srixmlfirmado, :srifirmado, :sriautorizado, :sricontingencia, :srilote,
+                            CAST(:srixmlorigen AS VARBINARY(MAX)), CAST(:srixmlfirmado AS VARBINARY(MAX)),
+                            CAST(:srixmlautorizado AS VARBINARY(MAX)), CAST(:sripdf AS VARBINARY(MAX)),
+                            :srifirmado, :sriautorizado, :sricontingencia, :srilote,
                             :sriprocesado, :sripath, :sridestinatario, :srisubject,
                             :srimensaje, :sriruc, :sristatus, :srienvio,
                             :srifecisys, :srihorisys, :sriusuisys, :sriestisys,
@@ -414,7 +418,10 @@ def guardar_error_sri(clicianonBD, ciacodigo, facnumfac, loccodigo, clave_acceso
                         "loccodigo": loccodigo,
                         "sriclave": clave_acceso,
                         "sridocumento": "01",
+                        "srixmlorigen": None,
                         "srixmlfirmado": xml_firmado.encode("utf-8") if xml_firmado else None,
+                        "srixmlautorizado": None,
+                        "sripdf": None,
                         "srifirmado": 1 if xml_firmado else 0,
                         "sriautorizado": 0,
                         "sricontingencia": 0,

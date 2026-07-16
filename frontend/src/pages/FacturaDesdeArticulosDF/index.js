@@ -52,6 +52,8 @@ const ACCIONES = {
   FACTURAR: "FACTURAR",
   AUTORIZAR: "AUTORIZAR",
   RIDE: "RIDE",
+  CLONAR: "CLONAR",
+  ANULAR: "ANULAR",
 }
 
 const FacturaDesdeArticulosDF = () => {
@@ -399,7 +401,7 @@ const FacturaDesdeArticulosDF = () => {
             fontSize: "25px",
           }}
         >
-          <b>Listado de Facturas</b>
+          <b>Listado de Cotizaciones</b>
         </div>
 
         <Box className={StyledRoot}>
@@ -428,6 +430,12 @@ const FacturaDesdeArticulosDF = () => {
 
               const rideAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action?.acccaption === ACCIONES.RIDE,
+              )
+              const clonarAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (action) => action?.acccaption === ACCIONES.CLONAR,
+              )
+              const anularAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (action) => action?.acccaption === ACCIONES.ANULAR,
               )
 
               const actions = [
@@ -521,6 +529,54 @@ const FacturaDesdeArticulosDF = () => {
                 })
               }
 
+              // Botón ANULAR (solo si la factura ya está autorizada y tiene facnumfac)
+              if (anularAction && !row.original.facstatus && row.original.facnumfac) {
+                actions.push({
+                  label: anularAction?.acccaption,
+                  key: anularAction?.acccaption,
+                  icon: getIconComponent(anularAction?.accnameicono, anularAction?.acctipoico),
+                  onClick: async (row) => {
+                    const result = await Swal.fire({
+                      title: "¿Está seguro que quiere anular esta factura?",
+                      text: `Factura: ${row.original.facnumfac}`,
+                      icon: "warning",
+                      showCancelButton: true,
+                      confirmButtonText: "Sí, anular",
+                      cancelButtonText: "Cancelar",
+                      confirmButtonColor: "#d33",
+                    })
+
+                    if (result.isConfirmed) {
+                      try {
+                        await api.post("/FacturaDesdeArticulosDF/anularFactura", {
+                          ciacodigo: row.original.ciacodigo,
+                          facnumfac: row.original.facnumfac,
+                          loccodigo: row.original.loccodigo,
+                        })
+
+                        await Swal.fire({
+                          title: "¡Anulada!",
+                          text: "La factura ha sido anulada correctamente.",
+                          icon: "success",
+                          confirmButtonText: "Aceptar",
+                          confirmButtonColor: "#196C87",
+                        })
+
+                        queryClient.invalidateQueries({ queryKey: ["getAllFacturas"] })
+                      } catch (error) {
+                        console.error("Error al anular:", error)
+                        Swal.fire({
+                          title: "Error",
+                          text: error.response?.data?.message || "No se pudo anular la factura",
+                          icon: "error",
+                          confirmButtonText: "Aceptar",
+                        })
+                      }
+                    }
+                  },
+                })
+              }
+
               // Botón RIDE (solo si la factura tiene estatus del sri 'A')
               if (rideAction && row.original.sri_status === "A" && row.original.facnumfac) {
                 actions.push({
@@ -528,6 +584,18 @@ const FacturaDesdeArticulosDF = () => {
                   key: rideAction?.acccaption,
                   icon: getIconComponent(rideAction?.accnameicono, rideAction?.acctipoico),
                   onClick: (row) => generateRIDE(row),
+                })
+              }
+
+              // Botón CLONAR (solo si la proforma está finalizada 'F')
+              if (clonarAction && row.original.pedstatus === "F") {
+                actions.push({
+                  label: clonarAction?.acccaption,
+                  key: clonarAction?.acccaption,
+                  icon: getIconComponent(clonarAction?.accnameicono, clonarAction?.acctipoico),
+                  onClick: (row) => {
+                    navigate("crear", { state: row.original })
+                  },
                 })
               }
 
@@ -581,15 +649,15 @@ const FacturaDesdeArticulosDF = () => {
                           return handleExportDataPdfSMScreen(
                             columns,
                             data,
-                            "Listado de Facturas",
-                            `Listado de Facturas ${new Date().toLocaleString()}`,
+                            "Listado de Cotizaciones",
+                            `Listado de Cotizaciones ${new Date().toLocaleString()}`,
                           )
                         }
                         handleExportDataPdfLGScreen(
                           columns,
                           table.getCoreRowModel().rows,
-                          "Listado de Facturas",
-                          `Listado de Facturas ${new Date().toLocaleString()}`,
+                          "Listado de Cotizaciones",
+                          `Listado de Cotizaciones ${new Date().toLocaleString()}`,
                         )
                       },
                     },
@@ -598,7 +666,7 @@ const FacturaDesdeArticulosDF = () => {
                       key: "exportarCSV",
                       icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                       onClick: ({ data }) => {
-                        handleAllExportDataCSV(data, `Listado de Facturas ${new Date().toLocaleString()}`)
+                        handleAllExportDataCSV(data, `Listado de Cotizaciones ${new Date().toLocaleString()}`)
                       },
                     },
                   ],
@@ -707,6 +775,15 @@ const FacturaDesdeArticulosDF = () => {
                 accessorKey: "sri_status",
                 header: "Estado SRI",
                 size: 200,
+                Cell: ({ cell }) => {
+                  const value = cell.getValue()
+                  return value
+                },
+              },
+              {
+                accessorKey: "facstatus",
+                header: "Estado documento Factura",
+                size: 300,
                 Cell: ({ cell }) => {
                   const value = cell.getValue()
                   return value

@@ -15,13 +15,14 @@ from services.encrip_desencrip import desencriptar
 import base64
 
 
-@bp.route("/getLocalidadesByCompania", methods=["GET"])
+@bp.route("/getLocalidadesByCompania", methods=["POST"])
 @jwt_required()
 def get_localidades_by_compania():
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
-    ciacodigo = claims["seleccion"]["cliciaciacodigo"]
 
+    data = request.get_json()
+    ciacodigo = data.get("ciacodigo")
     db.session = get_session(clicianonBD)
     engine = db.session.bind
 

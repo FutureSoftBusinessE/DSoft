@@ -29,7 +29,7 @@ def getServicios():
             FROM cxcbser
             WHERE ciacodigo = :ciacodigo
               AND serncnd = 'D'
-              AND serautor = -1
+              AND serautor = 1
               AND serstatus = 'A'
         """
         )

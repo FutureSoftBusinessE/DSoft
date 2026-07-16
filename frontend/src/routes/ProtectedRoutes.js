@@ -199,6 +199,9 @@ import { NotaCreditoDF, CrearNotaCreditoDF, BuscarNotaCreditoDF } from "../pages
 // RetencionDF
 import { RetencionDF, CrearRetencionDF, BuscarRetencionDF } from "../pages"
 
+// FormasDeCobro
+import { FormasDeCobro, CrearFormasDeCobro, EditarFormasDeCobro } from "../pages"
+
 const protectedRoutes = [
   { path: "Submenu/:label/:id", element: <SubMenu /> },
   { path: "dashboard/AccesoACompañiasYModulos", element: <AccesoACompañiasYModulos /> },
@@ -361,6 +364,9 @@ const protectedRoutes = [
   { path: "dashboard/RetencionDF", element: <RetencionDF /> },
   { path: "dashboard/RetencionDF/buscar", element: <BuscarRetencionDF /> },
   { path: "dashboard/RetencionDF/crear", element: <CrearRetencionDF /> },
+  { path: "dashboard/FormasDeCobro", element: <FormasDeCobro /> },
+  { path: "dashboard/FormasDeCobro/crear", element: <CrearFormasDeCobro /> },
+  { path: "dashboard/FormasDeCobro/editar", element: <EditarFormasDeCobro /> },
 ]
 
 export default protectedRoutes

@@ -368,6 +368,10 @@ def create_app(config_class=Config):
 
     app.register_blueprint(RetencionDF_bp, url_prefix="/RetencionDF")
 
+    from app.FormasDeCobro import bp as FormasDeCobro_bp
+
+    app.register_blueprint(FormasDeCobro_bp, url_prefix="/FormasDeCobro")
+
     # ************************************************************
     #  RUTAS BASE Y HERRAMIENTAS DE DESARROLLO (SOLO LOCAL)
     # ************************************************************

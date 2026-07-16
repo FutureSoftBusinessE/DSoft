@@ -336,7 +336,7 @@ def buscar_documentos_para_importar():
 
 
 # =================================================================
-# 8. POST: ejecutarImportacionDocumento (CORREGIDO TRANSACTION)
+# 8. POST: ejecutarImportacionDocumento (CORREGIDO TRANSACTION Y PAYLOAD)
 # =================================================================
 @bp.route("/ejecutarImportacionDocumento", methods=["POST"])
 @jwt_required()
@@ -345,7 +345,11 @@ def ejecutar_importacion_documento():
         claims = get_jwt()
         db.session = get_session(claims["seleccion"]["clicianonBD"])
         body = request.json or {}
-        orig_uuid = body.get("documentouuid_origen")
+
+        # --- CORRECCIÓN: Capturamos la variable como la envía el frontend (documentouuidOrigen) ---
+        # Usamos un fallback por si en el futuro lo envían con guion bajo
+        orig_uuid = body.get("documentouuidOrigen") or body.get("documentouuid_origen")
+
         nuevo_q = body.get("docqgenero")
         nuevo_proc = body.get("docprocqgenero")
         nuevo_sec = body.get("docsecuen")
@@ -354,7 +358,6 @@ def ejecutar_importacion_documento():
             return jsonify({"success": False, "message": "Faltan parámetros de indexación para importar"}), 400
 
         with db.session.bind.connect() as conn:
-            # --- CORRECCIÓN: El bloque 'begin()' debe envolver tanto al SELECT como al INSERT ---
             with conn.begin():
                 orig = conn.execute(text("SELECT docextension, docnombre, docfecemi, docfecven, docindex1, docindex2, docindex3, docindex4, docindex5, docindex6, insticodigo, clacodigo FROM gdocmdocumentos WHERE documentouuid = :u"), {"u": orig_uuid}).first()
                 if not orig:

@@ -1,23 +1,22 @@
-import React, { useState, useContext } from "react"
-import { ThemeProvider, createTheme, styled } from "@mui/material/styles"
-import { Box } from "@mui/material"
-import { useNavigate } from "react-router-dom"
+import { useContext, useState } from "react"
 import Header from "../../layouts/Header"
+import { styled, createTheme, ThemeProvider } from "@mui/material/styles"
+import { Box } from "@mui/material"
 import BackIcon from "../../components/BackIcon"
+import { useNavigate } from "react-router-dom"
 import CustomConditionalActionsTableServer from "../../components/CustomConditionalActionsTableServerSide"
-import ModalImportCSV from "../../components/CustomCSVImportButton"
+import normalFormatDate from "../utils/date/DDMMYYYFormatDate"
 import { GlobalContext } from "../../contexts/GlobalContext"
-
-// Importaciones de la lógica maestra de barras y consultas
-import { useQueryClient } from "@tanstack/react-query"
 import { useMutation, api } from "../../api"
 import getIconComponent from "../utils/getIconComponent"
 import CustomBackdrop from "../../components/CustomBackdrop"
+import { useQueryClient } from "@tanstack/react-query"
 import {
   handleExportDataPdfLGScreen,
   handleExportDataPdfSMScreen,
   handleAllExportDataCSV,
 } from "../utils/reactTableActions/exportToolbarActions"
+import ModalImportCSV from "../../components/CustomCSVImportButton"
 
 const StyledRoot = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -28,72 +27,36 @@ const StyledRoot = styled(Box)(({ theme }) => ({
   height: "100vh",
 }))
 
-// Tema estándar de SIACDEV1.0
 const theme = createTheme({
-  palette: { primary: { main: "#196C87" }, secondary: { main: "#2E7D32" } },
+  palette: {
+    primary: {
+      main: "#196C87",
+    },
+    secondary: {
+      main: "#196C87",
+    },
+  },
 })
 
-const ServiciosNDNC = () => {
+const FormasDeCobro = () => {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const { selectedMenuInfo } = useContext(GlobalContext)
-  const [openImportModal, setOpenImportModal] = useState(false)
+  const [openModal, setOpenModal] = useState(false)
 
-  // Mutación para eliminación
-  const { mutateAsync: SaveEliminacionServicio, isPending: isDeletingServicio } = useMutation({
-    queryKey: ["isDeletingServicio"],
+  const { mutateAsync: SaveEliminacionFormaDeCobro, isPending: isDeletingFormaDeCobro } = useMutation({
+    queryKey: ["isDeletingFormaDeCobro"],
     fn: async (data) => {
-      const response = await api.post("/ServiciosNDNC/eliminarServiciosNDNC", data)
+      // Llamada a la API de eliminación apuntando al archivo eliminarFormasDeCobro.py
+      const response = await api.post("/FormasDeCobro/eliminarFormasDeCobro", data)
       return response.data
     },
     showError: "modal",
     showSuccess: "toast",
     onSuccess: async () => {
-      // Refresca la tabla después de eliminar exitosamente
-      await qc.invalidateQueries({ queryKey: ["ServiciosNDNC"] })
+      await qc.invalidateQueries({ queryKey: ["FormasDeCobro"] })
     },
   })
-
-  // Definición de las columnas de la tabla principal
-  const columnsTable = [
-    { accessorKey: "sercodigo", header: "Código", size: 80 },
-    { accessorKey: "serdescri", header: "Descripción", size: 300 },
-    {
-      accessorKey: "serncnd",
-      header: "Tipo",
-      size: 150,
-      Cell: ({ cell }) =>
-        cell.getValue() === "D" ? "NOTA DE DÉBITO" : cell.getValue() === "C" ? "NOTA DE CRÉDITO" : cell.getValue(),
-    },
-    {
-      accessorKey: "seriva",
-      header: "Aplica I.V.A.",
-      size: 100,
-      Cell: ({ cell }) => (cell.getValue() === "1.00" || cell.getValue() === "1" ? "SÍ" : "NO"),
-    },
-    {
-      accessorKey: "serautor",
-      header: "Autorizado",
-      size: 100,
-      Cell: ({ cell }) => (cell.getValue() === 1 ? "SÍ" : "NO"),
-    },
-    {
-      accessorKey: "serstatus",
-      header: "Estado",
-      size: 100,
-      Cell: ({ cell }) => (cell.getValue() === "A" ? "ACTIVO" : "INACTIVO"),
-    },
-  ]
-
-  // Configuración estricta para el modal de importación CSV
-  const fieldConfigs = {
-    sercodigo: { required: true, key: true },
-    serdescri: { required: true },
-    serncnd: { required: true },
-    seriva: { required: false },
-    serautor: { required: false },
-    serstatus: { required: false },
-  }
 
   return (
     <ThemeProvider theme={theme}>
@@ -110,31 +73,38 @@ const ServiciosNDNC = () => {
             fontSize: "25px",
           }}
         >
-          <b>Gestión de Servicios para ND/NC</b>
+          <b>Gestión de Formas de Cobro</b>
         </div>
 
-        <CustomBackdrop isLoading={isDeletingServicio} />
+        <CustomBackdrop isLoading={isDeletingFormaDeCobro} />
 
-        <StyledRoot>
-          {/* Modal de Importación CSV integrado */}
+        <Box className={StyledRoot}>
+          {/* MODAL DE IMPORTACIÓN CSV */}
           <ModalImportCSV
-            open={openImportModal}
-            onClose={() => setOpenImportModal(false)}
-            templateFileName="Plantilla_ServiciosNDNC.csv"
-            fieldConfigs={fieldConfigs}
-            validateEndpoint="/ServiciosNDNC/validarServiciosNDNCIMP"
-            insertEndpoint="/ServiciosNDNC/insertarServiciosNDNCIMP"
-            onImportComplete={() => qc.invalidateQueries({ queryKey: ["ServiciosNDNC"] })}
+            open={openModal}
+            onClose={() => setOpenModal(false)}
+            templateFileName="Plantilla_FormasDeCobro.csv"
+            fieldConfigs={{
+              factippag: { required: true, key: true }, // Llave primaria de la tabla (junto con ciacodigo en BD)
+              fordescri: { required: true },
+              fordias: { required: true },
+              fortipo: { required: true },
+              forcuotas: { required: true },
+              forstatus: { required: false }, // Opcional, asumimos 'A' por defecto
+            }}
+            maxFileSize={10 * 1024 * 1024}
+            validateEndpoint="/FormasDeCobro/validarFormasDeCobroIMP"
+            insertEndpoint="/FormasDeCobro/insertarFormasDeCobroIMP"
+            onImportComplete={() => qc.invalidateQueries({ queryKey: ["FormasDeCobro"] })}
           />
 
+          {/* GRILLA PRINCIPAL */}
           <CustomConditionalActionsTableServer
-            endpoint="/ServiciosNDNC/getAllServiciosNDNC"
-            errorMsgFilterSearch="Error en cargar datos"
-            queryKeyModal="ServiciosNDNC"
+            endpoint="/FormasDeCobro/getAllFormasDeCobro"
+            errorMsgFilterSearch="Error al cargar datos de Formas de Cobro"
+            queryKeyModal="FormasDeCobro"
             perPage={10}
             rowActionsWidthTable={120}
-            columnsTable={columnsTable}
-            // LÓGICA MAESTRA: Botones de Fila (Editar y Eliminar)
             rowActions={(row) => {
               const editarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action?.acccaption === "EDITAR",
@@ -158,16 +128,16 @@ const ServiciosNDNC = () => {
                   icon: getIconComponent(eliminarAction?.accnameicono, eliminarAction?.acctipoico),
                   onClick: async (row) => {
                     try {
-                      await SaveEliminacionServicio(row.original)
+                      await SaveEliminacionFormaDeCobro(row.original)
                     } catch (err) {
-                      console.error("Error eliminando el servicio:", err)
+                      console.error("Error eliminando la Forma de Cobro:", err)
                     }
                   },
                 },
               ]
+
               return actions
             }}
-            // LÓGICA MAESTRA: Barra Superior (Crear, Exportar e Importar)
             topToolbarCustomActions={({ table, device }) => {
               const crearAction = selectedMenuInfo?.data?.barraAcciones?.find((action) => action.acccaption === "CREAR")
               const exportarAction = selectedMenuInfo?.data?.barraAcciones?.find(
@@ -198,15 +168,15 @@ const ServiciosNDNC = () => {
                           return handleExportDataPdfSMScreen(
                             columns,
                             data,
-                            "Reporte de Servicios para ND/NC",
-                            `Reporte de Servicios ND/NC ${new Date().toLocaleString()}`,
+                            "Reporte de Formas de Cobro",
+                            `Reporte_Formas_Cobro_${new Date().toLocaleString()}`,
                           )
                         }
                         handleExportDataPdfLGScreen(
                           columns,
                           table.getCoreRowModel().rows,
-                          "Reporte de Servicios para ND/NC",
-                          `Reporte de Servicios ND/NC ${new Date().toLocaleString()}`,
+                          "Reporte de Formas de Cobro",
+                          `Reporte_Formas_Cobro_${new Date().toLocaleString()}`,
                         )
                       },
                     },
@@ -215,7 +185,7 @@ const ServiciosNDNC = () => {
                       key: "exportarCSV",
                       icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                       onClick: ({ data }) => {
-                        handleAllExportDataCSV(data, `Reporte de Servicios ND/NC ${new Date().toLocaleString()}`)
+                        handleAllExportDataCSV(data, `Reporte_Formas_Cobro_${new Date().toLocaleString()}`)
                       },
                     },
                   ],
@@ -225,17 +195,82 @@ const ServiciosNDNC = () => {
                   key: "importarDropdown",
                   icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                   onClick: () => {
-                    setOpenImportModal(true)
+                    setOpenModal(true)
                   },
                 },
               ]
               return toolbarActions
             }}
+            columnsTable={[
+              {
+                accessorKey: "factippag",
+                header: "Cód. Cobro",
+                size: 110,
+                Cell: ({ cell }) => <span>{cell.getValue()}</span>,
+              },
+              {
+                accessorKey: "fordescri",
+                header: "Descripción",
+                size: 250,
+                Cell: ({ cell }) => <span>{cell.getValue()}</span>,
+              },
+              {
+                accessorKey: "fordias",
+                header: "Días Plazo",
+                size: 100,
+                Cell: ({ cell }) => <span>{cell.getValue()}</span>,
+              },
+              {
+                accessorKey: "forcuotas",
+                header: "Nro. Cuotas",
+                size: 110,
+                Cell: ({ cell }) => <span>{cell.getValue()}</span>,
+              },
+              {
+                accessorKey: "forstatus",
+                header: "Estado",
+                size: 100,
+                Cell: ({ cell }) => {
+                  const valor = cell.getValue()
+                  return <span>{valor === "A" ? "ACTIVO" : "INACTIVO"}</span>
+                },
+              },
+              {
+                accessorKey: "forfecisys",
+                header: "Fecha de Creación",
+                size: 180,
+                Cell: ({ cell }) => {
+                  const value = cell.getValue()
+                  return <span>{normalFormatDate(value)}</span>
+                },
+              },
+              {
+                accessorKey: "forusuisys",
+                header: "Creado Por",
+                size: 130,
+                Cell: ({ cell }) => <span>{cell.getValue()}</span>,
+              },
+              {
+                accessorKey: "forfecmsys",
+                header: "Fecha de Mod.",
+                size: 180,
+                Cell: ({ cell }) => {
+                  const value = cell.getValue()
+                  return <span>{normalFormatDate(value)}</span>
+                },
+              },
+              {
+                accessorKey: "forusumsys",
+                header: "Modificado Por",
+                size: 130,
+                Cell: ({ cell }) => <span>{cell.getValue()}</span>,
+              },
+            ]}
           />
-        </StyledRoot>
+        </Box>
       </div>
     </ThemeProvider>
   )
 }
 
-export default ServiciosNDNC
+export default FormasDeCobro

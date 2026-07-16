@@ -92,6 +92,10 @@ const obtenerPorcentajeIva = (codigoSri) => {
   switch (cod) {
     case "0":
       return 0
+    case 0.0:
+      return 0
+    case 1.0:
+      return 15
     case "2":
       return 12
     case "3":

@@ -61,7 +61,7 @@ const EditarServicioNDNC = () => {
       const rowData = location.state
 
       // Transformamos los numéricos de la BD a booleanos para los checkboxes del Frontend
-      const aplica_iva_bool = rowData.seriva === 1 || rowData.seriva === 1.0
+      const aplica_iva_bool = rowData.seriva === "1" || rowData.seriva === "1.00"
       const formulario_autorizado_bool = rowData.serautor === 1
 
       setFormData({

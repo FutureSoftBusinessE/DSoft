@@ -76,8 +76,7 @@ def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, dato
     # ========== CONSTRUIR TOTALES IMPUESTOS ==========
     totales_impuestos = []
     for iva_pct, valores in impuestos_agrupados.items():
-        if iva_pct > 0:
-            totales_impuestos.append({"codigo": "2", "codigo_porcentaje": mapear_codigo_porcentaje_iva(iva_pct), "base_imponible": round(valores["base_imponible"], 2), "valor": round(valores["valor"], 2)})
+        totales_impuestos.append({"codigo": "2", "codigo_porcentaje": mapear_codigo_porcentaje_iva(iva_pct), "base_imponible": round(valores["base_imponible"], 2), "valor": round(valores["valor"], 2)})  # El codigo significa que el impuesto es de tipo IVA
 
     # ========== CONSTRUIR DETALLES ==========
     detalles_sri = []
@@ -97,8 +96,7 @@ def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, dato
             "detalles_adicionales": [],
         }
 
-        if iva_pct > 0:
-            detalle_sri["impuestos"].append({"codigo": "2", "codigo_porcentaje": mapear_codigo_porcentaje_iva(iva_pct), "tarifa": float(iva_pct), "base_imponible": round(base_imponible, 2), "valor": round(float(detalle.get("pedvaliva", 0)), 2)})
+        detalle_sri["impuestos"].append({"codigo": "2", "codigo_porcentaje": mapear_codigo_porcentaje_iva(iva_pct), "tarifa": float(iva_pct), "base_imponible": round(base_imponible, 2), "valor": round(float(detalle.get("pedvaliva", 0)), 2)})
 
         if detalle.get("peddetalleadicional") or detalle.get("facdetalleadicional"):
             valor_detalle = detalle.get("peddetalleadicional") or detalle.get("facdetalleadicional", "")

@@ -325,7 +325,7 @@ const EditarCreacionUsuarios = () => {
       return
     }
 
-    // Aquí iría la lógica para guardar los cambios
+    // Preparar datos para enviar al backend
     const userDataToEdit = {
       ...formData,
       sOpcion: "Edit",
@@ -333,10 +333,32 @@ const EditarCreacionUsuarios = () => {
       usuarioReporta: formData.usuarioReporta?.value ?? "",
     }
 
-    console.log(formData, "borrarrrr")
+    // Verificar si cambió el perfil y preguntar si desea actualizar los accesos ***
+    const perfilCambio = originalPerfilRef.current !== formData.usrcodper
+
+    // Si no es perfil, tiene un perfil asignado y el usuario está activo
+    if (!userDataToEdit.usrflagperfil && userDataToEdit.usrcodper && formData.usrstatus === "A") {
+      // Si el perfil cambió, preguntar al usuario si desea actualizar los accesos
+      if (perfilCambio) {
+        const result = await Swal.fire({
+          title: "Confirmar actualización de accesos",
+          text: `Se ha cambiado el perfil${getSelectedPerfilLabel() ? ' a "' + getSelectedPerfilLabel() + '"' : ""}. ¿Desea actualizar los ACCESOS y opciones de menú con los del nuevo perfil?`,
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonText: "Sí, actualizar accesos",
+          cancelButtonText: "No, mantener accesos actuales",
+          confirmButtonColor: "#196C87",
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+        })
+
+        // Asignar el valor según la respuesta del usuario
+        userDataToEdit.usrflagupdateperfilacces = result.isConfirmed
+      }
+    }
 
     try {
-      console.log("Datos del usuario para editar:", userDataToEdit)
+      console.log("Enviando datos al backend...")
       await editCreacionUsuario(userDataToEdit)
       setSnackbarMessage("Usuario actualizado correctamente")
       setSnackbarOpen(true)

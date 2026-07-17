@@ -19,8 +19,6 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
     Soporta logos dinámicos y títulos parametrizables.
     """
     try:
-        if output_dir is None:
-            output_dir = Path(__file__).parent.parent / "facturas_rides"
         output_dir.mkdir(parents=True, exist_ok=True)
 
         ruta_pdf = output_dir / f"{clave_acceso}.pdf"

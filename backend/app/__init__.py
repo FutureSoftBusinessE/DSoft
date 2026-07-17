@@ -27,7 +27,7 @@ def create_app(config_class=Config):
     logs_enabled = config_env("APP_LOGS_ENABLED")
 
     # Configuración del logger (ejecutar solo una vez)
-    if current_env == "production" or logs_enabled:
+    if current_env == "production" or logs_enabled == "true":
         try:
             log_path = config_env("APP_LOG_FLASK_PATH")
             # 1. Crear directorio si no existe

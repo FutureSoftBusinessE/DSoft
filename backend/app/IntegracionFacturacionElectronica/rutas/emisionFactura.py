@@ -20,6 +20,10 @@ import time
 import base64
 from services.encrip_desencrip import desencriptar
 import json
+from dotenv import load_dotenv
+from decouple import config as config_env
+
+load_dotenv()
 
 
 @bp.route("/emisionFactura", methods=["POST"])
@@ -51,7 +55,6 @@ def emisionFactura():
     info_factura = data.get("info_factura", {})
     datos_cliente = data.get("datos_cliente", {})
 
-    dir_base = Path(__file__).parent.parent
     serie = info_tributaria.get("estab", "") + info_tributaria.get("pto_emi", "")
     ruc_recibido = info_tributaria.get("ruc", "").strip()
     ambiente = data.get("ambiente", "1")
@@ -83,13 +86,20 @@ def emisionFactura():
             raise ValidationError("La factura generada no cumple con el formato XSD del SRI", details={"error_validacion": detail})
 
         # ========== PASO 4: GUARDAR XML SIN FIRMAR ==========
+        nombre_no_firmado = None
+        ruta_no_firmado = None
+        nombre_firmado = None
+        ruta_firmado = None
+
         try:
-            dir_no_firmados = dir_base / "facturas_no_firmadas"
-            dir_no_firmados.mkdir(parents=True, exist_ok=True)
-            nombre_no_firmado = f"{clave_acceso}_sin_firma.xml"
-            ruta_no_firmado = dir_no_firmados / nombre_no_firmado
-            with open(ruta_no_firmado, "w", encoding="utf-8") as f:
-                f.write(factura_xml)
+            if config_env("DOC_ELECTRONICOS_XML_FACTURAS_SIN_FIRMA_ENABLED") == "true":
+                ahora = datetime.now()
+                dir_no_firmados = Path(config_env("DOC_ELECTRONICOS_XML_FACTURAS_SIN_FIRMA_PATH")) / str(ahora.year) / f"{ahora.month:02d}" / f"{ahora.day:02d}"
+                dir_no_firmados.mkdir(parents=True, exist_ok=True)
+                nombre_no_firmado = f"{clave_acceso}_sin_firma.xml"
+                ruta_no_firmado = dir_no_firmados / nombre_no_firmado
+                with open(ruta_no_firmado, "w", encoding="utf-8") as f:
+                    f.write(factura_xml)
         except Exception as e:
             guardar_error_sri(clicianonBD=clicianonBD, ciacodigo=ciacodigo, facnumfac=facnumfac, loccodigo=loccodigo, clave_acceso=clave_acceso, mensaje=f"Error guardando XML sin firmar: {str(e)}", usuario=usrcodigo, ip=ipUser)
             raise APIError("Error al guardar XML sin firmar", details={"error": str(e)})
@@ -110,12 +120,14 @@ def emisionFactura():
 
         # ========== PASO 6: GUARDAR XML FIRMADO ==========
         try:
-            dir_firmados = dir_base / "facturas_firmadas"
-            dir_firmados.mkdir(parents=True, exist_ok=True)
-            nombre_firmado = f"{clave_acceso}.xml"
-            ruta_firmado = dir_firmados / nombre_firmado
-            with open(ruta_firmado, "w", encoding="utf-8") as f:
-                f.write(factura_firmada)
+            if config_env("DOC_ELECTRONICOS_XML_FACTURAS_FIRMADOS_ENABLED") == "true":
+                ahora = datetime.now()
+                dir_firmados = Path(config_env("DOC_ELECTRONICOS_XML_FACTURAS_FIRMADOS_PATH")) / str(ahora.year) / f"{ahora.month:02d}" / f"{ahora.day:02d}"
+                dir_firmados.mkdir(parents=True, exist_ok=True)
+                nombre_firmado = f"{clave_acceso}.xml"
+                ruta_firmado = dir_firmados / nombre_firmado
+                with open(ruta_firmado, "w", encoding="utf-8") as f:
+                    f.write(factura_firmada)
         except Exception as e:
             guardar_error_sri(clicianonBD=clicianonBD, ciacodigo=ciacodigo, facnumfac=facnumfac, loccodigo=loccodigo, clave_acceso=clave_acceso, mensaje=f"Error guardando XML firmado: {str(e)}", usuario=usrcodigo, ip=ipUser)
             raise APIError("Error al guardar el archivo XML firmado", details={"error": str(e)})
@@ -158,13 +170,15 @@ def emisionFactura():
 
         if auth_data.get("comprobante"):
             try:
-                dir_autorizados = dir_base / "facturas_autorizadas"
-                dir_autorizados.mkdir(parents=True, exist_ok=True)
-                nombre_autorizado = f"{clave_acceso}.xml"
-                ruta_autorizado = dir_autorizados / nombre_autorizado
-                xml_autorizacion = build_autorizacion_xml(auth_data, clave_acceso)
-                with open(ruta_autorizado, "w", encoding="utf-8") as f:
-                    f.write(xml_autorizacion)
+                if config_env("DOC_ELECTRONICOS_XML_FACTURAS_AUTORIZADOS_ENABLED") == "true":
+                    ahora = datetime.now()
+                    dir_autorizados = Path(config_env("DOC_ELECTRONICOS_XML_FACTURAS_AUTORIZADOS_PATH")) / str(ahora.year) / f"{ahora.month:02d}" / f"{ahora.day:02d}"
+                    dir_autorizados.mkdir(parents=True, exist_ok=True)
+                    nombre_autorizado = f"{clave_acceso}.xml"
+                    ruta_autorizado = dir_autorizados / nombre_autorizado
+                    xml_autorizacion = build_autorizacion_xml(auth_data, clave_acceso)
+                    with open(ruta_autorizado, "w", encoding="utf-8") as f:
+                        f.write(xml_autorizacion)
             except Exception as e:
                 raise APIError("Error al guardar el archivo XML autorizado", details={"error": str(e)})
 
@@ -172,9 +186,13 @@ def emisionFactura():
         ruta_ride = None
         pdf_content = None
         if auth_data.get("estado") == "AUTORIZADO":
-            ruta_ride, ride_error, ride_details = generate_ride_pdf(factura_data=data, auth_data=auth_data, clave_acceso=clave_acceso, output_dir=dir_base / "facturas_rides")
-            if ruta_ride is None:
-                raise APIError(ride_error, details=ride_details)
+            if config_env("DOC_ELECTRONICOS_RIDES_FACTURA_PDF_ENABLED") == "true":
+                ahora = datetime.now()
+                ride_dir = Path(config_env("DOC_ELECTRONICOS_RIDES_FACTURA_PDF_PATH")) / str(ahora.year) / f"{ahora.month:02d}" / f"{ahora.day:02d}"
+                ruta_ride, ride_error, ride_details = generate_ride_pdf(factura_data=data, auth_data=auth_data, clave_acceso=clave_acceso, output_dir=ride_dir)
+
+                if ruta_ride is None:
+                    raise APIError(ride_error, details=ride_details)
             try:
                 with open(ruta_ride, "rb") as f:
                     pdf_content = f.read()

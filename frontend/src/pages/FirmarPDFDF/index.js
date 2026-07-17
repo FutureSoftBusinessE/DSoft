@@ -12,8 +12,6 @@ import {
   AccordionSummary,
   AccordionDetails,
   Alert,
-  List,
-  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -31,11 +29,11 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import BackIcon from "../../components/BackIcon"
 import { api, showWarning } from "../../api"
 import CustomBackdrop from "../../components/CustomBackdrop"
+import { useQuery } from "@tanstack/react-query"
 
 import CloudUploadIcon from "@mui/icons-material/CloudUpload"
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser"
 import FilePresentIcon from "@mui/icons-material/FilePresent"
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline"
 import HighlightOffIcon from "@mui/icons-material/HighlightOff"
 import CheckIcon from "@mui/icons-material/Check"
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos"
@@ -48,7 +46,7 @@ const theme = createTheme({
 
 const StyledRootStyles = { width: "100%", maxWidth: "1200px", margin: "64px auto 0 auto", padding: "20px" }
 
-// TAMAÑO ESTIMADO DE LA FIRMA (en píxeles de DOM)
+// TAMAÑO ESTIMADO DE LA FIRMA (en Puntos PDF)
 const SIGNATURE_WIDTH = 150
 const SIGNATURE_HEIGHT = 60
 
@@ -65,7 +63,44 @@ const FirmarPDFDF = () => {
   const [password, setPassword] = useState("")
 
   const [currentPage, setCurrentPage] = useState(1)
+  const [maxPages, setMaxPages] = useState(1) // NUEVO: Estado para el límite de páginas
   const [coords, setCoords] = useState({ x: 0, y: 0, page: 0 })
+
+  // --- CONSULTA DE CONFIGURACIÓN (GERENTE VS OPERATIVO) ---
+  const { data: config = {}, isLoading: configLoading } = useQuery({
+    queryKey: ["configFirmarPDF"],
+    queryFn: async () => {
+      const res = await api.get("/FirmarPDFDF/getConfigFirmarPDF")
+      return res.data.data || res.data
+    },
+    refetchOnWindowFocus: false,
+  })
+
+  const isGerente = config.is_gerente || false
+  const hasGlobalFirma = config.has_global_firma || false
+
+  // NUEVO: Handler de subida de PDF que calcula dinámicamente las páginas
+  const handlePdfUpload = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setPdfPrincipal(file)
+    setCurrentPage(1)
+    setCoords({ x: 0, y: 0, page: 0 })
+
+    const reader = new FileReader()
+    reader.readAsBinaryString(file)
+    reader.onloadend = () => {
+      const text = reader.result
+      // Busca los objetos /Type /Page en la estructura interna del PDF
+      const matches = text.match(/\/Type\s*\/Page\b/g)
+      if (matches && matches.length > 0) {
+        setMaxPages(matches.length)
+      } else {
+        setMaxPages(1) // Respaldo por defecto
+      }
+    }
+  }
 
   const handleOpenPreview = (file) => {
     if (!file) return showWarning("Cargue un archivo PDF primero")
@@ -74,19 +109,53 @@ const FirmarPDFDF = () => {
     setOpenPreview(true)
   }
 
+  // NUEVO: Matemática precisa de coordenadas A4 para PDF Points
   const handlePdfClick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect()
-    const rawX = Math.round(e.clientX - rect.left)
-    const rawY = Math.round(rect.height - (e.clientY - rect.top))
+    const clickX = e.clientX - rect.left
+    const clickY = e.clientY - rect.top
 
-    const x = Math.round(rawX - SIGNATURE_WIDTH / 2)
-    const y = Math.round(rawY - SIGNATURE_HEIGHT / 2)
+    // Asumimos un PDF A4 estándar (595 x 842 puntos)
+    const A4_RATIO = 842 / 595
+    const containerRatio = rect.height / rect.width
 
-    setCoords({ x, y, page: currentPage - 1 })
+    let pdfRenderWidth, pdfRenderHeight, offsetX, offsetY
+
+    if (containerRatio > A4_RATIO) {
+      // Contenedor más alto que el PDF (Barras grises arriba y abajo)
+      pdfRenderWidth = rect.width
+      pdfRenderHeight = rect.width * A4_RATIO
+      offsetX = 0
+      offsetY = (rect.height - pdfRenderHeight) / 2
+    } else {
+      // Contenedor más ancho que el PDF (Barras grises a los lados)
+      pdfRenderHeight = rect.height
+      pdfRenderWidth = rect.height / A4_RATIO
+      offsetX = (rect.width - pdfRenderWidth) / 2
+      offsetY = 0
+    }
+
+    // Calcular posición del clic dentro del área real del PDF
+    let xInsidePdf = clickX - offsetX
+    let yInsidePdf = clickY - offsetY
+
+    // Limitar para que el clic no se salga de los bordes del papel virtual
+    xInsidePdf = Math.max(0, Math.min(xInsidePdf, pdfRenderWidth))
+    yInsidePdf = Math.max(0, Math.min(yInsidePdf, pdfRenderHeight))
+
+    // Convertir a Puntos PDF (Points) donde 0,0 es la esquina INFERIOR izquierda
+    const yFromBottom = pdfRenderHeight - yInsidePdf
+
+    const ptX = Math.round((xInsidePdf / pdfRenderWidth) * 595)
+    const ptY = Math.round((yFromBottom / pdfRenderHeight) * 842)
+
+    // Ajustar para que la firma quede centrada justo donde se hizo el clic
+    const finalX = Math.round(ptX - SIGNATURE_WIDTH / 2)
+    const finalY = Math.round(ptY - SIGNATURE_HEIGHT / 2)
+
+    setCoords({ x: finalX, y: finalY, page: currentPage - 1 })
     setOpenPreview(false)
-    showWarning(
-      `Firma ubicada en Página ${currentPage}. Tu clic fue el centro. Coordenadas de estampado (inferior izquierda): X:${x}, Y:${y}`,
-    )
+    showWarning(`Firma ubicada en Página ${currentPage}. Coordenadas exactas: X:${finalX}, Y:${finalY}`)
   }
 
   useEffect(() => {
@@ -96,16 +165,20 @@ const FirmarPDFDF = () => {
   }, [previewUrl])
 
   const handleFirmarVisual = async () => {
-    if (!pdfPrincipal || !p12File || !password || !coords.x)
-      return showWarning("Faltan datos: PDF, Firma, Clave o Ubicación")
+    if (!pdfPrincipal || !coords.x) return showWarning("Faltan datos: PDF o Ubicación de Firma")
+    if (isGerente && (!p12File || !password))
+      return showWarning("Los Gerentes deben cargar su certificado manual y contraseña")
 
     const formData = new FormData()
     formData.append("documento", pdfPrincipal)
-    formData.append("firma", p12File)
-    formData.append("password", password)
     formData.append("x", coords.x)
     formData.append("y", coords.y)
     formData.append("page", coords.page)
+
+    if (isGerente && p12File && password) {
+      formData.append("firma", p12File)
+      formData.append("password", password)
+    }
 
     if (p12Info && p12Info.sujeto_completo) {
       formData.append("duenoFirma", p12Info.sujeto_completo)
@@ -173,7 +246,7 @@ const FirmarPDFDF = () => {
 
       const link = document.createElement("a")
       link.href = url
-      link.setAttribute("download", `SIAC_FIRMADO_QR_${pdfPrincipal.name}`)
+      link.setAttribute("download", `DSOFT_FIRMADO_QR_${pdfPrincipal.name}`)
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -185,10 +258,13 @@ const FirmarPDFDF = () => {
   }
 
   const handleValidarP12 = async () => {
-    if (!p12File || !password) return showWarning("Debe cargar el archivo .p12 e ingresar la clave")
+    if (isGerente && (!p12File || !password)) return showWarning("Debe cargar el archivo .p12 e ingresar la clave")
+
     const formData = new FormData()
-    formData.append("firma", p12File)
-    formData.append("password", password)
+    if (isGerente && p12File && password) {
+      formData.append("firma", p12File)
+      formData.append("password", password)
+    }
 
     setLoading(true)
     try {
@@ -220,7 +296,7 @@ const FirmarPDFDF = () => {
       <Header />
       <div className="main main-app p-3 p-lg-4">
         <BackIcon />
-        <CustomBackdrop isLoading={loading} />
+        <CustomBackdrop isLoading={loading || configLoading} />
 
         <Dialog open={openPreview} onClose={() => setOpenPreview(false)} maxWidth="md" fullWidth>
           <DialogTitle
@@ -232,17 +308,29 @@ const FirmarPDFDF = () => {
               alignItems: "center",
             }}
           >
-            <Typography variant="h6">Ubicación de Firma QR - Página {currentPage}</Typography>
+            <Typography variant="h6">
+              Ubicación de Firma QR - Página {currentPage} de {maxPages}
+            </Typography>
             <Stack direction="row" spacing={1}>
-              <IconButton color="inherit" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>
+              <IconButton
+                color="inherit"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+              >
                 <ArrowBackIosIcon fontSize="small" />
               </IconButton>
-              <IconButton color="inherit" onClick={() => setCurrentPage((p) => p + 1)}>
+              <IconButton
+                color="inherit"
+                onClick={() => setCurrentPage((p) => Math.min(maxPages, p + 1))}
+                disabled={currentPage >= maxPages}
+              >
                 <ArrowForwardIosIcon fontSize="small" />
               </IconButton>
             </Stack>
           </DialogTitle>
-          <DialogContent sx={{ p: 0, height: "75vh", position: "relative", overflow: "hidden" }}>
+          <DialogContent
+            sx={{ p: 0, height: "75vh", position: "relative", overflow: "hidden", backgroundColor: "#525659" }}
+          >
             <Box
               onClick={handlePdfClick}
               sx={{ cursor: "crosshair", width: "100%", height: "100%", overflow: "hidden" }}
@@ -250,7 +338,8 @@ const FirmarPDFDF = () => {
               <iframe
                 key={currentPage}
                 title="Preview"
-                src={`${previewUrl}#page=${currentPage}&view=FitH&toolbar=0&navpanes=0&scrollbar=0`}
+                /* CORRECCIÓN VITAL: view=Fit garantiza que se vea la hoja entera y centrada */
+                src={`${previewUrl}#page=${currentPage}&view=Fit&toolbar=0&navpanes=0&scrollbar=0`}
                 width="100%"
                 height="100%"
                 style={{ border: "none", pointerEvents: "none", overflow: "hidden" }}
@@ -265,7 +354,7 @@ const FirmarPDFDF = () => {
 
         <Box sx={StyledRootStyles}>
           <Typography variant="h4" sx={{ textAlign: "center", mb: 4, fontWeight: "bold", color: "#196C87" }}>
-            FIRMA ELECTRÓNICA SIAC
+            FIRMA ELECTRÓNICA DSOFT
           </Typography>
           <Stack spacing={3}>
             {/* --- 1. FIRMAR PDF --- */}
@@ -287,15 +376,7 @@ const FirmarPDFDF = () => {
                       sx={{ height: "56px", borderStyle: "dashed" }}
                     >
                       {pdfPrincipal ? pdfPrincipal.name : "Subir PDF"}
-                      <input
-                        type="file"
-                        hidden
-                        accept=".pdf"
-                        onChange={(e) => {
-                          setPdfPrincipal(e.target.files[0])
-                          setCurrentPage(1)
-                        }}
-                      />
+                      <input type="file" hidden accept=".pdf" onChange={handlePdfUpload} />
                     </Button>
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -310,21 +391,36 @@ const FirmarPDFDF = () => {
                       UBICAR QR EN PÁGINA
                     </Button>
                   </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Button variant="outlined" component="label" fullWidth sx={{ height: "56px" }}>
-                      {p12File ? "Firma Cargada ✓" : "Cargar Archivo .p12"}
-                      <input type="file" hidden accept=".p12" onChange={(e) => setP12File(e.target.files[0])} />
-                    </Button>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Clave de Firma"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </Grid>
+
+                  {/* RENDERIZADO CONDICIONAL DE CARGA DE CERTIFICADO */}
+                  {isGerente ? (
+                    <>
+                      <Grid item xs={12} md={6}>
+                        <Button variant="outlined" component="label" fullWidth sx={{ height: "56px" }}>
+                          {p12File ? "Firma Cargada ✓" : "Cargar Archivo .p12"}
+                          <input type="file" hidden accept=".p12" onChange={(e) => setP12File(e.target.files[0])} />
+                        </Button>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          label="Clave de Firma"
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                        />
+                      </Grid>
+                    </>
+                  ) : (
+                    <Grid item xs={12}>
+                      <Alert severity={hasGlobalFirma ? "success" : "warning"}>
+                        {hasGlobalFirma
+                          ? "El sistema utilizará la Firma Electrónica Corporativa configurada."
+                          : "No existe una Firma Corporativa configurada. Contacte al administrador del sistema."}
+                      </Alert>
+                    </Grid>
+                  )}
+
                   <Grid item xs={12}>
                     {coords.x > 0 && (
                       <Alert severity="info" sx={{ mb: 2 }}>
@@ -336,7 +432,7 @@ const FirmarPDFDF = () => {
                       fullWidth
                       size="large"
                       onClick={handleFirmarVisual}
-                      disabled={!coords.x || !password || !p12File}
+                      disabled={!coords.x || (!isGerente && !hasGlobalFirma) || (isGerente && (!password || !p12File))}
                     >
                       GENERAR DOCUMENTO FIRMADO
                     </Button>
@@ -355,27 +451,51 @@ const FirmarPDFDF = () => {
               </AccordionSummary>
               <AccordionDetails>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} md={5}>
-                    <Button variant="outlined" component="label" fullWidth sx={{ height: "56px" }}>
-                      {p12File ? p12File.name : "Seleccionar .p12"}
-                      <input type="file" hidden accept=".p12" onChange={(e) => setP12File(e.target.files[0])} />
-                    </Button>
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      fullWidth
-                      label="Clave de Validación"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </Grid>
+                  {/* RENDERIZADO CONDICIONAL DE VALIDACIÓN */}
+                  {isGerente ? (
+                    <>
+                      <Grid item xs={12} md={5}>
+                        <Button variant="outlined" component="label" fullWidth sx={{ height: "56px" }}>
+                          {p12File ? p12File.name : "Seleccionar .p12"}
+                          <input type="file" hidden accept=".p12" onChange={(e) => setP12File(e.target.files[0])} />
+                        </Button>
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <TextField
+                          fullWidth
+                          label="Clave de Validación"
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                        />
+                      </Grid>
+                    </>
+                  ) : (
+                    <Grid item xs={12} md={9}>
+                      <Alert
+                        severity={hasGlobalFirma ? "info" : "warning"}
+                        sx={{ height: "100%", display: "flex", alignItems: "center" }}
+                      >
+                        {hasGlobalFirma
+                          ? "Validación de la Firma Electrónica Corporativa."
+                          : "Sin Firma Corporativa disponible."}
+                      </Alert>
+                    </Grid>
+                  )}
+
                   <Grid item xs={12} md={3}>
-                    <Button variant="contained" fullWidth sx={{ height: "56px" }} onClick={handleValidarP12}>
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      sx={{ height: "56px" }}
+                      onClick={handleValidarP12}
+                      disabled={(!isGerente && !hasGlobalFirma) || (isGerente && (!p12File || !password))}
+                    >
                       VERIFICAR
                     </Button>
                   </Grid>
                 </Grid>
+
                 {p12Info && (
                   <MuiPaper variant="outlined" sx={{ mt: 3, p: 3, bgcolor: "#ffffff", border: "1px solid #cbd5e0" }}>
                     <Typography
@@ -441,7 +561,7 @@ const FirmarPDFDF = () => {
                     </Button>
                   </Grid>
                   <Grid item xs={12} md={3}>
-                    <Button variant="contained" fullWidth onClick={handleVerificarDocumento}>
+                    <Button variant="contained" fullWidth onClick={handleVerificarDocumento} disabled={!pdfPrincipal}>
                       ANALIZAR
                     </Button>
                   </Grid>

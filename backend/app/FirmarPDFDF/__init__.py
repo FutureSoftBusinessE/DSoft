@@ -9,3 +9,4 @@ bp = Blueprint("FirmarPDFDF", __name__)
 from app.FirmarPDFDF.rutas import firmarDocumentoVisualDF
 from app.FirmarPDFDF.rutas import procesarFirmaDF
 from app.FirmarPDFDF.rutas import verificarFirmaPDF
+from app.FirmarPDFDF.rutas import getConfigFirmarPDF

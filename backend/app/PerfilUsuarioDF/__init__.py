@@ -7,3 +7,4 @@ bp = Blueprint("PerfilUsuarioDF", __name__)
 # APIS PARA EL CRUD
 from app.PerfilUsuarioDF.rutas import getAllPerfilUsuarioDF
 from app.PerfilUsuarioDF.rutas import updatePerfilUsuarioDF
+from app.PerfilUsuarioDF.rutas import setFirmaActivaDF

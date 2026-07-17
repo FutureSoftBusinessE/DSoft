@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { useState, useContext } from "react"
+// Agregamos Tabs y Tab de Material-UI para la seccionalización
 import {
   Box,
   Paper,
@@ -13,14 +14,6 @@ import {
   Divider,
   Tabs,
   Tab,
-  InputAdornment,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
 } from "@mui/material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import Header from "../../layouts/Header"
@@ -32,12 +25,6 @@ import { GlobalContext } from "../../contexts/GlobalContext"
 import getIconComponent from "../utils/getIconComponent"
 import CloudUploadIcon from "@mui/icons-material/CloudUpload"
 import Save from "@mui/icons-material/Save"
-import Visibility from "@mui/icons-material/Visibility"
-import VisibilityOff from "@mui/icons-material/VisibilityOff"
-import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn"
-import DeleteIcon from "@mui/icons-material/Delete"
-import Swal from "sweetalert2"
-import dayjs from "dayjs"
 
 // Tema estándar de SIACDEV1.0
 const theme = createTheme({
@@ -76,14 +63,14 @@ function TabPanel(props) {
 const PerfilUsuarioDF = () => {
   const { selectedMenuInfo } = useContext(GlobalContext)
 
-  // Estado para controlar la Pestaña Activa (0, 1, 2, 3)
+  // Estado para controlar la Pestaña Activa (0, 1, 2)
   const [currentTab, setCurrentTab] = useState(0)
 
   // Archivos binarios para las imágenes
   const [logoFile, setLogoFile] = useState(null)
   const [selloFile, setSelloFile] = useState(null)
 
-  // Estado del formulario general
+  // Estado del formulario
   const [formData, setFormData] = useState({
     ciatipomenu: 0,
     ciacolor: "#196C87",
@@ -99,17 +86,7 @@ const PerfilUsuarioDF = () => {
     emailmensaje: "",
   })
 
-  // =========================================================
-  // ESTADOS EXCLUSIVOS PARA LA PESTAÑA DE FIRMA ELECTRÓNICA
-  // =========================================================
-  const [p12File, setP12File] = useState(null)
-  const [passwordP12, setPasswordP12] = useState("") // CORREGIDO: Nombre de variable unificado
-  const [showPassword, setShowPassword] = useState(false)
-  const [docfecemi, setDocfecemi] = useState(null)
-  const [docfecven, setDocfecven] = useState(null)
-  const [isValidated, setIsValidated] = useState(false) // Controla si ya se validó el P12
-
-  // Cargar la configuración actual (Perfil)
+  // Cargar la configuración actual
   const { isLoading: isFetching } = useQuery({
     queryKey: ["getAllPerfilUsuarioDF"],
     queryFn: async () => {
@@ -135,61 +112,7 @@ const PerfilUsuarioDF = () => {
     refetchOnWindowFocus: false,
   })
 
-  // =========================================================
-  // QUERIES Y MUTACIONES PARA FIRMA ELECTRÓNICA (INLINE)
-  // =========================================================
-  const {
-    data: listaFirmas = [],
-    refetch: refetchFirmas,
-    isFetching: isFetchingFirmas,
-  } = useQuery({
-    queryKey: ["documentosFirmaPerfil"],
-    queryFn: async () => {
-      const res = await api.get("/DocumentosAsociadosComponent/getDocumentosAsociados/PERFIL/FIRMA_ELEC")
-      return res.data.data || []
-    },
-    refetchOnWindowFocus: false,
-  })
-
-  const { mutateAsync: uploadFirma, isPending: isUploadingFirma } = useMutation({
-    mutationFn: async (payloadFormData) => {
-      const response = await api.post("/DocumentosAsociadosComponent/guardarArchivoAdjunto", payloadFormData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
-      return response.data
-    },
-    onSuccess: () => {
-      Swal.fire("Éxito", "Certificado cargado correctamente", "success")
-      setP12File(null)
-      setPasswordP12("")
-      setDocfecemi(null)
-      setDocfecven(null)
-      setIsValidated(false)
-      refetchFirmas()
-    },
-  })
-
-  const { mutateAsync: setActiveFirma, isPending: isSettingActive } = useMutation({
-    mutationFn: async (uuid) => {
-      const response = await api.post("/PerfilUsuarioDF/setFirmaActivaDF", { documentouuid: uuid })
-      return response.data
-    },
-    onSuccess: (res) => {
-      Swal.fire("Activada", res.data || "Firma electrónica configurada correctamente.", "success")
-    },
-  })
-
-  const { mutateAsync: deleteFirma, isPending: isDeletingFirma } = useMutation({
-    mutationFn: async (uuid) => {
-      await api.delete(`/DocumentosAsociadosComponent/deleteDocumento/${uuid}`)
-    },
-    onSuccess: () => {
-      Swal.fire("Eliminado", "El certificado ha sido removido con éxito.", "success")
-      refetchFirmas()
-    },
-  })
-
-  // Mutación de guardado de perfil general
+  // Mutación de guardado
   const { mutateAsync: savePerfil, isPending: isSaving } = useMutation({
     queryKey: ["isUpdatingPerfilUsuario"],
     fn: async (payloadFormData) => {
@@ -207,9 +130,6 @@ const PerfilUsuarioDF = () => {
     },
   })
 
-  // =========================================================
-  // HANDLERS
-  // =========================================================
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
@@ -231,9 +151,6 @@ const PerfilUsuarioDF = () => {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault()
 
-    // Bloqueamos el guardado del perfil si estamos en la pestaña de firmas
-    if (currentTab === 3) return
-
     const data = new FormData()
     data.append("ciatipomenu", formData.ciatipomenu)
     data.append("ciacolor", formData.ciacolor)
@@ -253,90 +170,6 @@ const PerfilUsuarioDF = () => {
       await savePerfil(data)
     } catch (error) {
       console.error("Error al guardar el perfil:", error)
-    }
-  }
-
-  // --- LÓGICA DE ARCHIVOS P12 ---
-  const handleP12Change = (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    const name = file.name.toLowerCase()
-    if (!name.endsWith(".p12") && !name.endsWith(".pfx")) {
-      return showWarning("Solo se permiten archivos con extensión .p12 o .pfx")
-    }
-    setP12File(file)
-    setIsValidated(false) // Si cambia de archivo, debe volver a validar
-    setDocfecemi(null)
-    setDocfecven(null)
-  }
-
-  // Lógica importada del componente universal para validar y extraer fechas[cite: 19]
-  const handleValidarCertificado = async () => {
-    if (!p12File || !passwordP12) {
-      return Swal.fire("Atención", "Seleccione un archivo y escriba la contraseña", "warning")
-    }
-
-    const formDataValidacion = new FormData()
-    formDataValidacion.append("firma", p12File)
-    formDataValidacion.append("password", passwordP12)
-
-    try {
-      Swal.fire({
-        title: "Validando...",
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading()
-        },
-      })
-
-      const response = await api.post("/FirmarPDFDF/validarFirmaP12", formDataValidacion, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
-
-      if (response.data && response.data.success) {
-        const { valido_desde: validoDesde, valido_hasta: validoHasta } = response.data.data
-
-        const fechaEmiStr = validoDesde.split(" ")[0]
-        const fechaVenStr = validoHasta.split(" ")[0]
-
-        setDocfecemi(dayjs(fechaEmiStr))
-        setDocfecven(dayjs(fechaVenStr))
-        setIsValidated(true)
-
-        Swal.fire("Éxito", "Certificado validado correctamente", "success")
-      } else {
-        setIsValidated(false)
-        Swal.fire("Error", "No se pudo validar el certificado. Verifique la contraseña.", "error")
-      }
-    } catch (error) {
-      setIsValidated(false)
-      Swal.fire("Error", "No se pudo validar el certificado. Verifique la contraseña.", "error")
-    }
-  }
-
-  // Guardado final del certificado validado[cite: 19]
-  const handleGuardarP12 = async () => {
-    if (!p12File) return showWarning("Debe seleccionar un archivo .p12")
-    if (!passwordP12) return showWarning("Debe ingresar la contraseña del certificado")
-    if (!isValidated || !docfecemi || !docfecven) {
-      return showWarning("Debe validar exitosamente el certificado antes de guardarlo.")
-    }
-
-    const data = new FormData()
-    data.append("docqgenero", "PERFIL")
-    data.append("docprocqgenero", "FIRMA_ELEC")
-    data.append("docsecuen", "1")
-    data.append("docnombre", p12File.name)
-    data.append("docindex1", "CERTIFICADO P12")
-    data.append("password_p12", passwordP12)
-    data.append("docfecemi", docfecemi.format("YYYY-MM-DD")) // Se inserta exactamente como en la tabla de documentos[cite: 19]
-    data.append("docfecven", docfecven.format("YYYY-MM-DD"))
-    data.append("file", p12File)
-
-    try {
-      await uploadFirma(data)
-    } catch (error) {
-      console.error(error)
     }
   }
 
@@ -373,7 +206,7 @@ const PerfilUsuarioDF = () => {
             <Tooltip title={action.label} key={action.key}>
               <IconButton
                 onClick={handleSubmit}
-                disabled={isSaving || isFetching || currentTab === 3}
+                disabled={isSaving || isFetching}
                 sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, backgroundColor: "white" }}
               >
                 {action.icon}
@@ -394,7 +227,7 @@ const PerfilUsuarioDF = () => {
           <b>Perfil de Empresa y Configuración Global</b>
         </div>
 
-        <CustomBackdrop isLoading={isSaving || isFetching || isUploadingFirma || isSettingActive || isDeletingFirma} />
+        <CustomBackdrop isLoading={isSaving || isFetching} />
 
         <Box sx={StyledRoot} component="form" onSubmit={handleSubmit}>
           {/* =========================================
@@ -421,7 +254,6 @@ const PerfilUsuarioDF = () => {
               <Tab label="1. Logos e Imágenes" sx={{ fontWeight: "bold" }} />
               <Tab label="2. Ajustes Visuales" sx={{ fontWeight: "bold" }} />
               <Tab label="3. Parámetros de Correo" sx={{ fontWeight: "bold" }} />
-              <Tab label="4. Firma Electrónica (.p12)" sx={{ fontWeight: "bold" }} />
             </Tabs>
           </Box>
 
@@ -656,208 +488,6 @@ const PerfilUsuarioDF = () => {
                   />
                 </Grid>
               </Grid>
-            </Paper>
-          </TabPanel>
-
-          {/* =========================================
-              PANEL 4: FIRMA ELECTRÓNICA
-          ========================================= */}
-          <TabPanel value={currentTab} index={3}>
-            <Paper elevation={0} sx={{ p: 4, borderRadius: "0 0 8px 8px", background: "white" }}>
-              <Typography variant="h6" color="primary" gutterBottom>
-                Configuración y Repositorio de Firma Electrónica (.p12)
-              </Typography>
-              <Divider sx={{ mb: 3 }} />
-
-              {/* Formulario Inline de Carga P12 con Validación */}
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} sm={4}>
-                  <Button
-                    variant="outlined"
-                    component="label"
-                    fullWidth
-                    startIcon={<CloudUploadIcon />}
-                    sx={{ height: "56px", borderStyle: "dashed" }}
-                  >
-                    Seleccionar Archivo .p12
-                    <input type="file" accept=".p12,.pfx" hidden onChange={handleP12Change} />
-                  </Button>
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <Box display="flex" gap={1}>
-                    <TextField
-                      fullWidth
-                      label="Contraseña del Certificado"
-                      type={showPassword ? "text" : "password"}
-                      value={passwordP12}
-                      onChange={(e) => {
-                        setPasswordP12(e.target.value)
-                        setIsValidated(false) // Si edita la clave, se pierde la validación
-                      }}
-                      InputProps={{
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton onClick={() => setShowPassword(!showPassword)}>
-                              {showPassword ? <VisibilityOff /> : <Visibility />}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      onClick={handleValidarCertificado}
-                      disabled={!p12File || !passwordP12 || isUploadingFirma}
-                      sx={{ whiteSpace: "nowrap" }}
-                    >
-                      Validar Clave
-                    </Button>
-                  </Box>
-                </Grid>
-
-                <Grid item xs={12} sm={2}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    sx={{ height: "56px" }}
-                    onClick={handleGuardarP12}
-                    disabled={!isValidated || isUploadingFirma} // Solo habilitado si fue validado
-                  >
-                    Guardar
-                  </Button>
-                </Grid>
-
-                {/* Feedback de validación y archivo seleccionado */}
-                <Grid item xs={12}>
-                  <Box display="flex" gap={2} mt={1}>
-                    {p12File && (
-                      <Chip
-                        label={p12File.name}
-                        onDelete={() => {
-                          setP12File(null)
-                          setIsValidated(false)
-                        }}
-                        color="primary"
-                        variant="outlined"
-                      />
-                    )}
-                    {isValidated && docfecemi && docfecven && (
-                      <>
-                        <Chip label={`Emisión: ${docfecemi.format("DD/MM/YYYY")}`} color="success" variant="outlined" />
-                        <Chip label={`Caduca: ${docfecven.format("DD/MM/YYYY")}`} color="warning" variant="outlined" />
-                      </>
-                    )}
-                  </Box>
-                </Grid>
-              </Grid>
-
-              {/* Grilla Inline de Documentos Asociados */}
-              <Box mt={5}>
-                <Typography variant="subtitle1" color="primary" sx={{ fontWeight: "bold", mb: 2 }}>
-                  Certificados Registrados
-                </Typography>
-
-                {listaFirmas.length === 0 && !isFetchingFirmas ? (
-                  <Typography variant="body2" color="textSecondary" align="center">
-                    No existen certificados asociados a este perfil.
-                  </Typography>
-                ) : (
-                  <TableContainer component={Paper} variant="outlined">
-                    <Table size="small">
-                      <TableHead sx={{ backgroundColor: "#f8f9fa" }}>
-                        <TableRow>
-                          <TableCell>
-                            <b>Nombre Archivo</b>
-                          </TableCell>
-                          <TableCell>
-                            <b>Ext.</b>
-                          </TableCell>
-                          <TableCell>
-                            <b>Emisión</b>
-                          </TableCell>
-                          <TableCell>
-                            <b>Caducidad</b>
-                          </TableCell>
-                          <TableCell>
-                            <b>Fecha Registro</b>
-                          </TableCell>
-                          <TableCell align="center">
-                            <b>Acciones</b>
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {listaFirmas.map((doc) => (
-                          <TableRow key={doc.documentouuid} hover>
-                            <TableCell>{doc.docnombre}</TableCell>
-                            <TableCell>
-                              <Typography
-                                variant="body2"
-                                sx={{ textTransform: "uppercase", fontWeight: "bold", fontSize: "0.8rem" }}
-                              >
-                                {doc.docextension}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>{doc.docfecemi || "—"}</TableCell>
-                            <TableCell>{doc.docfecven || "—"}</TableCell>
-                            <TableCell>{doc.docfechorisys}</TableCell>
-                            <TableCell align="center">
-                              {/* Botón para setear la firma activa en cgblocal */}
-                              <Tooltip title="Usar para Firmar PDF (Activar)">
-                                <IconButton
-                                  size="small"
-                                  sx={{ color: "#ed6c02" }} // Naranja distintivo
-                                  onClick={() => {
-                                    Swal.fire({
-                                      title: "¿Establecer como firma activa?",
-                                      text: "Este certificado se utilizará por defecto para firmar sus documentos PDF.",
-                                      icon: "question",
-                                      showCancelButton: true,
-                                      confirmButtonColor: "#196C87",
-                                      confirmButtonText: "Sí, activar",
-                                    }).then(async (r) => {
-                                      if (r.isConfirmed) {
-                                        setActiveFirma(doc.documentouuid)
-                                      }
-                                    })
-                                  }}
-                                >
-                                  <AssignmentTurnedInIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-
-                              {/* Botón Eliminar */}
-                              <Tooltip title="Eliminar">
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => {
-                                    Swal.fire({
-                                      title: "¿Eliminar certificado?",
-                                      text: "Esta acción no se puede deshacer.",
-                                      icon: "warning",
-                                      showCancelButton: true,
-                                      confirmButtonColor: "#d33",
-                                      confirmButtonText: "Sí, eliminar",
-                                    }).then((r) => {
-                                      if (r.isConfirmed) deleteFirma(doc.documentouuid)
-                                    })
-                                  }}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
-              </Box>
             </Paper>
           </TabPanel>
         </Box>

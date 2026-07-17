@@ -289,6 +289,16 @@ import FormasDeCobro from "./FormasDeCobro"
 import CrearFormasDeCobro from "./FormasDeCobro/Crear"
 import EditarFormasDeCobro from "./FormasDeCobro/Editar"
 
+// ExcepcionesdeIVA
+import ExcepcionesdeIVA from "./ExcepcionesdeIVA"
+import CrearExcepcionesdeIVA from "./ExcepcionesdeIVA/Crear"
+import EditarExcepcionesdeIVA from "./ExcepcionesdeIVA/Editar"
+
+// TipoDeCompania
+import TipoDeCompania from "./TipoDeCompania"
+import CrearTipoDeCompania from "./TipoDeCompania/Crear"
+import EditarTipoDeCompania from "./TipoDeCompania/Editar"
+
 export {
   Login,
   LoginInner,
@@ -458,4 +468,10 @@ export {
   FormasDeCobro,
   CrearFormasDeCobro,
   EditarFormasDeCobro,
+  ExcepcionesdeIVA,
+  CrearExcepcionesdeIVA,
+  EditarExcepcionesdeIVA,
+  TipoDeCompania,
+  CrearTipoDeCompania,
+  EditarTipoDeCompania,
 }

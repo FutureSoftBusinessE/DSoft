@@ -202,6 +202,12 @@ import { RetencionDF, CrearRetencionDF, BuscarRetencionDF } from "../pages"
 // FormasDeCobro
 import { FormasDeCobro, CrearFormasDeCobro, EditarFormasDeCobro } from "../pages"
 
+// ExcepcionesdeIVA
+import { ExcepcionesdeIVA, CrearExcepcionesdeIVA, EditarExcepcionesdeIVA } from "../pages"
+
+// TipoDeCompania
+import { TipoDeCompania, CrearTipoDeCompania, EditarTipoDeCompania } from "../pages"
+
 const protectedRoutes = [
   { path: "Submenu/:label/:id", element: <SubMenu /> },
   { path: "dashboard/AccesoACompañiasYModulos", element: <AccesoACompañiasYModulos /> },
@@ -367,6 +373,12 @@ const protectedRoutes = [
   { path: "dashboard/FormasDeCobro", element: <FormasDeCobro /> },
   { path: "dashboard/FormasDeCobro/crear", element: <CrearFormasDeCobro /> },
   { path: "dashboard/FormasDeCobro/editar", element: <EditarFormasDeCobro /> },
+  { path: "dashboard/ExcepcionesdeIVA", element: <ExcepcionesdeIVA /> },
+  { path: "dashboard/ExcepcionesdeIVA/crear", element: <CrearExcepcionesdeIVA /> },
+  { path: "dashboard/ExcepcionesdeIVA/editar", element: <EditarExcepcionesdeIVA /> },
+  { path: "dashboard/TipoDeCompania", element: <TipoDeCompania /> },
+  { path: "dashboard/TipoDeCompania/crear", element: <CrearTipoDeCompania /> },
+  { path: "dashboard/TipoDeCompania/editar", element: <EditarTipoDeCompania /> },
 ]
 
 export default protectedRoutes

@@ -372,6 +372,14 @@ def create_app(config_class=Config):
 
     app.register_blueprint(FormasDeCobro_bp, url_prefix="/FormasDeCobro")
 
+    from app.ExcepcionesdeIVA import bp as ExcepcionesdeIVA_bp
+
+    app.register_blueprint(ExcepcionesdeIVA_bp, url_prefix="/ExcepcionesdeIVA")
+
+    from app.TipoDeCompania import bp as TipoDeCompania_bp
+
+    app.register_blueprint(TipoDeCompania_bp, url_prefix="/TipoDeCompania")
+
     # ************************************************************
     #  RUTAS BASE Y HERRAMIENTAS DE DESARROLLO (SOLO LOCAL)
     # ************************************************************

@@ -297,7 +297,7 @@ export default function Main() {
                   />
                 </div>
 
-                <h1 className="fw-bold mb-2 text-primary">FUTURESOFT BUSINESS SERVICES</h1>
+                <h1 className="fw-bold mb-2 text-primary">DESIGNSOFT</h1>
                 <hr />
 
                 <div

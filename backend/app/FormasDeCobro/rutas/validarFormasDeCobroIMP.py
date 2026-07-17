@@ -1,0 +1,147 @@
+from flask import request
+from flask_jwt_extended import get_jwt, jwt_required
+from sqlalchemy import text
+
+from app.FormasDeCobro import bp
+from app.extensions import db
+from app.db import get_session
+from error_handling import api_endpoint, ValidationError
+
+
+# Helper para validar aquí y en el proceso de insertar
+def validar_formas_cobro(connection, columns: list, required: list, key_columns: list, rows: list):
+
+    # 1. Validaciones estructurales básicas [cite: 54, 55, 56]
+    if not isinstance(rows, list) or len(rows) == 0:
+        raise ValidationError("rows requerido")
+    if not isinstance(columns, list) or len(columns) == 0:
+        raise ValidationError("columns requerido")
+    if not isinstance(required, list) or len(required) == 0:
+        raise ValidationError("required requerido")
+    if not isinstance(key_columns, list) or len(key_columns) == 0:
+        raise ValidationError("key_columns requerido")
+
+    for col in key_columns:
+        if col not in columns:
+            raise ValidationError(f"key_columns inválido: {col} no está en columns")
+        if col not in required:
+            raise ValidationError(f"key_columns inválido: {col} debe estar en required")
+
+    for col in required:
+        if col not in columns:
+            raise ValidationError(f"required inválido: {col} no está en columns")
+
+    vistos = set()
+
+    # 2. Validación fila por fila (vacíos y duplicados en el mismo archivo) [cite: 56, 57, 58]
+    for i, fila in enumerate(rows):
+        if not isinstance(fila, dict):
+            raise ValidationError(f"Fila #{i+1} inválida: debe ser un objeto")
+
+        fila["ok"] = True
+        fila["feedback"] = ""
+
+        # Campos required vacíos [cite: 57, 58]
+        faltantes = []
+        for campo in required:
+            valor = fila.get(campo)
+
+            if isinstance(valor, str):
+                valor = valor.strip()
+                fila[campo] = valor
+
+            if valor is None or (isinstance(valor, str) and valor == ""):
+                faltantes.append(campo)
+
+        if faltantes:
+            fila["ok"] = False
+            fila["feedback"] = "Campos requeridos vacíos: " + ", ".join(faltantes)
+            continue
+
+        # Duplicados en el mismo archivo [cite: 59, 60]
+        clave = []
+        for k in key_columns:
+            v = fila.get(k)
+            if isinstance(v, str):
+                v = v.strip()
+                fila[k] = v
+            clave.append("" if v is None else str(v).strip().lower())
+
+        clave = tuple(clave)
+
+        if clave in vistos:
+            fila["ok"] = False
+            fila["feedback"] = "Registro duplicado en el archivo"
+            continue
+
+        vistos.add(clave)
+
+    # 3. Validación contra la Base de Datos (Tabla cxcbformapag) [cite: 61, 62]
+    cols_sql = ", ".join(key_columns)
+    cia_val = rows[0]["ciacodigo"]
+
+    # Traemos las claves compuestas que ya existen en esta compañía
+    sql_get_all = text(f"SELECT {cols_sql} FROM cxcbformapag WHERE ciacodigo = :ciacodigo")
+    rows_db = connection.execute(sql_get_all, {"ciacodigo": cia_val}).mappings().all()
+
+    existentes = set()
+    for r in rows_db:
+        clave_db = []
+        for k in key_columns:
+            v = r.get(k)
+            if isinstance(v, str):
+                v = v.strip().lower()
+            clave_db.append("" if v is None else str(v).strip().lower())
+        existentes.add(tuple(clave_db))
+
+    for fila in rows:
+        if not fila["ok"]:
+            continue
+
+        clave_fila = []
+        for k in key_columns:
+            v = fila.get(k)
+            if isinstance(v, str):
+                v = v.strip()
+                fila[k] = v
+            clave_fila.append("" if v is None else str(v).strip().lower())
+
+        # Validación final de duplicidad
+        if tuple(clave_fila) in existentes:
+            fila["ok"] = False
+            fila["feedback"] = "La Forma de Cobro ya existe en la base de datos"
+
+    # 4. Cálculo del resumen
+    valid_rows = sum(1 for fila in rows if fila["ok"])
+    invalid_rows = len(rows) - valid_rows
+
+    return rows, {"valid_rows": valid_rows, "invalid_rows": invalid_rows}
+
+
+@bp.route("/validarFormasDeCobroIMP", methods=["POST"])
+@jwt_required()
+@api_endpoint
+def validarFormasDeCobroIMP():
+    claims = get_jwt()
+    clicianonBD = claims["seleccion"]["clicianonBD"]
+    sCodCia = claims["seleccion"]["cliciaciacodigo"]
+
+    data = request.get_json()
+
+    columns = data.get("columns")
+    required = data.get("required")
+    key_columns = data.get("key_columns")
+    rows_csv = data.get("rows")
+
+    db.session = get_session(clicianonBD)
+    engine = db.session.bind
+
+    # Inyectamos la compañía a cada fila antes de la validación [cite: 65]
+    for fila in rows_csv:
+        if isinstance(fila, dict):
+            fila["ciacodigo"] = sCodCia
+
+    with engine.connect() as connection:
+        rows, summary = validar_formas_cobro(connection, columns, required, key_columns, rows_csv)
+
+    return {"rows": rows, "summary": summary}

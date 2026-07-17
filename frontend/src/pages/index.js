@@ -284,6 +284,11 @@ import RetencionDF from "./RetencionDF"
 import BuscarRetencionDF from "./RetencionDF/Buscar"
 import CrearRetencionDF from "./RetencionDF/Crear"
 
+// FormasDeCobro
+import FormasDeCobro from "./FormasDeCobro"
+import CrearFormasDeCobro from "./FormasDeCobro/Crear"
+import EditarFormasDeCobro from "./FormasDeCobro/Editar"
+
 export {
   Login,
   LoginInner,
@@ -450,4 +455,7 @@ export {
   RetencionDF,
   CrearRetencionDF,
   BuscarRetencionDF,
+  FormasDeCobro,
+  CrearFormasDeCobro,
+  EditarFormasDeCobro,
 }

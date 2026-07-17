@@ -22,20 +22,14 @@ import {
 } from "@mui/material"
 import dayjs, { formatDateForDisplay, parseStringToDayjs } from "../utils/dayjsConfig" // Importar utilidades
 import { showError } from "../utils/alertUtils"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 // import datosEjecucionPorTipo from "../data/datosFake"
 import fetchwrapper from "../../../../services/interceptors/fetchwrapper"
+import DocumentosAsociadosComponent from "../../../../components/DocumentosAsociadosComponent/DocumentosAsociadosComponent"
 import CustomAutocomplete from "../../../../components/CustomAutocomplete"
 import { useQuery as CustomUseQuery } from "../../../../api"
 import CustomModalCreateCliente from "../../../../components/CustomModalCreateCliente"
 import ModalCreatePlacas from "../../../PlanificacionDeTareas/components/ModalCreatePlacas"
-
-// --- IMPORTACIONES NUEVAS PARA EL MODAL DE DOCUMENTOS ---
-import DocumentosAsociadosTabla from "../../../components/Global/DocumentosAsociadosModal/DocumentosAsociadosTabla"
-import DocumentosAsociadosModal from "../../../components/Global/DocumentosAsociadosModal"
-import AttachFileIcon from "@mui/icons-material/AttachFile"
-
-// --------------------------------------------------------
 
 // Función para obtener color según estado
 const getColorByStatus = (status) => {
@@ -213,12 +207,6 @@ const ModalEjecucionTarea = ({
     setModalOpenPlacas(false)
   }
 
-  // --- ESTADOS NUEVOS PARA DOCUMENTOS ASOCIADOS ---
-  const queryClient = useQueryClient()
-  const [modalOpenDocumentos, setModalOpenDocumentos] = useState(false)
-  const [nextSecuencia, setNextSecuencia] = useState(1)
-  // ------------------------------------------------
-
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     status: "",
@@ -252,6 +240,10 @@ const ModalEjecucionTarea = ({
       const response = await fetchwrapper(`/PlanificacionTareas/getAllClientes`)
       const result = await response.json()
       return result.data
+      // return [
+      //   { value: "001", label: "CL Pedor García (001)", clicodigo: "001", clinombre: "CL Pedor García" },
+      //   { value: "002", label: "CL Zamara López (002)", clicodigo: "002", clinombre: "CL Zamara López" },
+      // ]
     },
     enabled: esTareaConProcesoTecnicentro,
   })
@@ -958,55 +950,13 @@ const ModalEjecucionTarea = ({
         <br />
         <br />
 
-        {/* --- INICIO NUEVA SECCIÓN DE DOCUMENTOS ASOCIADOS --- */}
-        {/* BOTÓN PARA ABRIR EL MODAL DE DOCUMENTOS */}
-        <Box sx={{ display: "flex", mb: 2 }}>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<AttachFileIcon />}
-            onClick={() => setModalOpenDocumentos(true)}
-            disabled={esEstadoTerminal || loading}
-          >
-            Asociar Documento / Credencial
-          </Button>
-        </Box>
-
-        {/* GRILLA DE VISUALIZACIÓN DE DOCUMENTOS */}
-        <DocumentosAsociadosTabla
-          qgenero={eventocodigo}
-          procqgenero="gdocmeventos"
-          onDataLoaded={(proximaSecuencia) => setNextSecuencia(proximaSecuencia)}
+        <DocumentosAsociadosComponent
+          entidadId={eventocodigo} // ID del evento
+          tipoEntidad="gdocmeventos" // Tipo de entidad
+          readOnly={esEstadoTerminal} // Solo lectura si es estado terminal
+          onDocumentoAgregado={(doc) => console.log("Documento agregado:", doc)}
+          onDocumentoEliminado={(uuid) => console.log("Documento eliminado:", uuid)}
         />
-
-        {/* 1. INYECCIÓN DEL MODAL (CON SECUENCIA CALCULADA) */}
-        <DocumentosAsociadosModal
-          isOpen={modalOpenDocumentos}
-          onClose={() => setModalOpenDocumentos(false)}
-          contexto={{
-            docqgenero: eventocodigo,
-            docprocqgenero: "gdocmeventos",
-            docsecuen: nextSecuencia,
-          }}
-          onSuccess={() => {
-            queryClient.invalidateQueries(["documentosAsociados", eventocodigo, "gdocmeventos"])
-          }}
-        />
-
-        {/* 2. SEGUNDA INYECCIÓN DEL MODAL (MANTENIDA POR REGLA ESTABLECIDA) */}
-        <DocumentosAsociadosModal
-          isOpen={modalOpenDocumentos}
-          onClose={() => setModalOpenDocumentos(false)}
-          contexto={{
-            docqgenero: eventocodigo,
-            docprocqgenero: "gdocmeventos",
-          }}
-          onSuccess={(data) => {
-            console.log("Documento asociado correctamente. UUID:", data?.documentouuid)
-            queryClient.invalidateQueries(["documentosAsociados", eventocodigo, "gdocmeventos"])
-          }}
-        />
-        {/* --- FIN NUEVA SECCIÓN DE DOCUMENTOS ASOCIADOS --- */}
       </DialogContent>
 
       <DialogActions>

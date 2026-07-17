@@ -111,13 +111,7 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
       foundToken = api.defaults.headers.common.Authorization.replace("Bearer ", "")
     }
 
-    const authHeader = `Bearer ${foundToken.replace(/"/g, "")}`
-    const baseUrl = api.defaults && api.defaults.baseURL ? api.defaults.baseURL : "http://127.0.0.1:5000"
-
-    const response = await fetch(`${baseUrl}/DocumentosAsociadosComponent/downloadDocumento/${uuid}`, {
-      method: "GET",
-      headers: { Authorization: authHeader },
-    })
+    const response = await fetchwrapper(`/DocumentosAsociadosComponent/downloadDocumento/${uuid}`)
 
     if (!response.ok) {
       throw new Error("No se pudo descargar el archivo desde el servidor.")

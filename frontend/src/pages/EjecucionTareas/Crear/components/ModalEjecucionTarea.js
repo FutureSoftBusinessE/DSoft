@@ -20,10 +20,9 @@ import {
   Divider,
   CircularProgress,
 } from "@mui/material"
-import dayjs, { formatDateForDisplay, parseStringToDayjs } from "../utils/dayjsConfig" // Importar utilidades
+import dayjs, { formatDateForDisplay, parseStringToDayjs } from "../utils/dayjsConfig"
 import { showError } from "../utils/alertUtils"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-// import datosEjecucionPorTipo from "../data/datosFake"
 import fetchwrapper from "../../../../services/interceptors/fetchwrapper"
 import CustomAutocomplete from "../../../../components/CustomAutocomplete"
 import { useQuery as CustomUseQuery } from "../../../../api"
@@ -34,14 +33,13 @@ import ModalCreatePlacas from "../../../PlanificacionDeTareas/components/ModalCr
 import DocumentosAsociadosTabla from "../../../components/Global/DocumentosAsociadosModal/DocumentosAsociadosTabla"
 import DocumentosAsociadosModal from "../../../components/Global/DocumentosAsociadosModal"
 import AttachFileIcon from "@mui/icons-material/AttachFile"
-
 // --------------------------------------------------------
 
 // Función para obtener color según estado
 const getColorByStatus = (status) => {
   switch (status) {
     case "PENDIENTE":
-      return "warning" // Usar nombre de color de Material-UI
+      return "warning"
     case "EN_PROCESO":
       return "primary"
     case "COMPLETADA":
@@ -140,7 +138,7 @@ const TipoTareaMultiple = ({ opciones, value, onChange, disabled, obligatoria })
 }
 
 // ============================================
-// QUERY PARA OBTENER DATOS DEL EVENTO (FAKE)
+// QUERY PARA OBTENER DATOS DEL EVENTO
 // ============================================
 
 const useGetEventoData = (eventocodigo, setEsTareaConProcesoTecnicentro, setClienteSelectedCB, setPlacaSelectedCB) => {
@@ -160,26 +158,11 @@ const useGetEventoData = (eventocodigo, setEsTareaConProcesoTecnicentro, setClie
       let response = await fetchwrapper("/EjecucionTareas/getSpecificEvent", options)
       response = await response.json()
 
-      // if (response?.data?.evento?.procesocod === "TECNICENTRO") {
-      //   setEsTareaConProcesoTecnicentro(true)
-      //   if (response?.data?.evento?.clicodigo && response?.data?.evento?.clinombre) {
-      //     setClienteSelectedCB({
-      //       value: response?.data?.evento?.clicodigo,
-      //       label: `${response?.data?.evento?.clinombre} (${response?.data?.evento?.clicodigo})`,
-      //     })
-      //   }
-
-      //   if (response?.data?.evento?.placa) {
-      //     setPlacaSelectedCB({ value: response?.data?.evento?.placa, label: response?.data?.evento?.placa })
-      //   }
-      // }
-
       return response.data
     },
-    // enabled: !!eventocodigo,
-    refetchOnWindowFocus: false, // No recargar al cambiar de ventana
-    refetchOnMount: false, // No recargar al montar si ya hay datos en caché
-    refetchOnReconnect: false, // No recargar al reconectar
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
     onError: (error) => {
       console.log("Error fetching evento data:", error.message)
     },
@@ -190,30 +173,16 @@ const useGetEventoData = (eventocodigo, setEsTareaConProcesoTecnicentro, setClie
 // COMPONENTE PRINCIPAL
 // ============================================
 
-const ModalEjecucionTarea = ({
-  open,
-  onClose,
-  eventocodigo, // Solo recibe el código del evento
-  onGuardarEjecucion,
-}) => {
-  // Modal de creacion de cliente
+const ModalEjecucionTarea = ({ open, onClose, eventocodigo, onGuardarEjecucion }) => {
   const [modalOpenCliente, setModalOpenCliente] = useState(false)
-  const handleOpenModalCliente = () => {
-    setModalOpenCliente(true)
-  }
-  const handleCloseModalCliente = () => {
-    setModalOpenCliente(false)
-  }
-  // Modal de placas
-  const [modalOpenPlacas, setModalOpenPlacas] = useState(false)
-  const handleOpenModalPlacas = () => {
-    setModalOpenPlacas(true)
-  }
-  const handleCloseModalPlacas = () => {
-    setModalOpenPlacas(false)
-  }
+  const handleOpenModalCliente = () => setModalOpenCliente(true)
+  const handleCloseModalCliente = () => setModalOpenCliente(false)
 
-  // --- ESTADOS NUEVOS PARA DOCUMENTOS ASOCIADOS ---
+  const [modalOpenPlacas, setModalOpenPlacas] = useState(false)
+  const handleOpenModalPlacas = () => setModalOpenPlacas(true)
+  const handleCloseModalPlacas = () => setModalOpenPlacas(false)
+
+  // --- ESTADOS PARA DOCUMENTOS ASOCIADOS ---
   const queryClient = useQueryClient()
   const [modalOpenDocumentos, setModalOpenDocumentos] = useState(false)
   const [nextSecuencia, setNextSecuencia] = useState(1)
@@ -236,7 +205,6 @@ const ModalEjecucionTarea = ({
     mensaje: "",
   })
 
-  // SOLO SIRVE PARA TECNICENTRO
   const [clienteSelectedCB, setClienteSelectedCB] = useState(null)
   const [placaSelectedCB, setPlacaSelectedCB] = useState(null)
   const [esTareaConProcesoTecnicentro, setEsTareaConProcesoTecnicentro] = useState(false)
@@ -245,7 +213,6 @@ const ModalEjecucionTarea = ({
     data: allClientesCB = [],
     isLoading: isLoadingAllClientesCB,
     refetch: refetchAllClientesCB,
-    isRefetching: isRefetchAllClientesCB,
   } = useQuery({
     queryKey: ["clientesPlanificacion"],
     queryFn: async () => {
@@ -260,14 +227,12 @@ const ModalEjecucionTarea = ({
     data: { data: allPlacasCB } = [],
     isLoading: isLoadingAllPlacasCB,
     refetch: refetchAllPlacasCB,
-    isRefetching: isRefetchAllPlacasCB,
   } = CustomUseQuery({
     queryKey: ["isLoadingAllPlacasCB"],
     url: "/PlanificacionTareas/getAllPlacasCB",
     enabled: esTareaConProcesoTecnicentro,
   })
 
-  // Query para obtener datos del evento
   const {
     data: eventoDataResponse = {},
     isLoading: isLoadingEventoData,
@@ -275,27 +240,30 @@ const ModalEjecucionTarea = ({
     isFetching: isFetchingEventoData,
   } = useGetEventoData(eventocodigo, setEsTareaConProcesoTecnicentro, setClienteSelectedCB, setPlacaSelectedCB)
 
-  // Extraer datos de la respuesta
   const eventoData = eventoDataResponse?.data || eventoDataResponse || {}
+  const evento = eventoData.evento || {}
+
+  // LÓGICA CLAVE: Extraemos dinámicamente el código del cliente para enviarlo a la tabla de documentos
+  const clienteIdParaDocumentos = esTareaConProcesoTecnicentro ? clienteSelectedCB?.value : evento?.clicodigo
 
   useEffect(() => {
-    if (eventoData?.evento?.procesocod === "TECNICENTRO") {
+    if (evento?.procesocod === "TECNICENTRO") {
       setEsTareaConProcesoTecnicentro(true)
 
-      if (eventoData?.evento?.clicodigo && eventoData?.evento?.clinombre) {
+      if (evento?.clicodigo && evento?.clinombre) {
         setClienteSelectedCB({
-          value: eventoData?.evento?.clicodigo,
-          label: `${eventoData?.evento?.clinombre.replace(/\s*\(\d+\)$/, "")} (${eventoData?.evento?.clicodigo})`,
-          clinombre: eventoData?.evento?.clinombre.replace(/\s*\(\d+\)$/, ""),
+          value: evento.clicodigo,
+          label: `${evento.clinombre.replace(/\s*\(\d+\)$/, "")} (${evento.clicodigo})`,
+          clinombre: evento.clinombre.replace(/\s*\(\d+\)$/, ""),
         })
       } else {
         setClienteSelectedCB(null)
       }
 
-      if (eventoData?.evento?.placa) {
+      if (evento?.placa) {
         setPlacaSelectedCB({
-          value: eventoData?.evento?.placa,
-          label: eventoData?.evento?.placa,
+          value: evento.placa,
+          label: evento.placa,
         })
       } else {
         setPlacaSelectedCB(null)
@@ -305,9 +273,8 @@ const ModalEjecucionTarea = ({
       setClienteSelectedCB(null)
       setPlacaSelectedCB(null)
     }
-  }, [eventoData])
+  }, [evento])
 
-  // Estados disponibles según reglas de negocio
   const estadosPermitidos = {
     PENDIENTE: ["EN_PROCESO", "COMPLETADA", "CANCELADA", "REPROGRAMADA"],
     EN_PROCESO: ["EN_PROCESO", "COMPLETADA", "CANCELADA", "REPROGRAMADA"],
@@ -316,8 +283,6 @@ const ModalEjecucionTarea = ({
     REPROGRAMADA: [],
   }
 
-  // Obtener los datos de manera convencional
-  const evento = eventoData.evento || {}
   const tarea = eventoData.tarea || {}
   const opcionesTarea = eventoData.opcionesTarea || []
   const historialEjecuciones = eventoData.historialEjecuciones || []
@@ -325,10 +290,8 @@ const ModalEjecucionTarea = ({
   const respuestaListaSecuencia = eventoData.respuestaListaSecuencia || null
   const respuestaMultipleSecuencias = eventoData.respuestaMultipleSecuencias || []
 
-  // Inicializar datos cuando se abre el modal y se cargan los datos
   useEffect(() => {
     if (open && evento && Object.keys(evento).length > 0) {
-      // Cargar datos iniciales
       setFormData({
         status: evento.eventostatus || "PENDIENTE",
         porcentaje: evento.porcentajeavance || 0,
@@ -337,8 +300,6 @@ const ModalEjecucionTarea = ({
         respuestaListaSecuencia: respuestaListaSecuencia || null,
         respuestaMultipleSecuencias: respuestaMultipleSecuencias || [],
       })
-
-      // Verificar si ejecución está fuera de rango
       verificarHorarioEjecucion()
     }
   }, [open, evento, respuestaTextoLibre, respuestaListaSecuencia, respuestaMultipleSecuencias])
@@ -347,13 +308,10 @@ const ModalEjecucionTarea = ({
     if (!evento || !evento.eventofecha || !evento.eventohorainicio || !evento.eventohorafin) return
 
     const ahora = dayjs()
-
-    // Parsear fechas usando la función robusta que ya tienes
     const fechaEvento = parseStringToDayjs(evento.eventofecha)
     const inicioProgramado = parseStringToDayjs(evento.eventohorainicio)
     const finProgramado = parseStringToDayjs(evento.eventohorafin)
 
-    // Crear fechas completas combinando fecha del evento con horas programadas
     const inicioCompleto = fechaEvento
       .set("hour", inicioProgramado.hour())
       .set("minute", inicioProgramado.minute())
@@ -406,7 +364,6 @@ const ModalEjecucionTarea = ({
   const handleChange = (field) => (event) => {
     const value = event.target.value
 
-    // REGLA ESPECIAL: Si estado cambia a COMPLETADA, forzar 100%
     if (field === "status" && value === "COMPLETADA") {
       setFormData((prev) => ({
         ...prev,
@@ -430,13 +387,11 @@ const ModalEjecucionTarea = ({
   }
 
   const validarGuardado = () => {
-    // Validación 1: Comentario obligatorio
     if (!formData.comentario.trim() || formData.comentario.trim().length < 10) {
       showError("Debe escribir un comentario de al menos 10 caracteres")
       return false
     }
 
-    // Validación 2: Transición de estado permitida
     const estadoActual = evento.eventostatus || "PENDIENTE"
     const estadosValidos = estadosPermitidos[estadoActual] || []
 
@@ -445,7 +400,6 @@ const ModalEjecucionTarea = ({
       return false
     }
 
-    // Validación 3: Estados terminales requieren confirmación
     if (["CANCELADA", "REPROGRAMADA"].includes(formData.status)) {
       const confirm = window.confirm(
         `⚠️ ATENCIÓN: Al marcar como ${formData.status}, la tarea quedará BLOQUEADA permanentemente.\n\n¿Está completamente seguro?`,
@@ -453,7 +407,6 @@ const ModalEjecucionTarea = ({
       if (!confirm) return false
     }
 
-    // Validación 4: Tarea obligatoria según tipo
     if (tarea.pregobligatoria) {
       const tipo = tarea.pregtipo
 
@@ -476,8 +429,6 @@ const ModalEjecucionTarea = ({
       }
     }
 
-    // Validación 5 (Solo para tecnicentro): Obligatorio tener seleccionado un cliente y placa
-
     if (esTareaConProcesoTecnicentro) {
       if (!clienteSelectedCB) {
         showError("Es obligatorio seleccionar un cliente")
@@ -490,14 +441,11 @@ const ModalEjecucionTarea = ({
       }
     }
 
-    // Si el estado es COMPLETADA, validar la fecha (solo si se proporcionó)
     if (formData.status === "COMPLETADA") {
-      // Si el usuario ingresó una fecha, validar que sea válida
       if (formData.fechaEjecucionReal && !formData.fechaEjecucionReal.isValid()) {
         showError("La fecha seleccionada no es válida")
         return false
       }
-      // Si no hay fecha, está bien (se guardara fecha actual al backend)
     }
     return true
   }
@@ -508,7 +456,6 @@ const ModalEjecucionTarea = ({
     setLoading(true)
 
     try {
-      // Preparar datos para guardar según tipo
       const datosGuardar = {
         eventocodigo,
         eventostatus: formData.status,
@@ -520,7 +467,6 @@ const ModalEjecucionTarea = ({
         respuestaListaSecuencia: null,
         respuestaMultipleSecuencias: null,
 
-        // Agregar fecha de ejecución real si el estado es COMPLETADA
         ...(formData.status === "COMPLETADA" && {
           fechaEjecucionReal: formData.fechaEjecucionReal
             ? formData.fechaEjecucionReal.format("YYYY-MM-DD HH:mm:ss")
@@ -537,7 +483,6 @@ const ModalEjecucionTarea = ({
           : {}),
       }
 
-      // Agregar respuesta según tipo
       const tipo = tarea.pregtipo
       if (tipo === "U") {
         datosGuardar.respuestaTextoLibre = formData.respuestaTextoLibre
@@ -549,7 +494,6 @@ const ModalEjecucionTarea = ({
           : []
       }
 
-      // Llamar a función de guardado del componente padre
       await onGuardarEjecucion(datosGuardar)
     } catch (error) {
       console.error(error)
@@ -559,16 +503,12 @@ const ModalEjecucionTarea = ({
     }
   }
 
-  // Si el evento está en estado terminal, mostrar sólo lectura
   const esEstadoTerminal = ["CANCELADA", "REPROGRAMADA"].includes(evento.eventostatus)
   const esEditable = !esEstadoTerminal
-
-  // Loading state
   const isLoading = isLoadingEventoData || isFetchingEventoData
 
   if (!open) return null
 
-  // Mostrar loading mientras se cargan los datos
   if (isLoading) {
     return (
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -619,7 +559,6 @@ const ModalEjecucionTarea = ({
   const esPresencial = tarea.esPresencial
   const opcionesActivas = opcionesTarea.filter((op) => op.pregstatus === "A")
 
-  // Calcular texto de recurrencia
   const textoRecurrencia =
     evento.eventorecurennum > 0
       ? `${evento.eventorecuren} (${evento.eventorecurensecuen}/${evento.eventorecurennum})`
@@ -691,7 +630,6 @@ const ModalEjecucionTarea = ({
       </DialogTitle>
 
       <DialogContent dividers>
-        {/* Información del evento */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={6}>
             <Typography variant="body2" color="textSecondary">
@@ -742,7 +680,6 @@ const ModalEjecucionTarea = ({
           )}
         </Grid>
 
-        {/* Alerta si está fuera de rango */}
         {ejecucionFueraRango.fuera && (
           <Alert severity="warning" sx={{ mb: 3 }} icon={ejecucionFueraRango.tipo === "ANTICIPADA" ? "⏰" : "⚠️"}>
             <Typography variant="body2">
@@ -752,7 +689,6 @@ const ModalEjecucionTarea = ({
           </Alert>
         )}
 
-        {/* Alerta si es estado terminal */}
         {esEstadoTerminal && (
           <Alert severity="error" sx={{ mb: 3 }}>
             <Typography variant="body2">
@@ -766,11 +702,9 @@ const ModalEjecucionTarea = ({
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Controles de ejecución (solo si editable) */}
         {esEditable && (
           <>
             <Grid container spacing={3}>
-              {/* Estado y Porcentaje */}
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth size="small" margin="normal">
                   <InputLabel>Estado</InputLabel>
@@ -813,7 +747,6 @@ const ModalEjecucionTarea = ({
                 </Box>
               </Grid>
 
-              {/* Tipo de tarea */}
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" gutterBottom>
                   Tipo de tarea:{" "}
@@ -852,7 +785,6 @@ const ModalEjecucionTarea = ({
                 )}
               </Grid>
 
-              {/* Campo de Fecha de Ejecución Real (solo visible cuando estado es COMPLETADA) */}
               {formData.status === "COMPLETADA" && (
                 <Grid item xs={12}>
                   <TextField
@@ -864,7 +796,7 @@ const ModalEjecucionTarea = ({
                       const value = e.target.value
                       setFormData((prev) => ({
                         ...prev,
-                        fechaEjecucionReal: value ? dayjs(value) : null, // Si hay valor, crea dayjs, si no, null
+                        fechaEjecucionReal: value ? dayjs(value) : null,
                       }))
                     }}
                     margin="normal"
@@ -876,7 +808,6 @@ const ModalEjecucionTarea = ({
                 </Grid>
               )}
 
-              {/* Comentario obligatorio */}
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -900,7 +831,6 @@ const ModalEjecucionTarea = ({
           </>
         )}
 
-        {/* Historial */}
         <Typography variant="h6" gutterBottom>
           Historial de ejecuciones
         </Typography>
@@ -911,7 +841,6 @@ const ModalEjecucionTarea = ({
           </Typography>
         ) : (
           <Box sx={{ maxHeight: 200, overflow: "auto" }}>
-            {/* Dentro del mapeo del historialEjecuciones */}
             {historialEjecuciones
               .slice()
               .reverse()
@@ -930,16 +859,13 @@ const ModalEjecucionTarea = ({
                     {item.comentario}
                   </Typography>
 
-                  {/* INFORMACIÓN DE CAMBIOS - SIEMPRE VISIBLE */}
                   <Typography variant="caption" color="primary" sx={{ display: "block", mt: 0.5 }}>
-                    {/* Estado: siempre mostrar */}
                     {item.statusAnterior === item.statusNuevo
                       ? `Estado: ${item.statusNuevo}`
                       : `Estado: ${item.statusAnterior} → ${item.statusNuevo}`}
 
                     {" | "}
 
-                    {/* Porcentaje: siempre mostrar con referencia al anterior */}
                     {item.porcentajeAnterior === item.porcentajeavance
                       ? `Avance: ${item.porcentajeavance}%`
                       : `Avance: ${item.porcentajeAnterior}% → ${item.porcentajeavance}%`}
@@ -959,7 +885,6 @@ const ModalEjecucionTarea = ({
         <br />
 
         {/* --- INICIO NUEVA SECCIÓN DE DOCUMENTOS ASOCIADOS --- */}
-        {/* BOTÓN PARA ABRIR EL MODAL DE DOCUMENTOS */}
         <Box sx={{ display: "flex", mb: 2 }}>
           <Button
             variant="outlined"
@@ -972,14 +897,16 @@ const ModalEjecucionTarea = ({
           </Button>
         </Box>
 
-        {/* GRILLA DE VISUALIZACIÓN DE DOCUMENTOS */}
-        <DocumentosAsociadosTabla
-          qgenero={eventocodigo}
-          procqgenero="gdocmeventos"
-          onDataLoaded={(proximaSecuencia) => setNextSecuencia(proximaSecuencia)}
-        />
+        {/* GRILLA DE VISUALIZACIÓN DE DOCUMENTOS (Apunta a los documentos del Cliente y sus Eventos) */}
+        {clienteIdParaDocumentos && (
+          <DocumentosAsociadosTabla
+            qgenero={clienteIdParaDocumentos}
+            procqgenero="CXCMCLI"
+            onDataLoaded={(proximaSecuencia) => setNextSecuencia(proximaSecuencia)}
+          />
+        )}
 
-        {/* 1. INYECCIÓN DEL MODAL (CON SECUENCIA CALCULADA) */}
+        {/* MODAL DE ADJUNTOS CONSOLIDADO (Sube la información atada estrictamente a este Evento) */}
         <DocumentosAsociadosModal
           isOpen={modalOpenDocumentos}
           onClose={() => setModalOpenDocumentos(false)}
@@ -989,21 +916,11 @@ const ModalEjecucionTarea = ({
             docsecuen: nextSecuencia,
           }}
           onSuccess={() => {
-            queryClient.invalidateQueries(["documentosAsociados", eventocodigo, "gdocmeventos"])
-          }}
-        />
-
-        {/* 2. SEGUNDA INYECCIÓN DEL MODAL (MANTENIDA POR REGLA ESTABLECIDA) */}
-        <DocumentosAsociadosModal
-          isOpen={modalOpenDocumentos}
-          onClose={() => setModalOpenDocumentos(false)}
-          contexto={{
-            docqgenero: eventocodigo,
-            docprocqgenero: "gdocmeventos",
-          }}
-          onSuccess={(data) => {
-            console.log("Documento asociado correctamente. UUID:", data?.documentouuid)
-            queryClient.invalidateQueries(["documentosAsociados", eventocodigo, "gdocmeventos"])
+            // Al guardar exitosamente, invalidamos la cache del componente DocumentosAsociadosTabla
+            // para que traiga la data fresca (incluyendo este nuevo documento del evento).
+            if (clienteIdParaDocumentos) {
+              queryClient.invalidateQueries(["documentosAsociados", clienteIdParaDocumentos, "CXCMCLI"])
+            }
           }}
         />
         {/* --- FIN NUEVA SECCIÓN DE DOCUMENTOS ASOCIADOS --- */}

@@ -380,6 +380,10 @@ def create_app(config_class=Config):
 
     app.register_blueprint(TipoDeCompania_bp, url_prefix="/TipoDeCompania")
 
+    from app.AsignacionDeClientesAUsu import bp as AsignacionDeClientesAUsu_bp
+
+    app.register_blueprint(AsignacionDeClientesAUsu_bp, url_prefix="/AsignacionDeClientesAUsu")
+
     # ************************************************************
     #  RUTAS BASE Y HERRAMIENTAS DE DESARROLLO (SOLO LOCAL)
     # ************************************************************

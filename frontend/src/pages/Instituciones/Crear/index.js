@@ -32,6 +32,7 @@ const CrearInstituciones = () => {
   const [formData, setFormData] = useState({
     insticodigo: "",
     instidescri: "",
+    instiurl: "", // NUEVO CAMPO AÑADIDO
     instistatus: "A",
   })
 
@@ -55,6 +56,8 @@ const CrearInstituciones = () => {
       finalValue = value.toUpperCase().slice(0, 3) // Límite varchar(3)
     } else if (field === "instidescri") {
       finalValue = value.toUpperCase().slice(0, 60) // Límite varchar(60)
+    } else if (field === "instiurl") {
+      finalValue = value.slice(0, 250) // Límite varchar(250) - NO lleva toUpperCase
     }
 
     setFormData((prev) => ({ ...prev, [field]: finalValue }))
@@ -80,9 +83,7 @@ const CrearInstituciones = () => {
   }
 
   // Lógica de Barra de Herramientas (Busca GRABAR o CREAR)
-  const crearAction = selectedMenuInfo?.data?.barraAcciones?.find(
-    (action) => action?.acccaption === "CREAR" || action?.acccaption === "EJECUTAR" || action?.acccaption === "GRABAR",
-  )
+  const crearAction = selectedMenuInfo?.data?.barraAcciones?.find((action) => action?.acccaption === "GRABAR")
 
   const toolbarActions = []
   if (crearAction) {
@@ -159,6 +160,17 @@ const CrearInstituciones = () => {
                   value={formData.instidescri}
                   onChange={(e) => handleInputChange("instidescri", e.target.value)}
                   placeholder="Ej: MINISTERIO DE SALUD PÚBLICA"
+                />
+              </Grid>
+
+              {/* NUEVO CAMPO AÑADIDO EN LA INTERFAZ */}
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="URL de Institución (Opcional)"
+                  value={formData.instiurl}
+                  onChange={(e) => handleInputChange("instiurl", e.target.value)}
+                  placeholder="Ej: https://www.ejemplo.gob.ec"
                 />
               </Grid>
 

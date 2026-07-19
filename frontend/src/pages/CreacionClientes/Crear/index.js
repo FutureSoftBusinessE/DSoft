@@ -77,28 +77,60 @@ const opcionesTipoPersona = [
 
 // Estado inicial con los campos que SÍ van al frontend
 const initialFormState = {
-  // Campos principales del formulario
-  tipcodigo: "", // Tipo de cliente (001 para Natural, 002 para Jurídica)
-  cliidentifica: "", // Tipo de identificación (C, R, P)
-  cliruc: "", // Número de identificación
-  clinombre: "", // Nombre/Razón Social
-  clidirec: "", // Dirección
-  cliemail: "", // Email
+  tipcodigo: "",
+  cliidentifica: "",
+  cliruc: "",
+  clinombre: "",
+  clidirec: "",
+  cliemail: "",
+  clisexo: "",
+  cliestciv: "",
+  clifecnac: "",
+  clipersona: "",
+  cliintersec: "",
+  clitelef1: "",
+  clitelef2: "",
+  clifax: "",
+  cliprofesion: "",
+}
 
-  // Campos personales
-  clisexo: "", // Sexo (M, F)
-  cliestciv: "", // Estado civil
-  clifecnac: "", // Fecha de nacimiento (formato YYYY-MM-DD)
-  clipersona: "", // Tipo de persona (N=Natural, J=Jurídica)
+// Validación de Identificación Ecuatoriana
+const validarIdentificacion = (tipo, numeroStr) => {
+  if (!numeroStr) return { ok: false, msg: "El número de identificación está vacío." }
+  const numero = numeroStr.trim()
 
-  // Campos de contacto
-  cliintersec: "", // Intersección/teléfono celular
-  clitelef1: "", // Teléfono 1
-  clitelef2: "", // Teléfono 2
-  clifax: "", // Fax
+  if (tipo === "P") return { ok: true }
+  if (tipo === "O") {
+    if (numero !== "9999999999999") return { ok: false, msg: "Para 'Consumidor Final' solo se permite 9999999999999" }
+    return { ok: true }
+  }
+  if (tipo === "R") {
+    if (numero.length !== 13) return { ok: false, msg: "El RUC debe tener 13 dígitos" }
+    if (!numero.endsWith("001")) return { ok: false, msg: "El RUC debe terminar en 001" }
+  }
+  if (tipo === "C" && numero.length !== 10) return { ok: false, msg: "La Cédula debe tener 10 dígitos" }
 
-  // Campos adicionales
-  cliprofesion: "", // Profesión
+  const digitos = numero.split("").map(Number)
+  const provincia = parseInt(numero.substring(0, 2), 10)
+  if (provincia < 1 || provincia > 24) return { ok: false, msg: "Provincia inválida" }
+
+  const tercerDigito = digitos[2]
+  if (tercerDigito < 6) {
+    let suma = 0
+    const coef = [2, 1, 2, 1, 2, 1, 2, 1, 2]
+    for (let i = 0; i < 9; i++) {
+      const v = digitos[i] * coef[i]
+      suma += v > 9 ? v - 9 : v
+    }
+    if ((suma % 10 === 0 ? 0 : 10 - (suma % 10)) !== digitos[9])
+      return { ok: false, msg: "Dígito verificador incorrecto" }
+  } else if (tercerDigito === 9) {
+    const coef = [4, 3, 2, 7, 6, 5, 4, 3, 2]
+    let suma = 0
+    for (let i = 0; i < 9; i++) suma += digitos[i] * coef[i]
+    if ((suma % 11 === 0 ? 0 : 11 - (suma % 11)) !== digitos[9]) return { ok: false, msg: "RUC Jurídico incorrecto" }
+  }
+  return { ok: true }
 }
 
 const CrearCreacionClientes = () => {
@@ -110,16 +142,13 @@ const CrearCreacionClientes = () => {
     severity: "success",
   })
 
-  // Manejar cambio en tipo de persona
   const handleTipoPersonaChange = (value) => {
-    // Determinar clipersona basado en tipcodigo
     let clipersona = ""
     if (value === "001") {
       clipersona = "N"
     } else if (value === "002") {
       clipersona = "J"
     }
-
     setFormData((prev) => ({
       ...prev,
       tipcodigo: value,
@@ -127,20 +156,19 @@ const CrearCreacionClientes = () => {
     }))
   }
 
-  // Manejar cambios en otros campos del formulario
   const handleInputChange = (field, value) => {
+    // Convierte el texto a mayúsculas a excepción del correo electrónico
+    const val = field !== "cliemail" && typeof value === "string" ? value.toUpperCase() : value
     setFormData((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: val,
     }))
   }
 
-  // Limpiar formulario
   const limpiarFormulario = () => {
     setFormData(initialFormState)
   }
 
-  // Mostrar snackbar
   const mostrarSnackbar = (message, severity = "success") => {
     setSnackbar({
       open: true,
@@ -149,39 +177,49 @@ const CrearCreacionClientes = () => {
     })
   }
 
-  // Cerrar snackbar
   const cerrarSnackbar = () => {
     setSnackbar({ ...snackbar, open: false })
   }
 
-  // Crear cliente - solo insert sin validaciones
   const handleCrearCliente = async () => {
+    // 1. Validaciones de campos obligatorios
+    if (
+      !formData.cliidentifica?.trim() ||
+      !formData.cliruc?.trim() ||
+      !formData.clinombre?.trim() ||
+      !formData.clidirec?.trim()
+    ) {
+      return mostrarSnackbar(
+        "Tipo de identificación, Número de Identificación, Nombre y Dirección son obligatorios.",
+        "warning",
+      )
+    }
+
+    // 2. Validación matemática y lógica del RUC/Cédula Ecuatoriana
+    const checkID = validarIdentificacion(formData.cliidentifica, formData.cliruc)
+    if (!checkID.ok) {
+      return mostrarSnackbar(checkID.msg, "error")
+    }
+
     try {
       setIsSaving(true)
 
-      // Preparar datos con los campos que SÍ van
+      // 4. Preparar datos para inserción
       const datosCliente = {
-        // Campos del formulario
         tipcodigo: formData.tipcodigo,
         cliidentifica: formData.cliidentifica,
         cliruc: formData.cliruc,
         clinombre: formData.clinombre,
         clidirec: formData.clidirec,
         cliemail: formData.cliemail,
-
-        // Campos personales
         clisexo: formData.clisexo,
         cliestciv: formData.cliestciv,
         clifecnac: formData.clifecnac,
         clipersona: formData.clipersona,
-
-        // Campos de contacto
         cliintersec: formData.cliintersec,
         clitelef1: formData.clitelef1,
         clitelef2: formData.clitelef2,
         clifax: formData.clifax,
-
-        // Campos adicionales
         cliprofesion: formData.cliprofesion,
 
         // Campos con valores por defecto
@@ -212,9 +250,7 @@ const CrearCreacionClientes = () => {
         clinommatriz: "",
       }
 
-      console.log("Datos a enviar:", datosCliente)
-
-      // Enviar datos a la API
+      // 5. Enviar datos a la API
       const response = await fetchwrapper(`/CreacionCliente/saveCliente`, {
         method: "POST",
         headers: {
@@ -227,8 +263,6 @@ const CrearCreacionClientes = () => {
 
       if (result.tipmsg === "Success") {
         mostrarSnackbar(result.msg, "success")
-
-        // Limpiar formulario después de éxito
         limpiarFormulario()
       } else {
         mostrarSnackbar(result.msg || "Error al crear el cliente", "error")
@@ -305,11 +339,11 @@ const CrearCreacionClientes = () => {
                     {/* Tipo de Identificación */}
                     <Grid item xs={12} sm={4}>
                       <FormControl fullWidth>
-                        <InputLabel>Tipo de Identificación</InputLabel>
+                        <InputLabel>Tipo de Identificación *</InputLabel>
                         <Select
                           value={formData.cliidentifica}
                           onChange={(e) => handleInputChange("cliidentifica", e.target.value)}
-                          label="Tipo de Identificación"
+                          label="Tipo de Identificación *"
                         >
                           {opcionesIdentificacion.map((opcion) => (
                             <MenuItem key={opcion.value} value={opcion.value}>
@@ -324,7 +358,7 @@ const CrearCreacionClientes = () => {
                     <Grid item xs={12} sm={4}>
                       <TextField
                         fullWidth
-                        label="Identificación"
+                        label="Identificación *"
                         value={formData.cliruc}
                         onChange={(e) => handleInputChange("cliruc", e.target.value)}
                       />
@@ -384,7 +418,7 @@ const CrearCreacionClientes = () => {
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Nombres y Apellidos"
+                        label="Nombres y Apellidos *"
                         value={formData.clinombre}
                         onChange={(e) => handleInputChange("clinombre", e.target.value)}
                       />
@@ -404,7 +438,7 @@ const CrearCreacionClientes = () => {
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label="Dirección"
+                        label="Dirección *"
                         value={formData.clidirec}
                         onChange={(e) => handleInputChange("clidirec", e.target.value)}
                         multiline

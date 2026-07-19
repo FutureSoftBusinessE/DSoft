@@ -14,16 +14,16 @@ from app.Clases.FILTER_VALUE_TYPE import FILTER_VALUE_TYPE
 def getAllInstituciones():
     claims = get_jwt()
 
-    # 1. EXTRACCIÓN DE IDENTIDAD Y BASE DE DATOS
-    # No usamos @api_endpoint aquí para no alterar el formato que espera la tabla de React
+    # 1. EXTRACCIÓN DE IDENTIDAD Y BASE DE DATOS[cite: 21]
+    # No usamos @api_endpoint aquí para no alterar el formato que espera la tabla de React[cite: 21]
     try:
         seleccion = claims["seleccion"]
         clicianonBD = seleccion["clicianonBD"]
-        # No extraemos 'cliciaciacodigo' porque el catálogo es global
+        # No extraemos 'cliciaciacodigo' porque el catálogo es global[cite: 21]
     except KeyError:
         return jsonify({"error": "Sesión inválida o incompleta"}), 401
 
-    # 2. PARÁMETROS DE PAGINACIÓN Y FILTROS
+    # 2. PARÁMETROS DE PAGINACIÓN Y FILTROS[cite: 21]
     data = request.get_json()
     page = int(data.get("page", 1))
     per_page = int(data.get("perPage", 10))
@@ -33,23 +33,25 @@ def getAllInstituciones():
     engine = db.session.bind
 
     with engine.connect() as connection:
-        # Definición de columnas permitidas para el motor de búsqueda
+        # Definición de columnas permitidas para el motor de búsqueda[cite: 21]
         allowed_columns = [
             {"insticodigo": FILTER_VALUE_TYPE.STRING},
             {"instidescri": FILTER_VALUE_TYPE.STRING},
+            {"instiurl": FILTER_VALUE_TYPE.STRING},  # <-- NUEVO CAMPO AGREGADO
             {"instistatus": FILTER_VALUE_TYPE.STRING},
         ]
 
-        # Query base: Al ser catálogo global, seleccionamos directamente sin filtrar por compañía
+        # Query base: Al ser catálogo global, seleccionamos directamente sin filtrar por compañía[cite: 21]
         base_query = """
         SELECT
             insticodigo,
             instidescri,
+            instiurl,       -- <-- NUEVO CAMPO AGREGADO
             instistatus
         FROM gdocbinstituciones
         """
 
-        # Construcción de la consulta paginada con el helper del sistema
+        # Construcción de la consulta paginada con el helper del sistema[cite: 21]
         final_query, params = build_paginated_query(
             base_query=base_query,
             order_by=["insticodigo ASC"],
@@ -63,10 +65,10 @@ def getAllInstituciones():
 
         total_records = result[0]["total"] if result else 0
 
-        # Limpiamos el campo 'total' de los resultados de la fila para el set de datos final
+        # Limpiamos el campo 'total' de los resultados de la fila para el set de datos final[cite: 21]
         data_result = [{**{key: value for key, value in dict(row).items() if key != "total"}} for row in result]
 
-    # Retorno en formato JSON puro compatible con CustomConditionalActionsTableServerSide
+    # Retorno en formato JSON puro compatible con CustomConditionalActionsTableServerSide[cite: 21]
     return (
         jsonify(
             {

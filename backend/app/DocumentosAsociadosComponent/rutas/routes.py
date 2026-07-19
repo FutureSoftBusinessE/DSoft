@@ -43,7 +43,7 @@ def get_all_instituciones():
         claims = get_jwt()
         db.session = get_session(claims["seleccion"]["clicianonBD"])
         with db.session.bind.connect() as conn:
-            return jsonify({"success": True, "data": [dict(r) for r in conn.execute(text("SELECT insticodigo, instidescri FROM gdocbinstituciones WHERE instistatus = 'A' ORDER BY instidescri")).mappings().all()]}), 200
+            return jsonify({"success": True, "data": [dict(r) for r in conn.execute(text("SELECT insticodigo, instidescri, instiurl FROM gdocbinstituciones WHERE instistatus = 'A' ORDER BY instidescri")).mappings().all()]}), 200
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
@@ -61,27 +61,81 @@ def get_all_tipos_claves():
 
 
 # =================================================================
-# 2. GET: getDocumentosAsociados
+# 2. GET: getDocumentosAsociados (ACTUALIZADO CON PERMISOS Y EVENTOS)
 # =================================================================
 @bp.route("/getDocumentosAsociados/<string:qgenero>/<string:procqgenero>", methods=["GET"])
 @jwt_required()
 def get_documentos_asociados(qgenero, procqgenero):
     try:
         claims = get_jwt()
+        ciacodigo = claims["seleccion"]["cliciaciacodigo"]
+        loccodigo = claims["localidad"]["loccodigo"]
+        usrcodigo = claims["user"]
+
+        usrcodigo_encriptado = encriptar(usrcodigo)
+
         db.session = get_session(claims["seleccion"]["clicianonBD"])
         with db.session.bind.connect() as connection:
+            is_gerente_query = """
+                SELECT usrflagger 
+                FROM siactloc 
+                WHERE ciacodigo = :ciacodigo 
+                  AND loccodigo = :loccodigo 
+                  AND usrcodigo = :usrcodigo
+            """
+            is_gerente_result = connection.execute(text(is_gerente_query), {"ciacodigo": ciacodigo, "loccodigo": loccodigo, "usrcodigo": usrcodigo_encriptado}).mappings().fetchone()
+
+            is_gerente_flag = 1 if (is_gerente_result and is_gerente_result["usrflagger"] != 0) else 0
+
             query = text(
                 """
-                SELECT d.documentouuid, d.docnombre, d.docextension, d.docfecemi, d.docfecven,
-                       d.docindex1, d.docindex2, d.docindex3, d.docindex4, d.docindex5, d.docindex6,
-                       d.docfechorisys, d.docusuisys, d.insticodigo, d.clacodigo, i.instidescri
+                SELECT 
+                    d.documentouuid, 
+                    
+                    CASE
+                        WHEN UPPER(d.docextension) = 'CLV' THEN
+                            d.docnombre + ' ' + ISNULL(i.instidescri, '') + ' ' + ISNULL(tc.cladescri, '')
+                        ELSE
+                            d.docnombre
+                    END as docnombre,
+                    
+                    d.docextension, d.docfecemi, d.docfecven,
+                    d.docindex1, d.docindex2, d.docindex3, d.docindex4, d.docindex5, d.docindex6,
+                    d.docfechorisys, d.docusuisys, d.insticodigo, d.clacodigo, i.instidescri
                 FROM gdocmdocumentos d
-                LEFT JOIN gdocbinstituciones i ON d.insticodigo = i.insticodigo
-                WHERE d.ciacodigo = :ciacodigo AND d.docqgenero = :qgenero AND d.docprocqgenero = :procqgenero AND d.docestisys = 'A'
+                LEFT JOIN gdocbinstituciones i 
+                    ON d.insticodigo = i.insticodigo
+                LEFT JOIN gdocbTipoClaves tc 
+                    ON d.clacodigo = tc.clacodigo
+                    
+                LEFT JOIN gdoc_usuariocliente uc 
+                    ON d.ciacodigo = uc.ciacodigo AND uc.clientecodigo = :qgenero AND uc.usrcodigo = :usrcodigo
+                LEFT JOIN gdoc_usuariodocumento ud 
+                    ON d.ciacodigo = ud.ciacodigo AND d.documentouuid = ud.documentouuid AND ud.usrcodigo = :usrcodigo
+                    
+                WHERE d.ciacodigo = :ciacodigo 
+                  AND d.docestisys = 'A'
+                  
+                  AND (
+                      d.docqgenero = :qgenero
+                      OR d.docqgenero IN (
+                          SELECT eventocodigo 
+                          FROM gdocmeventos 
+                          WHERE ciacodigo = :ciacodigo AND clicodigo = :qgenero
+                      )
+                  )
+                  
+                  AND (
+                      :is_gerente = 1
+                      OR uc.hereda_documentos = 1
+                      OR ud.permiso_ver = 1
+                  )
+                  
                 ORDER BY d.docfechorisys DESC
             """
             )
-            result = connection.execute(query, {"ciacodigo": claims["seleccion"]["cliciaciacodigo"], "qgenero": qgenero, "procqgenero": procqgenero}).mappings().all()
+            result = connection.execute(query, {"ciacodigo": ciacodigo, "qgenero": qgenero, "procqgenero": procqgenero, "usrcodigo": usrcodigo_encriptado, "is_gerente": is_gerente_flag}).mappings().all()
+
             data = []
             for row in result:
                 r = dict(row)
@@ -98,7 +152,7 @@ def get_documentos_asociados(qgenero, procqgenero):
 
 
 # =================================================================
-# 3. POST: guardarArchivoAdjunto (BLINDADO CON HEXADECIMAL)
+# 3. POST: guardarArchivoAdjunto (BLINDADO CON HEXADECIMAL Y PERMISOS AUTOGENERADOS)
 # =================================================================
 @bp.route("/guardarArchivoAdjunto", methods=["POST"])
 @jwt_required()
@@ -107,6 +161,11 @@ def upload_documento():
         claims = get_jwt()
         ciacodigo = claims["seleccion"]["cliciaciacodigo"]
         usuario = claims.get("usuario", {}).get("usucodigo", "SISTEMA")
+
+        # Extraemos el código de usuario del JWT para encriptarlo y darle permisos sobre el documento
+        usrcodigo_jwt = claims["user"]
+        usrcodigo_encriptado = encriptar(usrcodigo_jwt)
+
         db.session = get_session(claims["seleccion"]["clicianonBD"])
 
         docqgenero = request.form.get("docqgenero")
@@ -142,12 +201,12 @@ def upload_documento():
 
         new_uuid = str(uuid.uuid4())
 
-        # --- SOLUCIÓN: CONVERTIMOS A HEXADECIMAL PARA NO PERDER DATOS NI CORROMPER JSON ---
         doc_hex = documento_bytes.hex() if documento_bytes else None
         sens_hex = doc_datos_sensibles.hex() if doc_datos_sensibles else None
 
         with db.session.bind.connect() as connection:
             with connection.begin():
+                # 1. Guardar el Documento
                 query = text(
                     """
                     INSERT INTO gdocmdocumentos (
@@ -187,7 +246,17 @@ def upload_documento():
                         "docusuisys": usuario,
                     },
                 )
-        return jsonify({"success": True, "message": "Documento guardado correctamente", "documentouuid": new_uuid}), 201
+
+                # 2. Asignar Permiso Automático al Creador
+                query_permiso = text(
+                    """
+                    INSERT INTO gdoc_usuariodocumento (ciacodigo, usrcodigo, documentouuid, permiso_ver)
+                    VALUES (:ciacodigo, :usrcodigo, :documentouuid, 1)
+                    """
+                )
+                connection.execute(query_permiso, {"ciacodigo": ciacodigo, "usrcodigo": usrcodigo_encriptado, "documentouuid": new_uuid})
+
+        return jsonify({"success": True, "message": "Documento guardado y asignado correctamente", "documentouuid": new_uuid}), 201
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
@@ -223,7 +292,6 @@ def get_datos_sensibles(documentouuid):
                 contenido_json_string = contenido_json_string[:-1]
 
             # --- RESTAURACIÓN DEL FALLBACK ---
-            # Atrapamos la excepción de JSON para que NO lance 500 y llegue al Front para autorrepararse
             try:
                 datos_obj = json.loads(contenido_json_string)
             except Exception:
@@ -259,11 +327,11 @@ def download_documento(documentouuid):
             if not result or not result[0]:
                 return jsonify({"success": False, "message": "Archivo físico no encontrado"}), 404
 
-            # Formateo estricto del buffer (Misma técnica de FirmarPDFDF)
+            # Formateo estricto del buffer
             out_stream = io.BytesIO(result[0])
             out_stream.seek(0)
 
-            return send_file(out_stream, mimetype="application/octet-stream", as_attachment=True, download_name=result[1])  # Fuerza la descarga binaria genérica
+            return send_file(out_stream, mimetype="application/octet-stream", as_attachment=True, download_name=result[1])
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
@@ -336,7 +404,7 @@ def buscar_documentos_para_importar():
 
 
 # =================================================================
-# 8. POST: ejecutarImportacionDocumento (CORREGIDO TRANSACTION Y PAYLOAD)
+# 8. POST: ejecutarImportacionDocumento (CON PERMISOS AUTOGENERADOS)
 # =================================================================
 @bp.route("/ejecutarImportacionDocumento", methods=["POST"])
 @jwt_required()
@@ -344,10 +412,14 @@ def ejecutar_importacion_documento():
     try:
         claims = get_jwt()
         db.session = get_session(claims["seleccion"]["clicianonBD"])
+        ciacodigo = claims["seleccion"]["cliciaciacodigo"]
+
+        # Extraemos y encriptamos el código de usuario del JWT para el permiso
+        usrcodigo_jwt = claims["user"]
+        usrcodigo_encriptado = encriptar(usrcodigo_jwt)
+
         body = request.json or {}
 
-        # --- CORRECCIÓN: Capturamos la variable como la envía el frontend (documentouuidOrigen) ---
-        # Usamos un fallback por si en el futuro lo envían con guion bajo
         orig_uuid = body.get("documentouuidOrigen") or body.get("documentouuid_origen")
 
         nuevo_q = body.get("docqgenero")
@@ -364,6 +436,8 @@ def ejecutar_importacion_documento():
                     return jsonify({"success": False, "message": "Documento original no existe"}), 404
 
                 new_uuid = str(uuid.uuid4())
+
+                # 1. Insertar el documento importado
                 sql_ins = text(
                     """
                     INSERT INTO gdocmdocumentos (
@@ -378,7 +452,7 @@ def ejecutar_importacion_documento():
                 conn.execute(
                     sql_ins,
                     {
-                        "cia": claims["seleccion"]["cliciaciacodigo"],
+                        "cia": ciacodigo,
                         "uuid": new_uuid,
                         "ext": orig[0],
                         "q": nuevo_q,
@@ -401,6 +475,15 @@ def ejecutar_importacion_documento():
                     },
                 )
 
-        return jsonify({"success": True, "message": "Documento importado con éxito por puntero de herencia", "documentouuid": new_uuid}), 201
+                # 2. Asignar Permiso Automático al Creador/Importador
+                query_permiso = text(
+                    """
+                    INSERT INTO gdoc_usuariodocumento (ciacodigo, usrcodigo, documentouuid, permiso_ver)
+                    VALUES (:cia, :usrcodigo, :uuid, 1)
+                    """
+                )
+                conn.execute(query_permiso, {"cia": ciacodigo, "usrcodigo": usrcodigo_encriptado, "uuid": new_uuid})
+
+        return jsonify({"success": True, "message": "Documento importado y asignado con éxito por puntero de herencia", "documentouuid": new_uuid}), 201
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500

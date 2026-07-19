@@ -3,7 +3,6 @@ import os
 import json
 import tempfile
 import qrcode
-import traceback
 from datetime import datetime
 from flask import request, send_file, jsonify, make_response
 
@@ -13,7 +12,7 @@ from app.db import get_session
 from app.extensions import db
 from services.encrip_desencrip import desencriptar
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 from pyhanko.sign import signers, fields
 from pyhanko.pdf_utils.images import PdfImage
@@ -23,11 +22,67 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509.oid import NameOID
 from app.FirmarPDFDF import bp
-from error_handling import api_endpoint, APIError, ValidationError
+from error_handling import APIError
 
 
 def error_response(msg, status=400):
     return make_response(jsonify({"success": False, "message": msg}), status)
+
+
+def generar_sello_grafico(nombres, output_path):
+    # 1. Generar el código QR
+    qr_data = f"Firmado por: {nombres}\nFecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\nValidado por DSOFT"
+
+    # Reducimos el box_size a 3 y aseguramos un margen blanco (border=2)
+    qr = qrcode.QRCode(box_size=3, border=2)
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+    qr_w, qr_h = qr_img.size
+
+    # 2. Crear lienzo (400x120 pixeles para mantener una relación 200x60 en PDF)
+    img_w = 400
+    img_h = 120
+    base_img = Image.new("RGB", (img_w, img_h), "white")
+
+    # 3. Pegar el QR a la izquierda (centrado verticalmente)
+    qr_y = (img_h - qr_h) // 2
+    base_img.paste(qr_img, (5, qr_y))
+
+    # 4. Preparar las fuentes (Con fallback si no existen las fuentes del sistema)
+    draw = ImageDraw.Draw(base_img)
+    try:
+        if os.name == "nt":  # Windows
+            font_small = ImageFont.truetype("arial.ttf", 11)
+            font_large = ImageFont.truetype("arialbd.ttf", 16)
+        else:  # Linux/Mac
+            font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 11)
+            font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
+    except Exception:
+        font_small = ImageFont.load_default()
+        font_large = ImageFont.load_default()
+
+    # 5. Dibujar los textos
+    text_x = qr_w + 10
+
+    # Se dibuja la etiqueta de "Firmado electrónicamente por:" en color negro
+    draw.text((text_x, 35), "Firmado electrónicamente por:", fill=(0, 0, 0), font=font_small)
+
+    # Lógica para partir el nombre en dos líneas si es muy largo (ej. 4 nombres)
+    nombres_upper = str(nombres).upper().strip()
+    parts = nombres_upper.split()
+    if len(parts) >= 4:
+        name_str = f"{parts[0]} {parts[1]}\n{parts[2]} {parts[3]}"
+    elif len(parts) == 3:
+        name_str = f"{parts[0]} {parts[1]}\n{parts[2]}"
+    else:
+        name_str = nombres_upper
+
+    # Dibujar el nombre en color NEGRO (0, 0, 0)
+    draw.text((text_x, 60), name_str, fill=(0, 0, 0), font=font_large)
+
+    # 6. Guardar la imagen final
+    base_img.save(output_path, format="JPEG", quality=95)
 
 
 @bp.route("/firmarDocumentoVisualDF", methods=["POST"])
@@ -57,7 +112,6 @@ def firmarDocumentoVisualDF():
     engine = db.session.bind
 
     with engine.connect() as connection:
-        # LÓGICA DE FIRMA GLOBAL (SI EL USUARIO NO ENVIÓ ARCHIVO/CLAVE MANUALMENTE)
         if not p12_file or not password:
             sql_cgb = text("SELECT locpathxml FROM cgblocal WHERE ciacodigo = :cia AND loccodigo = :loc")
             cgb_res = connection.execute(sql_cgb, {"cia": ciacodigo, "loc": loccodigo}).fetchone()
@@ -88,8 +142,9 @@ def firmarDocumentoVisualDF():
 
     tmp_key_path = None
     tmp_cert_path = None
-    tmp_qr_path = None
+    tmp_img_path = None
     tmp_pdf_path = None
+
     try:
         try:
             private_key, certificate, _ = pkcs12.load_key_and_certificates(p12_data, password.encode("utf-8"), default_backend())
@@ -98,8 +153,7 @@ def firmarDocumentoVisualDF():
 
         try:
             nombres = certificate.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
-        except Exception as e:
-            raise APIError(str(e))
+        except Exception:
             nombres = "Firma Electrónica Autorizada"
 
         pem_key = private_key.private_bytes(encoding=serialization.Encoding.PEM, format=serialization.PrivateFormat.PKCS8, encryption_algorithm=serialization.NoEncryption())
@@ -115,14 +169,10 @@ def firmarDocumentoVisualDF():
 
         signer = signers.SimpleSigner.load(tmp_key_path, tmp_cert_path)
 
-        qr_data = f"Firmado digitalmente por:\n{nombres}\nFecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\nValidado por DSOFT"
-        qr = qrcode.QRCode(box_size=10, border=1)
-        qr.add_data(qr_data)
-        qr.make(fit=True)
-        qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpeg") as tmp_qr:
-            qr_img.save(tmp_qr.name, format="JPEG")
-            tmp_qr_path = tmp_qr.name
+        # GENERACIÓN DEL SELLO VISUAL (Pillow)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpeg") as tmp_img:
+            generar_sello_grafico(nombres, tmp_img.name)
+            tmp_img_path = tmp_img.name
 
         pdf_file.seek(0)
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
@@ -131,16 +181,19 @@ def firmarDocumentoVisualDF():
 
         with open(tmp_pdf_path, "r+b") as doc:
             w = IncrementalPdfFileWriter(doc, strict=False)
-            sig_field_name = f"Firma_QR_DSOFT_{int(datetime.now().timestamp())}"
-            box = (x, y, x + 100, y + 100)
+            sig_field_name = f"Firma_DSOFT_{int(datetime.now().timestamp())}"
+
+            # CAJA DE FIRMA: Se ajusta al tamaño (200x60) exacto de la relación visual generada
+            box = (x, y, x + 200, y + 60)
 
             try:
                 fields.append_signature_field(w, fields.SigFieldSpec(sig_field_name=sig_field_name, on_page=page, box=box))
-            except Exception as e:
-                raise APIError(str(e))
+            except Exception:
                 fields.append_signature_field(w, fields.SigFieldSpec(sig_field_name=sig_field_name, on_page=0, box=box))
 
-            stamp_style = StaticStampStyle(background=PdfImage(tmp_qr_path))
+            # SOLUCIÓN DEL BORDE: Agregamos border_width=0 a StaticStampStyle
+            stamp_style = StaticStampStyle(background=PdfImage(tmp_img_path), border_width=0)
+
             meta = signers.PdfSignatureMetadata(field_name=sig_field_name)
             pdf_signer = signers.PdfSigner(signature_meta=meta, signer=signer, stamp_style=stamp_style)
             pdf_signer.sign_pdf(w, in_place=True)
@@ -151,11 +204,12 @@ def firmarDocumentoVisualDF():
         out_stream = io.BytesIO(final_bytes)
         out_stream.seek(0)
         safe_filename = getattr(pdf_file, "filename", "Documento_DSOFT.pdf")
-        return send_file(out_stream, mimetype="application/pdf", as_attachment=True, download_name=f"FIRMADO_QR_{safe_filename}")
+        return send_file(out_stream, mimetype="application/pdf", as_attachment=True, download_name=f"FIRMADO_EC_{safe_filename}")
+
     except Exception as e:
         raise APIError(str(e))
     finally:
-        for tmp_file in [tmp_key_path, tmp_cert_path, tmp_qr_path, tmp_pdf_path]:
+        for tmp_file in [tmp_key_path, tmp_cert_path, tmp_img_path, tmp_pdf_path]:
             if tmp_file and os.path.exists(tmp_file):
                 try:
                     os.remove(tmp_file)

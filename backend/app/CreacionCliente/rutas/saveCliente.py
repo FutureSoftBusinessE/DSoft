@@ -7,6 +7,9 @@ from sqlalchemy import text
 from app.db import get_session
 from datetime import datetime
 
+# Importamos la función de encriptación
+from services.encrip_desencrip import encriptar
+
 
 @bp.route("/saveCliente", methods=["POST"])
 @jwt_required()
@@ -17,11 +20,14 @@ def saveCliente():
     # Obtener datos de conexión desde el token
     clicianonBD = claims["seleccion"]["clicianonBD"]
     ciacodigo = claims["seleccion"]["cliciaciacodigo"]
-    loccodigo = claims["seleccion"].get("loccodigo", "001")  # Valor por defecto si no existe
+    loccodigo = claims["seleccion"].get("loccodigo", "001")
 
     # Obtener usuario del token
     usrcodigo = claims["user"]
     ipUser = request.headers.get("X-Forwarded-For", request.remote_addr)
+
+    # Encriptamos el código del usuario para hacer match en las tablas de seguridad
+    usrcodigo_encriptado = encriptar(str(usrcodigo).strip())
 
     # Obtener fechas para auditoría
     fecha_con_hora_cero = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -31,48 +37,48 @@ def saveCliente():
     data = request.get_json()
 
     # ========== OBTENER TODOS LOS CAMPOS DE LA TABLA CXCMCLI ==========
-
-    # Campos principales (del formulario)
-    tipcodigo = data.get("tipcodigo", "")  # 001=Natural, 002=Jurídica
-    cliidentifica = data.get("cliidentifica", "")  # C=Cédula, R=RUC, P=Pasaporte
-    cliruc = data.get("cliruc", "")  # Número de identificación
-    clinombre = data.get("clinombre", "")  # Nombre/Razón Social
-    clidirec = data.get("clidirec", "")  # Dirección
-    cliemail = data.get("cliemail", "")  # Email
-
-    # Campos personales
-    clisexo = data.get("clisexo", "")  # M=Masculino, F=Femenino
-    cliestciv = data.get("cliestciv", "")  # Estado civil
-    clifecnac = data.get("clifecnac", "")  # Fecha de nacimiento
-    clipersona = data.get("clipersona", "N")  # N=Natural, J=Jurídica
-
-    # Campos de contacto
-    cliintersec = data.get("cliintersec", "")  # Intersección/teléfono celular
-    clitelef1 = data.get("clitelef1", "")  # Teléfono 1
-    clitelef2 = data.get("clitelef2", "")  # Teléfono 2
-    clifax = data.get("clifax", "")  # Fax
-
-    # Campos adicionales
-    cliprofesion = data.get("cliprofesion", "")  # Profesión
-
-    # Campos con valores por defecto (se envían desde frontend o se establecen aquí)
-    clirepres = data.get("clirepres", "")  # Representante legal
-    clirucmatriz = data.get("clirucmatriz", "")  # RUC matriz
-    clinommatriz = data.get("clinommatriz", "")  # Nombre matriz
+    tipcodigo = data.get("tipcodigo", "")
+    cliidentifica = data.get("cliidentifica", "")
+    cliruc = data.get("cliruc", "")
+    clinombre = data.get("clinombre", "")
+    clidirec = data.get("clidirec", "")
+    cliemail = data.get("cliemail", "")
+    clisexo = data.get("clisexo", "")
+    cliestciv = data.get("cliestciv", "")
+    clifecnac = data.get("clifecnac", "")
+    clipersona = data.get("clipersona", "N")
+    cliintersec = data.get("cliintersec", "")
+    clitelef1 = data.get("clitelef1", "")
+    clitelef2 = data.get("clitelef2", "")
+    clifax = data.get("clifax", "")
+    cliprofesion = data.get("cliprofesion", "")
+    clirepres = data.get("clirepres", "")
+    clirucmatriz = data.get("clirucmatriz", "")
+    clinommatriz = data.get("clinommatriz", "")
     clidiasrecibefac1 = data.get("clidiasrecibefac1", "0")
     cliconespecial = data.get("cliconespecial", "0")
 
-    # ========== CONEXIÓN A LA BASE DE DATOS ==========
     db.session = get_session(clicianonBD)
     engine = db.session.bind
 
     try:
         with engine.connect() as conn:
             with conn.begin():
-                # ========== GENERAR SECUENCIA PARA EL CLIENTE ==========
+
+                # ========== 1. VERIFICACIÓN DE DUPLICADOS EN TODA LA BASE ==========
+                check_query = """
+                SELECT clicodigo, clinombre
+                FROM cxcmcli
+                WHERE ciacodigo = :ciacodigo AND cliruc = :cliruc
+                """
+                duplicate = conn.execute(text(check_query), {"ciacodigo": ciacodigo, "cliruc": cliruc}).mappings().fetchone()
+
+                if duplicate:
+                    return jsonify({"tipmsg": "Error", "msg": f"La identificación (RUC/Cédula) ya se encuentra registrada en el cliente: {duplicate['clinombre']} (Código: {duplicate['clicodigo']})."}), 400
+
+                # ========== 2. GENERAR SECUENCIA PARA EL CLIENTE ==========
                 _seccodigo = "CLI"
 
-                # Obtener la secuencia actual
                 siacsec_query = """
                 SELECT secnumero
                 FROM siacsec
@@ -81,18 +87,13 @@ def saveCliente():
                 siacsec_result = conn.execute(text(siacsec_query), {"ciacodigo": ciacodigo, "locservidor": "A", "seccodigo": _seccodigo}).mappings().fetchone()
 
                 if siacsec_result is None:
-                    # Crear secuencia si no existe
                     crear_secuencia_query = """
                     INSERT INTO siacsec (ciacodigo, locservidor, seccodigo, secnumero)
                     VALUES (:ciacodigo, :locservidor, :seccodigo, 0)
                     """
                     conn.execute(
                         text(crear_secuencia_query),
-                        {
-                            "ciacodigo": ciacodigo,
-                            "locservidor": "A",
-                            "seccodigo": _seccodigo,
-                        },
+                        {"ciacodigo": ciacodigo, "locservidor": "A", "seccodigo": _seccodigo},
                     )
                     secuenciaActualCliente = 0
                 else:
@@ -101,7 +102,6 @@ def saveCliente():
                 nuevaSecuenciaActualCliente = secuenciaActualCliente + 1
                 clienteCodigoGenerated = f"{nuevaSecuenciaActualCliente:06}"
 
-                # Actualizar la secuencia
                 update_secuencia_query = """
                 UPDATE siacsec
                 SET secnumero = :nuevaSecuencia
@@ -109,17 +109,10 @@ def saveCliente():
                 """
                 conn.execute(
                     text(update_secuencia_query),
-                    {
-                        "nuevaSecuencia": nuevaSecuenciaActualCliente,
-                        "ciacodigo": ciacodigo,
-                        "locservidor": "A",
-                        "seccodigo": _seccodigo,
-                    },
+                    {"nuevaSecuencia": nuevaSecuenciaActualCliente, "ciacodigo": ciacodigo, "locservidor": "A", "seccodigo": _seccodigo},
                 )
 
-                # ========== OBTENER VALORES POR DEFECTO DE OTRAS TABLAS ==========
-
-                # Obtener valores de activicodigo y sectorcodigo desde Cgblocal
+                # ========== 3. OBTENER VALORES POR DEFECTO ==========
                 default_info_query = """
                     SELECT activicodigo, sectorcodigo
                     FROM cgblocal
@@ -128,14 +121,12 @@ def saveCliente():
                 default_info = conn.execute(text(default_info_query), {"ciacodigo": ciacodigo, "loccodigo": loccodigo}).mappings().fetchone()
 
                 if default_info is None:
-                    # Si no existe la localidad, usar valores por defecto
                     activicodigo = "000"
                     sectorcodigo = "000"
                 else:
                     activicodigo = default_info["activicodigo"]
                     sectorcodigo = default_info["sectorcodigo"]
 
-                # Obtener códigos por defecto desde el primer cliente existente
                 codigos_query = """
                     SELECT zoncodigo, tipcodigo, regcodigo, ciucodigo, procodigo
                     FROM cxcmcli
@@ -144,125 +135,35 @@ def saveCliente():
                 codigos = conn.execute(text(codigos_query), {"ciacodigo": ciacodigo}).mappings().fetchone()
 
                 if codigos is None:
-                    # Si no existe cliente 000001, usar valores por defecto
                     zoncodigo = ""
                     regcodigo = ""
                     ciucodigo = ""
                     procodigo = ""
-                    # Mantener el tipcodigo del formulario
                 else:
                     zoncodigo = codigos["zoncodigo"]
                     regcodigo = codigos["regcodigo"]
                     ciucodigo = codigos["ciucodigo"]
                     procodigo = codigos["procodigo"]
-                    # El tipcodigo viene del formulario, no se sobreescribe
 
-                # ========== INSERTAR EL NUEVO CLIENTE EN CXCMCLI ==========
+                # ========== 4. INSERTAR EL NUEVO CLIENTE ==========
                 insert_cliente_query = """
                 INSERT INTO cxcmcli (
-                    ciacodigo,
-                    clicodigo,
-                    clinombre,
-                    cliruc,
-                    clidirec,
-                    clitelef1,
-                    clitelef2,
-                    cliintersec,
-                    clifax,
-                    cliemail,
-                    clifecisys,
-                    clihorisys,
-                    clistatus,
-                    zoncodigo,
-                    regcodigo,
-                    cliapliiva,
-                    procodigo,
-                    cliestciv,
-                    cliivaped,
-                    clibloqueo,
-                    cliidentifica,
-                    cliidencon,
-                    ciucodigo,
-                    clirucmatriz,
-                    clinommatriz,
-                    tarenviosta,
-                    clicuotaven,
-                    clidiapago,
-                    clidiasrecibefac1,
-                    clidiaentregafac,
-                    cliconespecial,
-                    clipersona,
-                    cliorigening,
-                    clidemanda,
-                    clicastigada,
-                    cliparterel,
-                    activicodigo,
-                    sectorcodigo,
-                    cliusuisys,
-                    cliusumsys,
-                    clifecmsys,
-                    clihormsys,
-                    tipcodigo,
-                    cliestisys,
-                    cliestmsys,
-                    clisexo,
-                    clifecnac,
-                    cliprofesion,
-                    clirepres
+                    ciacodigo, clicodigo, clinombre, cliruc, clidirec, clitelef1, clitelef2, cliintersec, clifax, cliemail,
+                    clifecisys, clihorisys, clistatus, zoncodigo, regcodigo, cliapliiva, procodigo, cliestciv, cliivaped, clibloqueo,
+                    cliidentifica, cliidencon, ciucodigo, clirucmatriz, clinommatriz, tarenviosta, clicuotaven, clidiapago,
+                    clidiasrecibefac1, clidiaentregafac, cliconespecial, clipersona, cliorigening, clidemanda, clicastigada,
+                    cliparterel, activicodigo, sectorcodigo, cliusuisys, cliusumsys, clifecmsys, clihormsys, tipcodigo, cliestisys,
+                    cliestmsys, clisexo, clifecnac, cliprofesion, clirepres
                 ) VALUES (
-                    :ciacodigo,
-                    :clicodigo,
-                    :clinombre,
-                    :cliruc,
-                    :clidirec,
-                    :clitelef1,
-                    :clitelef2,
-                    :cliintersec,
-                    :clifax,
-                    :cliemail,
-                    :clifecisys,
-                    :clihorisys,
-                    'A',
-                    :zoncodigo,
-                    :regcodigo,
-                    -1,
-                    :procodigo,
-                    :cliestciv,
-                    -1,
-                    0,
-                    :cliidentifica,
-                    'O',
-                    :ciucodigo,
-                    :clirucmatriz,
-                    :clinommatriz,
-                    'D',
-                    0,
-                    0,
-                    :clidiasrecibefac1,
-                    0,
-                    :cliconespecial,
-                    :clipersona,
-                    'I',
-                    0,
-                    0,
-                    0,
-                    :activicodigo,
-                    :sectorcodigo,
-                    :cliusuisys,
-                    :cliusumsys,
-                    :clifecmsys,
-                    :clihormsys,
-                    :tipcodigo,
-                    :cliestisys,
-                    :cliestmsys,
-                    :clisexo,
-                    :clifecnac,
-                    :cliprofesion,
-                    :clirepres
+                    :ciacodigo, :clicodigo, :clinombre, :cliruc, :clidirec, :clitelef1, :clitelef2, :cliintersec, :clifax, :cliemail,
+                    :clifecisys, :clihorisys, 'A', :zoncodigo, :regcodigo, -1, :procodigo, :cliestciv, -1, 0,
+                    :cliidentifica, 'O', :ciucodigo, :clirucmatriz, :clinommatriz, 'D', 0, 0,
+                    :clidiasrecibefac1, 0, :cliconespecial, :clipersona, 'I', 0, 0,
+                    0, :activicodigo, :sectorcodigo, :cliusuisys, :cliusumsys, :clifecmsys, :clihormsys, :tipcodigo, :cliestisys,
+                    :cliestmsys, :clisexo, :clifecnac, :cliprofesion, :clirepres
                 )
                 """
 
-                # Preparar fecha de nacimiento si existe
                 clifecnac_dt = None
                 if clifecnac:
                     try:
@@ -270,7 +171,6 @@ def saveCliente():
                     except ValueError:
                         clifecnac_dt = None
 
-                # Ejecutar la inserción
                 conn.execute(
                     text(insert_cliente_query),
                     {
@@ -313,7 +213,32 @@ def saveCliente():
                     },
                 )
 
-                # ========== RETORNAR RESPUESTA DE ÉXITO ==========
+                # ========== 5. ASIGNAR CLIENTE AUTOMÁTICAMENTE AL USUARIO CREADOR ==========
+                insert_asignacion_query = """
+                INSERT INTO gdoc_usuariocliente (
+                    ciacodigo, usrcodigo, clientecodigo, hereda_documentos, estado,
+                    fecisys, horisys, usuisys, estisys
+                ) VALUES (
+                    :ciacodigo, :usrcodigo, :clientecodigo, :hereda_documentos, :estado,
+                    :fecisys, :horisys, :usuisys, :estisys
+                )
+                """
+
+                conn.execute(
+                    text(insert_asignacion_query),
+                    {
+                        "ciacodigo": ciacodigo,
+                        "usrcodigo": usrcodigo_encriptado,
+                        "clientecodigo": clienteCodigoGenerated,
+                        "hereda_documentos": 1,
+                        "estado": "A",
+                        "fecisys": fecha_con_hora_cero,
+                        "horisys": fecha_formato_1900,
+                        "usuisys": str(usrcodigo)[:10],
+                        "estisys": str(ipUser)[:40] if ipUser else "",
+                    },
+                )
+
                 return jsonify({"tipmsg": "Success", "msg": f"Cliente con código {clienteCodigoGenerated} creado con éxito", "data": {"ciacodigo": ciacodigo, "clicodigo": clienteCodigoGenerated, "clinombre": clinombre, "cliruc": cliruc}}), 200
 
     except Exception as e:

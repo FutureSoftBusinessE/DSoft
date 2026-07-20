@@ -299,6 +299,9 @@ import TipoDeCompania from "./TipoDeCompania"
 import CrearTipoDeCompania from "./TipoDeCompania/Crear"
 import EditarTipoDeCompania from "./TipoDeCompania/Editar"
 
+// AsignacionDeClientesAUsu
+import AsignacionDeClientesAUsu from "./AsignacionDeClientesAUsu"
+
 export {
   Login,
   LoginInner,
@@ -474,4 +477,5 @@ export {
   TipoDeCompania,
   CrearTipoDeCompania,
   EditarTipoDeCompania,
+  AsignacionDeClientesAUsu,
 }

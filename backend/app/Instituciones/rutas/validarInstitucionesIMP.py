@@ -9,7 +9,7 @@ from app.db import get_session
 from error_handling import api_endpoint, ValidationError
 
 
-# Helper para validar la importación de Instituciones
+# Helper para validar la importación de Instituciones[cite: 21]
 def validar_instituciones(connection, columns: list, required: list, key_columns: list, rows: list):
 
     if not isinstance(rows, list) or len(rows) == 0:
@@ -41,7 +41,7 @@ def validar_instituciones(connection, columns: list, required: list, key_columns
         fila["feedback"] = ""
         errores_fila = []
 
-        # 1. Validar campos requeridos vacíos
+        # 1. Validar campos requeridos vacíos[cite: 21]
         faltantes = []
         for campo in required:
             valor = fila.get(campo)
@@ -55,7 +55,27 @@ def validar_instituciones(connection, columns: list, required: list, key_columns
         if faltantes:
             errores_fila.append("Campos requeridos vacíos: " + ", ".join(faltantes))
 
-        # 2. Duplicados en el mismo archivo CSV
+        # 1.5. Validaciones específicas de longitud para Instituciones[cite: 21]
+        if "insticodigo" in columns:
+            cod = fila.get("insticodigo")
+            if cod and len(str(cod).strip()) > 3:
+                errores_fila.append("El código excede los 3 caracteres permitidos.")
+
+        if "instidescri" in columns:
+            des = fila.get("instidescri")
+            if des and len(str(des).strip()) > 60:
+                errores_fila.append("La descripción excede los 60 caracteres permitidos.")
+
+        # Validación del nuevo campo instiurl (varchar 250)[cite: 21]
+        if "instiurl" in columns:
+            url_val = fila.get("instiurl")
+            if url_val is not None:
+                url_str = str(url_val).strip()
+                if len(url_str) > 250:
+                    errores_fila.append("La URL (instiurl) excede los 250 caracteres permitidos.")
+                fila["instiurl"] = url_str
+
+        # 2. Duplicados en el mismo archivo CSV[cite: 21]
         clave = []
         for k in key_columns:
             v = fila.get(k)
@@ -71,16 +91,16 @@ def validar_instituciones(connection, columns: list, required: list, key_columns
         else:
             vistos.add(clave)
 
-        # Consolidar errores si los hay
+        # Consolidar errores si los hay[cite: 21]
         if errores_fila:
             fila["ok"] = False
             fila["feedback"] = " | ".join(errores_fila)
 
-    # 3. Buscar existentes en la Base de Datos (Catálogo Global)
+    # 3. Buscar existentes en la Base de Datos (Catálogo Global)[cite: 21]
     cols_sql = ", ".join(key_columns)
     sql_get_all = text(f"SELECT {cols_sql} FROM gdocbinstituciones")
 
-    # Ejecutamos la consulta sin filtro de compañía
+    # Ejecutamos la consulta sin filtro de compañía[cite: 21]
     rows_db = connection.execute(sql_get_all).mappings().all()
 
     existentes = set()
@@ -95,7 +115,7 @@ def validar_instituciones(connection, columns: list, required: list, key_columns
 
     for fila in rows:
         if not fila["ok"]:
-            continue  # Si ya falló por vacío o duplicado CSV, lo saltamos
+            continue  # Si ya falló por vacío o duplicado CSV, lo saltamos[cite: 21]
 
         clave_fila = []
         for k in key_columns:
@@ -118,11 +138,11 @@ def validar_instituciones(connection, columns: list, required: list, key_columns
 def validarInstitucionesIMP():
     claims = get_jwt()
 
-    # 1. Validación de seguridad general
+    # 1. Validación de seguridad general[cite: 21]
     try:
         seleccion = claims["seleccion"]
         clicianonBD = seleccion["clicianonBD"]
-        # No extraemos 'cliciaciacodigo' porque gdocbinstituciones es global
+        # No extraemos 'cliciaciacodigo' porque gdocbinstituciones es global[cite: 21]
     except KeyError:
         raise ValidationError("Error Crítico: Sesión incompleta.")
 

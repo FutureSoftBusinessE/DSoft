@@ -56,6 +56,7 @@ const Instituciones = () => {
   const columnsTable = [
     { accessorKey: "insticodigo", header: "Código", size: 100 },
     { accessorKey: "instidescri", header: "Descripción", size: 300 },
+    { accessorKey: "instiurl", header: "URL de Institución", size: 250 }, // NUEVO CAMPO AÑADIDO
     {
       accessorKey: "instistatus",
       header: "Estado",
@@ -68,6 +69,7 @@ const Instituciones = () => {
   const fieldConfigs = {
     insticodigo: { required: true, key: true },
     instidescri: { required: true },
+    instiurl: { required: false }, // NUEVO CAMPO AÑADIDO PARA CSV
     instistatus: { required: false },
   }
 

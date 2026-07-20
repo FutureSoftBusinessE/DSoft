@@ -208,6 +208,9 @@ import { ExcepcionesdeIVA, CrearExcepcionesdeIVA, EditarExcepcionesdeIVA } from 
 // TipoDeCompania
 import { TipoDeCompania, CrearTipoDeCompania, EditarTipoDeCompania } from "../pages"
 
+// AsignacionDeClientesAUsu
+import { AsignacionDeClientesAUsu } from "../pages"
+
 const protectedRoutes = [
   { path: "Submenu/:label/:id", element: <SubMenu /> },
   { path: "dashboard/AccesoACompañiasYModulos", element: <AccesoACompañiasYModulos /> },
@@ -379,6 +382,7 @@ const protectedRoutes = [
   { path: "dashboard/TipoDeCompania", element: <TipoDeCompania /> },
   { path: "dashboard/TipoDeCompania/crear", element: <CrearTipoDeCompania /> },
   { path: "dashboard/TipoDeCompania/editar", element: <EditarTipoDeCompania /> },
+  { path: "dashboard/AsignacionDeClientesAUsu", element: <AsignacionDeClientesAUsu /> },
 ]
 
 export default protectedRoutes

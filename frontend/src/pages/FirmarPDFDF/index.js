@@ -34,8 +34,8 @@ import { useQuery } from "@tanstack/react-query"
 import CloudUploadIcon from "@mui/icons-material/CloudUpload"
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser"
 import FilePresentIcon from "@mui/icons-material/FilePresent"
-import HighlightOffIcon from "@mui/icons-material/HighlightOff"
 import CheckIcon from "@mui/icons-material/Check"
+import HighlightOffIcon from "@mui/icons-material/HighlightOff"
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos"
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos"
 import QrCode2Icon from "@mui/icons-material/QrCode2"
@@ -46,8 +46,8 @@ const theme = createTheme({
 
 const StyledRootStyles = { width: "100%", maxWidth: "1200px", margin: "64px auto 0 auto", padding: "20px" }
 
-// TAMAÑO ESTIMADO DE LA FIRMA (en Puntos PDF)
-const SIGNATURE_WIDTH = 150
+// TAMAÑO DE LA FIRMA (en Puntos PDF, coincide con el Backend)
+const SIGNATURE_WIDTH = 200
 const SIGNATURE_HEIGHT = 60
 
 const FirmarPDFDF = () => {
@@ -63,10 +63,9 @@ const FirmarPDFDF = () => {
   const [password, setPassword] = useState("")
 
   const [currentPage, setCurrentPage] = useState(1)
-  const [maxPages, setMaxPages] = useState(1) // NUEVO: Estado para el límite de páginas
+  const [maxPages, setMaxPages] = useState(1)
   const [coords, setCoords] = useState({ x: 0, y: 0, page: 0 })
 
-  // --- CONSULTA DE CONFIGURACIÓN (GERENTE VS OPERATIVO) ---
   const { data: config = {}, isLoading: configLoading } = useQuery({
     queryKey: ["configFirmarPDF"],
     queryFn: async () => {
@@ -79,7 +78,6 @@ const FirmarPDFDF = () => {
   const isGerente = config.is_gerente || false
   const hasGlobalFirma = config.has_global_firma || false
 
-  // NUEVO: Handler de subida de PDF que calcula dinámicamente las páginas
   const handlePdfUpload = (e) => {
     const file = e.target.files[0]
     if (!file) return
@@ -92,12 +90,11 @@ const FirmarPDFDF = () => {
     reader.readAsBinaryString(file)
     reader.onloadend = () => {
       const text = reader.result
-      // Busca los objetos /Type /Page en la estructura interna del PDF
       const matches = text.match(/\/Type\s*\/Page\b/g)
       if (matches && matches.length > 0) {
         setMaxPages(matches.length)
       } else {
-        setMaxPages(1) // Respaldo por defecto
+        setMaxPages(1)
       }
     }
   }
@@ -109,53 +106,55 @@ const FirmarPDFDF = () => {
     setOpenPreview(true)
   }
 
-  // NUEVO: Matemática precisa de coordenadas A4 para PDF Points
+  // --- LÓGICA DE COORDENADAS AJUSTADA A TOP-LEFT ---
   const handlePdfClick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const clickX = e.clientX - rect.left
     const clickY = e.clientY - rect.top
 
-    // Asumimos un PDF A4 estándar (595 x 842 puntos)
     const A4_RATIO = 842 / 595
     const containerRatio = rect.height / rect.width
 
     let pdfRenderWidth, pdfRenderHeight, offsetX, offsetY
 
     if (containerRatio > A4_RATIO) {
-      // Contenedor más alto que el PDF (Barras grises arriba y abajo)
       pdfRenderWidth = rect.width
       pdfRenderHeight = rect.width * A4_RATIO
       offsetX = 0
       offsetY = (rect.height - pdfRenderHeight) / 2
     } else {
-      // Contenedor más ancho que el PDF (Barras grises a los lados)
       pdfRenderHeight = rect.height
       pdfRenderWidth = rect.height / A4_RATIO
       offsetX = (rect.width - pdfRenderWidth) / 2
       offsetY = 0
     }
 
-    // Calcular posición del clic dentro del área real del PDF
     let xInsidePdf = clickX - offsetX
     let yInsidePdf = clickY - offsetY
 
-    // Limitar para que el clic no se salga de los bordes del papel virtual
     xInsidePdf = Math.max(0, Math.min(xInsidePdf, pdfRenderWidth))
     yInsidePdf = Math.max(0, Math.min(yInsidePdf, pdfRenderHeight))
 
-    // Convertir a Puntos PDF (Points) donde 0,0 es la esquina INFERIOR izquierda
+    // El eje Y en los PDFs crece hacia arriba (0 está abajo)
     const yFromBottom = pdfRenderHeight - yInsidePdf
 
+    // Convertimos los pixeles clickeados a Puntos PDF (595x842)
     const ptX = Math.round((xInsidePdf / pdfRenderWidth) * 595)
     const ptY = Math.round((yFromBottom / pdfRenderHeight) * 842)
 
-    // Ajustar para que la firma quede centrada justo donde se hizo el clic
-    const finalX = Math.round(ptX - SIGNATURE_WIDTH / 2)
-    const finalY = Math.round(ptY - SIGNATURE_HEIGHT / 2)
+    // El usuario clickeó donde quiere que comience la firma (Esquina Superior Izquierda).
+    // Pyhanko espera las coordenadas de la Esquina Inferior Izquierda.
+    // Por lo tanto, X se mantiene, pero a Y hay que restarle el ALTO de la firma.
+    const finalX = ptX
+    const finalY = ptY - SIGNATURE_HEIGHT
 
-    setCoords({ x: finalX, y: finalY, page: currentPage - 1 })
+    // Validamos que no se salga del margen inferior
+    const safeX = Math.max(0, finalX)
+    const safeY = Math.max(0, finalY)
+
+    setCoords({ x: safeX, y: safeY, page: currentPage - 1 })
     setOpenPreview(false)
-    showWarning(`Firma ubicada en Página ${currentPage}. Coordenadas exactas: X:${finalX}, Y:${finalY}`)
+    showWarning(`Firma ubicada en Página ${currentPage}. La esquina superior izquierda iniciará donde hizo clic.`)
   }
 
   useEffect(() => {
@@ -246,7 +245,7 @@ const FirmarPDFDF = () => {
 
       const link = document.createElement("a")
       link.href = url
-      link.setAttribute("download", `DSOFT_FIRMADO_QR_${pdfPrincipal.name}`)
+      link.setAttribute("download", `DSOFT_FIRMADO_EC_${pdfPrincipal.name}`)
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -309,7 +308,7 @@ const FirmarPDFDF = () => {
             }}
           >
             <Typography variant="h6">
-              Ubicación de Firma QR - Página {currentPage} de {maxPages}
+              Ubicación de Firma - Página {currentPage} de {maxPages}
             </Typography>
             <Stack direction="row" spacing={1}>
               <IconButton
@@ -338,7 +337,6 @@ const FirmarPDFDF = () => {
               <iframe
                 key={currentPage}
                 title="Preview"
-                /* CORRECCIÓN VITAL: view=Fit garantiza que se vea la hoja entera y centrada */
                 src={`${previewUrl}#page=${currentPage}&view=Fit&toolbar=0&navpanes=0&scrollbar=0`}
                 width="100%"
                 height="100%"
@@ -362,7 +360,7 @@ const FirmarPDFDF = () => {
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Stack direction="row" spacing={1}>
                   <QrCode2Icon color="primary" />
-                  <Typography sx={{ fontWeight: "bold" }}>1. FIRMAR CON CÓDIGO QR</Typography>
+                  <Typography sx={{ fontWeight: "bold" }}>1. FIRMAR DOCUMENTO</Typography>
                 </Stack>
               </AccordionSummary>
               <AccordionDetails>
@@ -388,11 +386,10 @@ const FirmarPDFDF = () => {
                       disabled={!pdfPrincipal}
                       onClick={() => handleOpenPreview(pdfPrincipal)}
                     >
-                      UBICAR QR EN PÁGINA
+                      UBICAR FIRMA EN PÁGINA
                     </Button>
                   </Grid>
 
-                  {/* RENDERIZADO CONDICIONAL DE CARGA DE CERTIFICADO */}
                   {isGerente ? (
                     <>
                       <Grid item xs={12} md={6}>
@@ -424,7 +421,7 @@ const FirmarPDFDF = () => {
                   <Grid item xs={12}>
                     {coords.x > 0 && (
                       <Alert severity="info" sx={{ mb: 2 }}>
-                        Listo para estampar código QR en <b>Página {coords.page + 1}</b>
+                        Listo para estampar firma en <b>Página {coords.page + 1}</b>
                       </Alert>
                     )}
                     <Button
@@ -451,7 +448,6 @@ const FirmarPDFDF = () => {
               </AccordionSummary>
               <AccordionDetails>
                 <Grid container spacing={2}>
-                  {/* RENDERIZADO CONDICIONAL DE VALIDACIÓN */}
                   {isGerente ? (
                     <>
                       <Grid item xs={12} md={5}>

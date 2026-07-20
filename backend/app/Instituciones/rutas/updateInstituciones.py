@@ -15,11 +15,11 @@ from error_handling import api_endpoint, ValidationError
 def updateInstituciones():
     claims = get_jwt()
 
-    # 1. VALIDACIÓN ESTRICTA DE SEGURIDAD
+    # 1. VALIDACIÓN ESTRICTA DE SEGURIDAD[cite: 21]
     try:
         seleccion = claims["seleccion"]
         clicianonBD = seleccion["clicianonBD"]
-        # No se extrae 'cliciaciacodigo' por ser un catálogo global
+        # No se extrae 'cliciaciacodigo' por ser un catálogo global[cite: 21]
     except KeyError:
         raise ValidationError("Error Crítico: No se pudo verificar la base de datos para la modificación.")
 
@@ -27,15 +27,16 @@ def updateInstituciones():
     if not sUsuario:
         raise ValidationError("No se pudo identificar al usuario que intenta realizar la modificación.")
 
-    # Ajustamos longitudes para cumplir con los varchar de la tabla gdocbinstituciones
+    # Ajustamos longitudes para cumplir con los varchar de la tabla gdocbinstituciones[cite: 21]
     sUsuario = str(sUsuario)[:10]
     sNomEst = request.headers.get("X-Forwarded-For", request.remote_addr) or "FSOFTAPP"
     sNomEst = str(sNomEst)[:40]
 
-    # 2. VALIDACIÓN DE PARÁMETROS
+    # 2. VALIDACIÓN DE PARÁMETROS[cite: 21]
     data = request.get_json()
     codigo = data.get("insticodigo")
     descri = data.get("instidescri")
+    url = data.get("instiurl")  # <-- NUEVO CAMPO CAPTURADO
     status = data.get("instistatus", "A")
 
     if not codigo or str(codigo).strip() == "":
@@ -44,21 +45,25 @@ def updateInstituciones():
     if not descri or str(descri).strip() == "":
         raise ValidationError("La descripción de la Institución es requerida.")
 
+    # Normalización del campo URL[cite: 21]
+    url_val = str(url).strip()[:250] if url else None
+
     db.session = get_session(clicianonBD)
     engine = db.session.bind
 
     with engine.connect() as connection:
         with connection.begin():
-            # Tiempos de Auditoría
+            # Tiempos de Auditoría[cite: 21]
             now = datetime.now()
             fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
             hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
-            # 3. ACTUALIZAR TABLA (Respetando los isys y actualizando solo los msys)
+            # 3. ACTUALIZAR TABLA (Respetando los isys y actualizando solo los msys)[cite: 21]
             update_query = text(
                 """
                 UPDATE gdocbinstituciones SET
                     instidescri = :des,
+                    instiurl = :url,
                     instistatus = :sta,
                     instifecmsys = :fec,
                     instihormsys = :hor,
@@ -73,8 +78,9 @@ def updateInstituciones():
                 {
                     "cod": str(codigo).strip().upper()[:3],
                     "des": str(descri).strip().upper()[:60],
+                    "url": url_val,  # <-- NUEVO CAMPO ENVIADO AL SQL
                     "sta": str(status).strip().upper()[:1],
-                    # Solo se actualizan los campos de modificación
+                    # Solo se actualizan los campos de modificación[cite: 21]
                     "fec": fecha_pura,
                     "hor": hora_pura,
                     "usu": sUsuario,
@@ -82,7 +88,7 @@ def updateInstituciones():
                 },
             )
 
-            # Validar si realmente se actualizó algo
+            # Validar si realmente se actualizó algo[cite: 21]
             if result.rowcount == 0:
                 raise ValidationError("No se encontró la Institución especificada.")
 

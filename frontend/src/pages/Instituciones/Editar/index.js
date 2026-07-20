@@ -33,13 +33,17 @@ const EditarInstituciones = () => {
   const [formData, setFormData] = useState({
     insticodigo: "",
     instidescri: "",
+    instiurl: "", // NUEVO CAMPO AÑADIDO
     instistatus: "A",
   })
 
   // Cargar los datos de la fila seleccionada al abrir la pantalla
   useEffect(() => {
     if (location.state) {
-      setFormData(location.state)
+      setFormData({
+        ...location.state,
+        instiurl: location.state.instiurl || "", // Asegura que si es NULL no rompa el input controlado
+      })
     } else {
       navigate("/home/dashboard/Instituciones")
     }
@@ -59,9 +63,11 @@ const EditarInstituciones = () => {
 
   const handleInputChange = (field, value) => {
     let finalValue = value
-    // Lógica de truncado y formato a mayúsculas (límite de 60 caracteres)
+    // Lógica de truncado y formato a mayúsculas
     if (field === "instidescri") {
       finalValue = value.toUpperCase().slice(0, 60)
+    } else if (field === "instiurl") {
+      finalValue = value.slice(0, 250) // Límite varchar(250) - NO lleva toUpperCase
     }
     setFormData((prev) => ({ ...prev, [field]: finalValue }))
   }
@@ -155,6 +161,17 @@ const EditarInstituciones = () => {
                   label="Descripción *"
                   value={formData.instidescri}
                   onChange={(e) => handleInputChange("instidescri", e.target.value)}
+                />
+              </Grid>
+
+              {/* NUEVO CAMPO AÑADIDO EN LA INTERFAZ */}
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="URL de Institución (Opcional)"
+                  value={formData.instiurl || ""}
+                  onChange={(e) => handleInputChange("instiurl", e.target.value)}
+                  placeholder="Ej: https://www.ejemplo.gob.ec"
                 />
               </Grid>
 

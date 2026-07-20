@@ -25,14 +25,14 @@ import DownloadIcon from "@mui/icons-material/Download"
 import DeleteIcon from "@mui/icons-material/Delete"
 import VpnKeyIcon from "@mui/icons-material/VpnKey"
 import FilePresentIcon from "@mui/icons-material/FilePresent"
-import VisibilityIcon from "@mui/icons-material/Visibility"
-import CloseIcon from "@mui/icons-material/Close"
+import VisibilityIcon from "@mui/icons-material/Visibility" // NUEVO ICONO
+import CloseIcon from "@mui/icons-material/Close" // NUEVO ICONO
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import fetchwrapper from "../../../../services/interceptors/fetchwrapper"
 import { api } from "../../../../api"
 import Swal from "sweetalert2"
 
-// Helper para forzar alertas al frente[cite: 8]
+// Helper para forzar alertas al frente
 const mostrarAlerta = (titulo, mensaje, icono) => {
   Swal.fire({
     title: titulo,
@@ -48,7 +48,7 @@ const mostrarAlerta = (titulo, mensaje, icono) => {
 const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
   const queryClient = useQueryClient()
 
-  // --- ESTADOS PARA EL VISOR DE DOCUMENTOS ---[cite: 8]
+  // --- ESTADOS PARA EL VISOR DE DOCUMENTOS ---
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [previewFileType, setPreviewFileType] = useState("")
@@ -59,7 +59,6 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
     queryKey: ["documentosAsociados", qgenero, procqgenero],
     queryFn: async () => {
       if (!qgenero) return []
-      // El backend ahora devuelve los documentos filtrados por permisos y eventos
       const res = await fetchwrapper(`/DocumentosAsociadosComponent/getDocumentosAsociados/${qgenero}/${procqgenero}`)
       const json = await res.json()
       const lista = json.data || []
@@ -80,7 +79,7 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
     },
   })
 
-  // --- HELPER CENTRALIZADO PARA OBTENER EL BLOB DEL DOCUMENTO ---[cite: 8]
+  // --- HELPER CENTRALIZADO PARA OBTENER EL BLOB DEL DOCUMENTO ---
   const obtenerBlobDocumento = async (uuid) => {
     let foundToken = ""
     const storages = [localStorage, sessionStorage]
@@ -121,7 +120,7 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
     return await response.blob()
   }
 
-  // --- FUNCIÓN DE DESCARGA ---[cite: 8]
+  // --- FUNCIÓN DE DESCARGA ---
   const handleDescargar = async (uuid, nombre) => {
     try {
       const blob = await obtenerBlobDocumento(uuid)
@@ -139,11 +138,14 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
     }
   }
 
-  // --- NUEVA FUNCIÓN: VISOR DE DOCUMENTOS ---[cite: 8]
+  // --- NUEVA FUNCIÓN: VISOR DE DOCUMENTOS ---
   const handlePrevisualizar = async (uuid, nombre, extension) => {
     const ext = extension.toLowerCase()
+
+    // Archivos soportados nativamente por navegadores
     const extensionesNativas = ["pdf", "txt", "jpg", "jpeg", "png", "gif", "webp"]
 
+    // Si es Excel, Word, etc., avisamos que requiere descarga
     if (!extensionesNativas.includes(ext)) {
       Swal.fire({
         title: "Formato no soportado",
@@ -166,6 +168,8 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
 
     try {
       const blob = await obtenerBlobDocumento(uuid)
+
+      // Asignamos el MIME type correcto para forzar al navegador a renderizarlo
       let mimeType = "application/pdf"
       if (["jpg", "jpeg"].includes(ext)) mimeType = "image/jpeg"
       else if (ext === "png") mimeType = "image/png"
@@ -187,7 +191,7 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
   const handleClosePreview = () => {
     setPreviewOpen(false)
     if (previewUrl) {
-      window.URL.revokeObjectURL(previewUrl)
+      window.URL.revokeObjectURL(previewUrl) // Liberar memoria
       setPreviewUrl(null)
     }
   }
@@ -200,47 +204,19 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
 
       if (datos && typeof datos.usuario === "string" && datos.usuario.trim().startsWith("{")) {
         let jsonStr = datos.usuario.trim()
-
         try {
-          // 1. Limpieza exhaustiva de errores de tipeo comunes provenientes del backend
           jsonStr = jsonStr.replace(/#respuesta/g, '"respuesta')
-          // Repara casos como "respuesta#: o "respuesta#":
-          jsonStr = jsonStr.replace(/respuesta[#|!|$|%|&]*\s*:/g, 'respuesta":')
-          jsonStr = jsonStr.replace(/pregunta[#|!|$|%|&]*\s*:/g, 'pregunta":')
-
           // eslint-disable-next-line no-control-regex
           jsonStr = jsonStr.replace(/\},\s*[^{\s[\]"']+\s*\{/g, "},{")
           // eslint-disable-next-line no-control-regex
           jsonStr = jsonStr.replace(/[\x00-\x1F\x7F-\x9F]/g, "")
-
           datos = JSON.parse(jsonStr)
         } catch (e) {
-          console.warn("JSON malformado. Usando motor de extracción por Regex avanzado.")
-
+          console.warn("Usando motor de extracción por Regex.")
           const extraerValor = (clave) => {
             const regex = new RegExp(`"${clave}"\\s*:\\s*"([^"]*)"`)
             const match = jsonStr.match(regex)
             return match ? match[1] : ""
-          }
-
-          // 2. Rescate manual y seguro de las preguntas de seguridad
-          const preguntasExtraidas = []
-          const bloquePreguntas = jsonStr.match(/"preguntas"\s*:\s*\[(.*?)\]/)
-
-          if (bloquePreguntas && bloquePreguntas[1]) {
-            const innerStr = bloquePreguntas[1]
-            // Extraemos las preguntas
-            const matchPreguntas = [...innerStr.matchAll(/"pregunta"[^:]*:\s*"([^"]*)"/g)]
-            // Extraemos las respuestas ignorando caracteres extraños antes de los dos puntos
-            const matchRespuestas = [...innerStr.matchAll(/"respuesta[^:]*:\s*"([^"]*)"/g)]
-
-            const maxLen = Math.max(matchPreguntas.length, matchRespuestas.length)
-            for (let i = 0; i < maxLen; i++) {
-              preguntasExtraidas.push({
-                pregunta: matchPreguntas[i] ? matchPreguntas[i][1] : "",
-                respuesta: matchRespuestas[i] ? matchRespuestas[i][1] : "",
-              })
-            }
           }
 
           datos = {
@@ -248,7 +224,7 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
             clave: extraerValor("clave"),
             url: extraerValor("url"),
             email: extraerValor("email"),
-            preguntas: preguntasExtraidas, // Ahora inyectamos las preguntas rescatadas
+            preguntas: [],
           }
         }
       } else if (typeof datos === "string") {
@@ -260,7 +236,7 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
       if (res.data.docextension === "p12" || res.data.docextension === "pfx") {
         mostrarAlerta(
           "Contraseña Certificado",
-          `<b>Clave:</b> ${datos.clave_certificado || datos.clave_certified || "No registrada"}`,
+          `<b>Clave:</b> ${datos.clave_certificado || datos.clave_certified}`,
           "info",
         )
       } else {
@@ -274,7 +250,7 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
               <p style="margin-bottom: 5px; color: #196C87;"><b>Preguntas de Seguridad:</b></p>
               <ul style="margin-top: 0; padding-left: 20px; font-size: 0.85rem; list-style-type: square;">
             `
-            preguntasValidas.forEach((p) => {
+            preguntasValidas.forEach((p, index) => {
               preguntasHtml += `
                 <li style="margin-bottom: 6px;">
                   <b>P:</b> ${p.pregunta || "—"}<br/>
@@ -301,7 +277,6 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
         )
       }
     } catch (error) {
-      console.error(error)
       mostrarAlerta("Error", "No se pudieron recuperar las claves.", "error")
     }
   }
@@ -321,7 +296,7 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
 
           {documentos.length === 0 ? (
             <Typography variant="body2" color="textSecondary" align="center" my={2}>
-              No existen registros asociados o no cuenta con los permisos para visualizarlos.
+              No existen registros asociados.
             </Typography>
           ) : (
             <TableContainer component={Paper} variant="outlined">
@@ -329,7 +304,7 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
                 <TableHead sx={{ backgroundColor: "#f8f9fa" }}>
                   <TableRow>
                     <TableCell>
-                      <b>Nombre de Documento</b>
+                      <b>Nombre</b>
                     </TableCell>
                     <TableCell>
                       <b>Ext.</b>
@@ -369,7 +344,7 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
                           <Tooltip title="Previsualizar">
                             <IconButton
                               size="small"
-                              sx={{ color: "#4caf50" }}
+                              sx={{ color: "#4caf50" }} // Color verde amigable
                               onClick={() => handlePrevisualizar(doc.documentouuid, doc.docnombre, doc.docextension)}
                             >
                               <VisibilityIcon fontSize="small" />

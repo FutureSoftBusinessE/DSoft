@@ -26,8 +26,6 @@ import CustomBackdrop from "../../../components/CustomBackdrop"
 import CrearIcon from "../../../assets/iconos/Crear.ico"
 import DocumentosAsociadosTabla from "../../components/Global/DocumentosAsociadosModal/DocumentosAsociadosTabla"
 import { useQueryClient } from "@tanstack/react-query"
-
-// 1. IMPORTAMOS EL NUEVO MODAL UNIVERSAL Y EL ÍCONO DE ADJUNTO
 import DocumentosAsociadosModal from "../../components/Global/DocumentosAsociadosModal"
 import AttachFileIcon from "@mui/icons-material/AttachFile"
 
@@ -99,6 +97,45 @@ const initialFormState = {
   clirepres: "",
 }
 
+// Validación de Identificación Ecuatoriana
+const validarIdentificacion = (tipo, numeroStr) => {
+  if (!numeroStr) return { ok: false, msg: "El número de identificación está vacío." }
+  const numero = numeroStr.trim()
+
+  if (tipo === "P") return { ok: true }
+  if (tipo === "O") {
+    if (numero !== "9999999999999") return { ok: false, msg: "Para 'Consumidor Final' solo se permite 9999999999999" }
+    return { ok: true }
+  }
+  if (tipo === "R") {
+    if (numero.length !== 13) return { ok: false, msg: "El RUC debe tener 13 dígitos" }
+    if (!numero.endsWith("001")) return { ok: false, msg: "El RUC debe terminar en 001" }
+  }
+  if (tipo === "C" && numero.length !== 10) return { ok: false, msg: "La Cédula debe tener 10 dígitos" }
+
+  const digitos = numero.split("").map(Number)
+  const provincia = parseInt(numero.substring(0, 2), 10)
+  if (provincia < 1 || provincia > 24) return { ok: false, msg: "Provincia inválida" }
+
+  const tercerDigito = digitos[2]
+  if (tercerDigito < 6) {
+    let suma = 0
+    const coef = [2, 1, 2, 1, 2, 1, 2, 1, 2]
+    for (let i = 0; i < 9; i++) {
+      const v = digitos[i] * coef[i]
+      suma += v > 9 ? v - 9 : v
+    }
+    if ((suma % 10 === 0 ? 0 : 10 - (suma % 10)) !== digitos[9])
+      return { ok: false, msg: "Dígito verificador incorrecto" }
+  } else if (tercerDigito === 9) {
+    const coef = [4, 3, 2, 7, 6, 5, 4, 3, 2]
+    let suma = 0
+    for (let i = 0; i < 9; i++) suma += digitos[i] * coef[i]
+    if ((suma % 11 === 0 ? 0 : 11 - (suma % 11)) !== digitos[9]) return { ok: false, msg: "RUC Jurídico incorrecto" }
+  }
+  return { ok: true }
+}
+
 const BuscarCreacionClientes = () => {
   const [nextSecuencia, setNextSecuencia] = useState(1)
   const queryClient = useQueryClient()
@@ -115,8 +152,6 @@ const BuscarCreacionClientes = () => {
     message: "",
     severity: "success",
   })
-
-  // 2. ESTADO PARA CONTROLAR EL MODAL
   const [modalOpen, setModalOpen] = useState(false)
 
   useEffect(() => {
@@ -127,22 +162,17 @@ const BuscarCreacionClientes = () => {
 
   const cargarCliente = async (clicodigo) => {
     if (!clicodigo) return
-
     setIsLoading(true)
     try {
       const response = await fetchwrapper(`/CreacionCliente/getSpecificCliente`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clicodigo }),
       })
-
       const result = await response.json()
 
       if (result.data) {
         const cliente = result.data
-
         setFormData({
           tipcodigo: cliente.tipcodigo || "",
           cliidentifica: cliente.cliidentifica || "",
@@ -161,7 +191,6 @@ const BuscarCreacionClientes = () => {
           cliprofesion: cliente.cliprofesion || "",
           clirepres: cliente.clirepres || "",
         })
-
         setCliestado(cliente.clistatus || "A")
       } else {
         mostrarSnackbar("Cliente no encontrado", "error")
@@ -178,32 +207,20 @@ const BuscarCreacionClientes = () => {
 
   const handleTipoPersonaChange = (value) => {
     let clipersona = ""
-    if (value === "001") {
-      clipersona = "N"
-    } else if (value === "002") {
-      clipersona = "J"
-    }
+    if (value === "001") clipersona = "N"
+    else if (value === "002") clipersona = "J"
 
-    setFormData((prev) => ({
-      ...prev,
-      tipcodigo: value,
-      clipersona,
-    }))
+    setFormData((prev) => ({ ...prev, tipcodigo: value, clipersona }))
   }
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
+    // Evitamos aplicar uppercase al email
+    const val = field !== "cliemail" && typeof value === "string" ? value.toUpperCase() : value
+    setFormData((prev) => ({ ...prev, [field]: val }))
   }
 
   const mostrarSnackbar = (message, severity = "success") => {
-    setSnackbar({
-      open: true,
-      message,
-      severity,
-    })
+    setSnackbar({ open: true, message, severity })
   }
 
   const cerrarSnackbar = () => {
@@ -211,9 +228,21 @@ const BuscarCreacionClientes = () => {
   }
 
   const handleActualizarCliente = async () => {
+    // 1. Validaciones de campos obligatorios
+    if (!formData.cliruc?.trim() || !formData.clinombre?.trim() || !formData.clidirec?.trim()) {
+      return mostrarSnackbar("Identificación, Nombre y Dirección son obligatorios.", "warning")
+    }
+
+    // 2. Validación matemática y lógica del RUC/Cédula Ecuatoriana
+    const checkID = validarIdentificacion(formData.cliidentifica, formData.cliruc)
+    if (!checkID.ok) {
+      return mostrarSnackbar(checkID.msg, "error")
+    }
+
     try {
       setIsUpdating(true)
 
+      // 4. Proceder con la actualización
       const datosCliente = {
         clicodigo,
         tipcodigo: formData.tipcodigo,
@@ -239,9 +268,7 @@ const BuscarCreacionClientes = () => {
 
       const response = await fetchwrapper(`/CreacionCliente/editSpecificCliente`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(datosCliente),
       })
 
@@ -270,7 +297,7 @@ const BuscarCreacionClientes = () => {
       <CustomBackdrop isLoading={isLoading || isUpdating} />
       <Header />
       <div className="main main-app p-3 p-lg-4">
-        {/* 3. BARRA DE ACCIONES CON EL NUEVO BOTÓN DE DOCUMENTOS */}
+        {/* BARRA DE ACCIONES */}
         <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "20px" }}>
           <BackIcon onClick={handleVolver} />
 
@@ -395,7 +422,7 @@ const BuscarCreacionClientes = () => {
                     <Grid item xs={12} sm={4}>
                       <TextField
                         fullWidth
-                        label="Identificación"
+                        label="Identificación *"
                         value={formData.cliruc}
                         onChange={(e) => handleInputChange("cliruc", e.target.value)}
                         disabled={isLoading}
@@ -446,9 +473,7 @@ const BuscarCreacionClientes = () => {
                         type="date"
                         value={formData.clifecnac}
                         onChange={(e) => handleInputChange("clifecnac", e.target.value)}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
+                        InputLabelProps={{ shrink: true }}
                         disabled={isLoading}
                       />
                     </Grid>
@@ -457,10 +482,10 @@ const BuscarCreacionClientes = () => {
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Nombres y Apellidos"
+                        label="Nombres y Apellidos *"
                         value={formData.clinombre}
                         onChange={(e) => handleInputChange("clinombre", e.target.value)}
-                        disabled={true}
+                        disabled={false}
                       />
                     </Grid>
 
@@ -490,7 +515,7 @@ const BuscarCreacionClientes = () => {
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label="Dirección"
+                        label="Dirección *"
                         value={formData.clidirec}
                         onChange={(e) => handleInputChange("clidirec", e.target.value)}
                         multiline
@@ -555,48 +580,32 @@ const BuscarCreacionClientes = () => {
                       />
                     </Grid>
                   </Grid>
-
-                  {/* (Si a futuro desea agregar una tabla o listado de documentos asociados ya guardados, 
-                      puede crear un componente nuevo que lea el endpoint 'getDocumentosAsociados' 
-                      y colocarlo en esta sección) */}
                 </CardContent>
               </Card>
-              {/* GRILLA DE VISUALIZACIÓN GLOBAL INYECTADA */}
+
+              {/* GRILLA DE VISUALIZACIÓN DE DOCUMENTOS (Pasa la info requerida) */}
               <DocumentosAsociadosTabla
                 qgenero={clicodigo}
-                procqgenero="cxcmcli"
+                procqgenero="CXCMCLI"
                 onDataLoaded={(proximaSecuencia) => setNextSecuencia(proximaSecuencia)}
               />
             </Grid>
           </Grid>
         </Box>
 
-        {/* MODAL UNIVERSAL CON ENTRADA DE SECUENCIA CORREGIDA */}
-        <DocumentosAsociadosModal
-          isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
-          contexto={{
-            clicodigo,
-            docsecuen: nextSecuencia, // Envía el valor calculado automáticamente de forma exacta
-          }}
-          onSuccess={() => {
-            // Refresca la grilla al subir un archivo nuevo
-            queryClient.invalidateQueries(["documentosAsociados", clicodigo, "cxcmcli"])
-          }}
-        />
-
-        {/* 4. INYECCIÓN DEL MODAL */}
+        {/* ÚNICO MODAL UNIVERSAL PARA ADJUNTOS */}
         <DocumentosAsociadosModal
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
           contexto={{
             docqgenero: clicodigo,
             docprocqgenero: "CXCMCLI",
+            docsecuen: nextSecuencia, // Envía el valor secuencial calculado
           }}
-          onSuccess={(data) => {
-            console.log("Documento asociado correctamente. UUID:", data.documentouuid)
+          onSuccess={() => {
             mostrarSnackbar("Documento y/o credencial asociados correctamente", "success")
-            // Si agrega una grilla de documentos en el futuro, aquí puede invocar la función para recargar la tabla
+            // Invalida la query para forzar el refresco de DocumentosAsociadosTabla
+            queryClient.invalidateQueries(["documentosAsociados", clicodigo, "CXCMCLI"])
           }}
         />
 

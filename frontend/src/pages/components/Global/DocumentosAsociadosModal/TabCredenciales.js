@@ -13,6 +13,22 @@ const TabCredenciales = ({
   showPassword,
   setShowPassword,
 }) => {
+  // --- NUEVA LÓGICA PARA AUTO-COMPLETAR LA URL ---
+  const handleInstitucionChange = (e) => {
+    const selectedCodigo = e.target.value
+
+    // 1. Actualizamos el código de la institución seleccionada
+    handleChangeCredencial("insticodigo", selectedCodigo)
+
+    // 2. Buscamos la institución en la lista que trajo el backend
+    const institucionEncontrada = instituciones.data?.find((i) => i.insticodigo === selectedCodigo)
+
+    // 3. Si la institución existe y tiene una URL registrada, la seteamos en el formulario
+    if (institucionEncontrada && institucionEncontrada.instiurl) {
+      handleChangeCredencial("url", institucionEncontrada.instiurl)
+    }
+  }
+
   return (
     <Grid container spacing={2}>
       <Grid item xs={12} sm={6}>
@@ -22,7 +38,7 @@ const TabCredenciales = ({
           required
           label="Institución"
           value={formCredencial.insticodigo}
-          onChange={(e) => handleChangeCredencial("insticodigo", e.target.value)}
+          onChange={handleInstitucionChange} // Usamos la nueva función
           size="small"
         >
           {instituciones.data?.map((i) => (

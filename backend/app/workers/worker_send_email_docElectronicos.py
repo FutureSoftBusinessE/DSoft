@@ -7,7 +7,7 @@ para documentos electrónicos.
 ARQUITECTURA:
     - Se conecta a SiacFSBS (BD maestra) para obtener la lista de empresas
     - Por cada empresa, se conecta a su BD (clicianonBD) y busca pendientes
-    - Procesa cada pendiente: lee PDF, lee datos SMTP de la misma tabla, envía correo, actualiza estado
+    - Procesa cada pendiente: lee PDF y XML, lee datos SMTP de la misma tabla, envía correo, actualiza estado
     - Ya NO consulta cgblocal. Los datos SMTP viajan en el payload y se guardan en siacdocelectronicoscorreo.
 
 EJECUCIÓN:
@@ -146,6 +146,14 @@ def procesar_pendientes_tenant(clicianonBD, cliciaciacodigo, cliciacianombre):
     """
     Busca y procesa todos los correos pendientes de una empresa específica.
     Procesa uno por uno usando UPDATE con OUTPUT para evitar bloqueos.
+
+    Parámetros:
+        clicianonBD (str): Nombre de la base de datos del cliente
+        cliciaciacodigo (str): Código de la empresa (ciacodigo)
+        cliciacianombre (str): Nombre de la empresa (para logs)
+
+    Retorna:
+        tuple: (enviados: int, errores: int)
     """
     try:
         sesion = get_session(clicianonBD)
@@ -219,9 +227,9 @@ def procesar_envio_individual(connection, pendiente):
     Procesa el envío de un solo correo electrónico.
 
     Flujo:
-        1. Obtener el PDF desde siacdocelectronicos
+        1. Obtener el PDF y XML autorizado desde siacdocelectronicos
         2. Leer los datos SMTP desde el mismo registro (ya no de cgblocal)
-        3. Construir el correo con el PDF adjunto
+        3. Construir el correo con el PDF y XML adjuntos
         4. Enviar vía SMTP
         5. Actualizar estado según resultado
 
@@ -243,8 +251,8 @@ def procesar_envio_individual(connection, pendiente):
     emdestinatario = pendiente["emdestinatario"]
     emintentos = pendiente["emintentos"]
 
-    # Paso 1: Obtener el PDF desde siacdocelectronicos
-    pdf_content = obtener_pdf(connection, ciacodigo, facnumfac, loccodigo)
+    # Paso 1: Obtener el PDF (RIDE) y XML autorizado desde siacdocelectronicos
+    pdf_content, xml_content = obtener_archivos(connection, ciacodigo, facnumfac, loccodigo)
     if pdf_content is None:
         marcar_error(connection, ciacodigo, facnumfac, loccodigo, emdestinatario, "No se encontró el PDF en siacdocelectronicos")
         return False
@@ -265,8 +273,10 @@ def procesar_envio_individual(connection, pendiente):
     # Personalizar asunto con el número de documento
     asunto = f"{asunto} {facnumfac}"
 
-    # Paso 3: Enviar el correo
-    exito, mensaje_error = enviar_correo_smtp(smtp_host=smtp_host, smtp_puerto=smtp_puerto, smtp_usuario=smtp_usuario, smtp_password=smtp_password, remitente=smtp_usuario, destinatario=emdestinatario, asunto=asunto, mensaje=mensaje, pdf_content=pdf_content, facnumfac=facnumfac)
+    # Paso 3: Enviar el correo con PDF y XML adjuntos
+    exito, mensaje_error = enviar_correo_smtp(
+        smtp_host=smtp_host, smtp_puerto=smtp_puerto, smtp_usuario=smtp_usuario, smtp_password=smtp_password, remitente=smtp_usuario, destinatario=emdestinatario, asunto=asunto, mensaje=mensaje, pdf_content=pdf_content, xml_content=xml_content, facnumfac=facnumfac
+    )
 
     # Paso 4: Actualizar estado según resultado
     if exito:
@@ -287,9 +297,10 @@ def procesar_envio_individual(connection, pendiente):
         return False
 
 
-def obtener_pdf(connection, ciacodigo, facnumfac, loccodigo):
+def obtener_archivos(connection, ciacodigo, facnumfac, loccodigo):
     """
-    Obtiene el PDF (RIDE) del documento electrónico desde siacdocelectronicos.
+    Obtiene el PDF (RIDE) y el XML autorizado del documento electrónico
+    desde siacdocelectronicos.
 
     Parámetros:
         connection: Conexión activa a la BD del cliente
@@ -298,18 +309,18 @@ def obtener_pdf(connection, ciacodigo, facnumfac, loccodigo):
         loccodigo (str): Código de la localidad
 
     Retorna:
-        bytes o None: Contenido binario del PDF, o None si no existe
+        tuple: (pdf_content: bytes o None, xml_content: bytes o None)
     """
     resultado = (
         connection.execute(
             text(
                 """
-            SELECT sripdf
-            FROM siacdocelectronicos
-            WHERE ciacodigo = :ciacodigo
-              AND facnumfac = :facnumfac
-              AND loccodigo = :loccodigo
-        """
+                SELECT sripdf, srixmlautorizado
+                FROM siacdocelectronicos
+                WHERE ciacodigo = :ciacodigo
+                  AND facnumfac = :facnumfac
+                  AND loccodigo = :loccodigo
+            """
             ),
             {"ciacodigo": ciacodigo, "facnumfac": facnumfac, "loccodigo": loccodigo},
         )
@@ -317,14 +328,14 @@ def obtener_pdf(connection, ciacodigo, facnumfac, loccodigo):
         .first()
     )
 
-    if resultado and resultado.get("sripdf"):
-        return resultado["sripdf"]
-    return None
+    if resultado:
+        return resultado.get("sripdf"), resultado.get("srixmlautorizado")
+    return None, None
 
 
-def enviar_correo_smtp(smtp_host, smtp_puerto, smtp_usuario, smtp_password, remitente, destinatario, asunto, mensaje, pdf_content, facnumfac):
+def enviar_correo_smtp(smtp_host, smtp_puerto, smtp_usuario, smtp_password, remitente, destinatario, asunto, mensaje, pdf_content, xml_content, facnumfac):
     """
-    Envía un correo electrónico con PDF adjunto vía SMTP.
+    Envía un correo electrónico con PDF (RIDE) y XML autorizado adjuntos vía SMTP.
 
     Soporta:
         - Gmail / Google Workspace (smtp.gmail.com:587)
@@ -342,8 +353,9 @@ def enviar_correo_smtp(smtp_host, smtp_puerto, smtp_usuario, smtp_password, remi
         destinatario (str): Email del destinatario (To)
         asunto (str): Asunto del correo (Subject)
         mensaje (str): Cuerpo del correo en HTML
-        pdf_content (bytes): Contenido binario del PDF a adjuntar
-        facnumfac (str): Número del documento (para nombre del archivo adjunto)
+        pdf_content (bytes): Contenido binario del PDF (RIDE) a adjuntar
+        xml_content (bytes): Contenido binario del XML autorizado a adjuntar
+        facnumfac (str): Número del documento (para nombre de los archivos adjuntos)
 
     Retorna:
         tuple: (éxito: bool, mensaje_error: str o None)
@@ -352,7 +364,7 @@ def enviar_correo_smtp(smtp_host, smtp_puerto, smtp_usuario, smtp_password, remi
         # Convertir puerto a entero (viene como string desde la BD)
         puerto = int(smtp_puerto) if smtp_puerto else 587
 
-        # Crear el mensaje multipart (cuerpo HTML + adjunto PDF)
+        # Crear el mensaje multipart (cuerpo HTML + adjuntos PDF y XML)
         msg = MIMEMultipart()
         msg["From"] = remitente
         msg["To"] = destinatario
@@ -361,13 +373,21 @@ def enviar_correo_smtp(smtp_host, smtp_puerto, smtp_usuario, smtp_password, remi
         # Adjuntar el cuerpo del mensaje en formato HTML
         msg.attach(MIMEText(mensaje, "html", "utf-8"))
 
-        # Adjuntar el PDF
+        # Adjuntar el PDF (RIDE)
         if pdf_content:
             pdf_adjunto = MIMEBase("application", "pdf")
             pdf_adjunto.set_payload(pdf_content)
             encoders.encode_base64(pdf_adjunto)
             pdf_adjunto.add_header("Content-Disposition", "attachment", filename=f"{facnumfac}.pdf")
             msg.attach(pdf_adjunto)
+
+        # Adjuntar el XML autorizado
+        if xml_content:
+            xml_adjunto = MIMEBase("application", "xml")
+            xml_adjunto.set_payload(xml_content)
+            encoders.encode_base64(xml_adjunto)
+            xml_adjunto.add_header("Content-Disposition", "attachment", filename=f"{facnumfac}.xml")
+            msg.attach(xml_adjunto)
 
         # Conectar al servidor SMTP según el puerto
         if puerto == 465:

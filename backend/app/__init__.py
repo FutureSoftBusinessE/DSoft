@@ -384,6 +384,10 @@ def create_app(config_class=Config):
 
     app.register_blueprint(AsignacionDeClientesAUsu_bp, url_prefix="/AsignacionDeClientesAUsu")
 
+    from app.ActualizaClaveOlvidada import bp as ActualizaClaveOlvidada_bp
+
+    app.register_blueprint(ActualizaClaveOlvidada_bp, url_prefix="/ActualizaClaveOlvidada")
+
     # ************************************************************
     #  RUTAS BASE Y HERRAMIENTAS DE DESARROLLO (SOLO LOCAL)
     # ************************************************************

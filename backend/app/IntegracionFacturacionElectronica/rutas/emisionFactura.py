@@ -13,6 +13,7 @@ from app.IntegracionFacturacionElectronica.utils.validate_factura_xml import val
 from app.IntegracionFacturacionElectronica.utils.sign_xml import sign_xml
 from app.IntegracionFacturacionElectronica.utils.sri_services import send_receipt, send_authorization, parse_authorization_response, build_autorizacion_xml
 from app.IntegracionFacturacionElectronica.utils.generate_ride_pdf import generate_ride_pdf
+from app.utils.encolar_envio_correo_docelectronico import encolar_envio_correo_docelectronico
 from pathlib import Path
 from error_handling import api_endpoint, ValidationError, APIError
 from datetime import datetime
@@ -54,6 +55,7 @@ def emisionFactura():
     info_tributaria = data.get("info_tributaria", {})
     info_factura = data.get("info_factura", {})
     datos_cliente = data.get("datos_cliente", {})
+    datos_correo = data.get("datos_correo", {})
 
     serie = info_tributaria.get("estab", "") + info_tributaria.get("pto_emi", "")
     ruc_recibido = info_tributaria.get("ruc", "").strip()
@@ -311,7 +313,10 @@ def emisionFactura():
                         ),
                         {"mensaje": f" | {mensaje_bd}", "fecha": fecha_con_hora_cero, "usuario": usrcodigo, "ciacodigo": ciacodigo, "facnumfac": facnumfac, "loccodigo": loccodigo},
                     )
-
+                # ========== PASO 13: ENCOLAR ENVÍO DE CORREO ==========
+                # Solo si el SRI autorizó y el payload tiene datos de correo con destinatario
+                if estado_sri == "AUTORIZADO" and datos_correo.get("destinatario"):
+                    encolar_envio_correo_docelectronico(connection=connection, ciacodigo=ciacodigo, facnumfac=facnumfac, loccodigo=loccodigo, datos_correo=datos_correo, usrcodigo=usrcodigo, ip_usuario=ipUser)
         return {
             "msg": "Factura procesada correctamente",
             "clave_acceso": clave_acceso,

@@ -279,10 +279,50 @@ def autorizar_sri_retencion():
 
         _guardar_estado_sri_bd(engine, ciacodigo, retid, loccodigo, clave_acceso, xml_ret, xml_firmado, xml_autorizado_final, pdf_content, is_auth_num, mensaje_bd, status_bd, usrcodigo, ipUser, doc)
 
+        # ========== CONSTRUIR DATOS CORREO ==========
+        email_destinatario = str(doc.get("proemail") or "").strip()
+        datos_correo = {}
+
+        if email_destinatario:
+            with engine.connect() as conn_correo:
+                result_datos_correo = (
+                    conn_correo.execute(
+                        text(
+                            """
+                        SELECT emailsmtp, emailmascara, emailsalida, emailtema,
+                            emailsubject, emailmensaje
+                        FROM cgblocal
+                        WHERE ciacodigo = :ciacodigo AND loccodigo = :loccodigo
+                    """
+                        ),
+                        {"ciacodigo": ciacodigo, "loccodigo": loccodigo},
+                    )
+                    .mappings()
+                    .first()
+                )
+
+                if result_datos_correo:
+                    datos_correo = {
+                        "smtp_host": result_datos_correo["emailsmtp"] or "",
+                        "puerto": result_datos_correo["emailmascara"] or "",
+                        "email_salida": result_datos_correo["emailsalida"] or "",
+                        "clave_email": result_datos_correo["emailtema"] or "",
+                        "destinatario": email_destinatario,
+                        "asunto": result_datos_correo["emailsubject"] or "Comprobante de Retención",
+                        "mensaje": result_datos_correo["emailmensaje"] or "Adjuntamos su comprobante de retención electrónica.",
+                    }
+
         if estado_sri == "AUTORIZADO":
             num_aut = auth_data.get("numero_autorizacion", "")
             with engine.begin() as conn:
                 conn.execute(text("UPDATE cxpcret SET sriautnumero = :aut, retelectronica = 1, retfecmsys = GETDATE(), retusumsys = :usr WHERE ciacodigo = :cia AND retid = :retid"), {"aut": num_aut, "usr": usrcodigo, "cia": ciacodigo, "retid": retid})
+
+            # ========== ENCOLAR ENVÍO DE CORREO ==========
+            if email_destinatario and pdf_content:
+                from app.utils.encolar_envio_correo_docelectronico import encolar_envio_correo_docelectronico
+
+                encolar_envio_correo_docelectronico(connection=conn, ciacodigo=ciacodigo, facnumfac=retid, loccodigo=loccodigo, datos_correo=datos_correo, usrcodigo=usrcodigo, ip_usuario=ipUser)
+
             return jsonify({"success": True, "message": "Retención Autorizada exitosamente", "numero_autorizacion": num_aut})
         else:
             return jsonify({"success": False, "message": f"SRI Rechazó en Autorización: {mensaje_bd}"})

@@ -108,7 +108,7 @@ def facturarProforma():
             # ========== PASO 3: OBTENER DATOS DEL CLIENTE ==========
             query_cliente = """
                 SELECT clicodigo, clinombre, cliruc, clidirec, clitelef1, zoncodigo,
-                       tipcodigo, regcodigo, ciucodigo, procodigo
+                       tipcodigo, regcodigo, ciucodigo, procodigo, cliemail
                 FROM cxcmcli
                 WHERE ciacodigo = :ciacodigo AND clicodigo = :clicodigo
             """
@@ -339,7 +339,7 @@ def facturarProforma():
                 "clinombre": datos_cliente["clinombre"],
                 "cliruc": datos_cliente["cliruc"],
                 "clidirec": datos_cliente["clidirec"],
-                "cliemail": None,
+                "cliemail": datos_cliente["cliemail"],
                 "ciaciaruc": datos_empresa["ciaruc"],
                 "ciaciadescri": datos_empresa["ciasrirazon"],
                 "ciaciadirec": datos_empresa["ciasridirmatriz"],

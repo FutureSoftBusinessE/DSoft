@@ -11,6 +11,7 @@ import {
   FormLabel,
   RadioGroup,
   Radio,
+  IconButton,
 } from "@mui/material"
 import { DatePicker } from "@mui/x-date-pickers/DatePicker"
 import { format } from "date-fns"
@@ -22,6 +23,8 @@ import OtrosSection from "./sections/OtrosSection"
 import Otros2Section from "./sections/Otros2Section"
 import CXPComprasSection from "./sections/CXPComprasSection"
 import AdicionalesSection from "./sections/AdicionalesSection"
+import RucSearchField from "./RucSearchField"
+import SearchIcon from "@mui/icons-material/Search"
 
 export const COMPANIA_DEFAULT_VALUES = {
   ciacodigo: "",
@@ -480,6 +483,8 @@ export default function CompaniaTabsForm({
   readOnly = false,
   actions = [],
   isCreating = false,
+  onRucSearch,
+  isSearchingRuc = false,
 }) {
   const sectionRenderersRef = useRef({})
   const sectionMetaRef = useRef({ readOnly: false, firstSectionKey: null })
@@ -532,6 +537,12 @@ export default function CompaniaTabsForm({
     ocStateOptions,
   }
 
+  const handleRucFieldClick = () => {
+    if (onRucSearch && data.ciaruc && data.ciaruc.length === 13) {
+      onRucSearch(data.ciaruc)
+    }
+  }
+
   return (
     <FieldErrorContext.Provider value={errors}>
       <Box>
@@ -573,7 +584,14 @@ export default function CompaniaTabsForm({
 
         <Grid container spacing={1.2} sx={{ mb: 1.2 }}>
           <Grid item xs={12} sm={3}>
-            <Field label="R.U.C." name="ciaruc" value={data.ciaruc} onChange={change} readOnly={readOnly} />
+            <RucSearchField
+              value={data.ciaruc}
+              onChange={change}
+              readOnly={readOnly}
+              error={errors.ciaruc}
+              isSearching={isSearchingRuc}
+              onSearch={onRucSearch}
+            />
           </Grid>
           <Grid item xs={12} sm={3}>
             <Field

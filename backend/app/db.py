@@ -8,7 +8,7 @@ from decouple import config as config_env
 sesiones = {}
 
 
-def create_session(name="SiacFSBS"):
+def create_session(name="DSOFT"):
     try:
         # todos estos valores los tomo del archivo backend\.env
         engine = create_engine("mssql+pymssql://" + config_env("DB_USER") + ":" + config_env("DB_PASS") + "@" + config_env("DB_SERVER") + ":" + config_env("DB_PORT") + "/" + name + "?charset=utf8")
@@ -19,11 +19,11 @@ def create_session(name="SiacFSBS"):
     return sesiones[name]
 
 
-# la funcion get_session tiene el parametro de la base de datos opcional pero el valor de defecto es SiacFSBS
-def get_session(name="SiacFSBS"):
+# la funcion get_session tiene el parametro de la base de datos opcional pero el valor de defecto es DSOFT
+def get_session(name="DSOFT"):
     if name not in sesiones:
         return create_session(name)
     return sesiones[name]
 
 
-create_session("SiacFSBS")
+create_session("DSOFT")

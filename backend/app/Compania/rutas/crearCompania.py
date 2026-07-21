@@ -421,7 +421,7 @@ def crearCompania():
 
     # Obtener sesiones para AMBAS bases de datos
     session_company = get_session(clicianonBD)  # Compania actual donde se hizo login
-    session_fsbs = get_session("SiacFSBS")  # SiacFSBS
+    session_fsbs = get_session("DSOFT")  # DSOFT
 
     engine_company = session_company.bind
     engine_fsbs = session_fsbs.bind
@@ -442,7 +442,7 @@ def crearCompania():
             #   - siactusr (módulos) + siactusrweb (opciones menú) +
             #     siactusrwebbar (acciones) - Copia permisos usuario 1 desde
             #     compañía origen y asigna mismos permisos al usuario 2
-            # SiacFSBS: fsbsmclicia + fsbsmcliusu (2 usuarios)
+            # DSOFT: fsbsmclicia + fsbsmcliusu (2 usuarios)
             # Si algo falla → ROLLBACK en ambas
             # ══════════════════════════════════════════════════════════════════
 

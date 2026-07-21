@@ -1,14 +1,14 @@
 --1 poner usuario                                           --pusuario                     --pempresa            Jessenia Gomez Practicasa
 -- fsoft.Practi                   jgomez@Practi   --encryp(jgomez)               Practi  Jairo Gomez Mercatti
-select * from siacfsbs.dbo.fsbsmcliusu where cliciausu = '­v}xg' and cliciagrupo = 'Practi'
+select * from DSOFT.dbo.fsbsmcliusu where cliciausu = '­v}xg' and cliciagrupo = 'Practi'
 --usuario no existe
 
 --2 muestro las compañias
 select a.cliciaciacodigo,
  a.cliciacianombre,
  a.cliciarutaBD,
- a.clicianonBD from siacfsbs.dbo.fsbsmclicia a 
-	inner join siacfsbs.dbo.fsbsmcliusu b on a.cliciaidenti = b.cliciaidenti and b.cliciagrupo = b.cliciagrupo
+ a.clicianonBD from DSOFT.dbo.fsbsmclicia a
+	inner join DSOFT.dbo.fsbsmcliusu b on a.cliciaidenti = b.cliciaidenti and b.cliciagrupo = b.cliciagrupo
 where b.cliciausu = '­v}xg' --pusuario
 and b.cliciagrupo = 'Practi' --pempresa
 
@@ -31,7 +31,7 @@ b.loccodigo from SiacPracticasa.dbo.siactloc a inner join SiacPracticasa.dbo.cgb
 	where a.ciacodigo = '01' and usrcodigo = '­v}xg' and b.locstatus = 'A'
 	                                     --${p_usuario}
 
----seleccione localidad 
+---seleccione localidad
 
 --5 armar menu
 select a.* from siacpracticasa.dbo.siacopc a inner join siacpracticasa.dbo.siactusrweb b on a.opctag = b.opctag and a.modcodigo = b.modcodigo
@@ -73,7 +73,7 @@ FROM SiacPracticasa.dbo.facped
 select REPLICATE('-', linnivel) as sangria,linnivel,lincodigo,lindescri from SiacPracticasa.dbo.inblin
 
 
--- insert into SiacPracticasa.dbo.facped 
+-- insert into SiacPracticasa.dbo.facped
 -- (pednumped,
 --  pedtivapor,
 --  pedsubtot,
@@ -98,7 +98,7 @@ select REPLICATE('-', linnivel) as sangria,linnivel,lincodigo,lindescri from Sia
 --  SYSDATETIME(),
 --  SYSDATETIME() );
 
-insert into SiacPracticasa.dbo.facped 
+insert into SiacPracticasa.dbo.facped
 values(
 	'01',
 	@pednumped,
@@ -204,15 +204,15 @@ values(
 
 -- --1 poner usuario
 -- -- fsoft.Practi
--- select * from siacfsbs.dbo.fsbsmcliusu where cliciausu = '­¡ƒsv' and cliciagrupo = 'Mercatti'
+-- select * from DSOFT.dbo.fsbsmcliusu where cliciausu = '­¡ƒsv' and cliciagrupo = 'Mercatti'
 -- --usuario no existe
 
 -- --2 muestro las compa�ias
 -- select a.cliciaciacodigo,
  a.cliciacianombre,
  a.cliciarutaBD,
- a.clicianonBD from siacfsbs.dbo.fsbsmclicia a 
--- 	inner join siacfsbs.dbo.fsbsmcliusu b on a.cliciaidenti = b.cliciaidenti and b.cliciagrupo = b.cliciagrupo
+ a.clicianonBD from DSOFT.dbo.fsbsmclicia a
+-- 	inner join DSOFT.dbo.fsbsmcliusu b on a.cliciaidenti = b.cliciaidenti and b.cliciagrupo = b.cliciagrupo
 -- where b.cliciausu = '_‹xAƒ‚P_NO' and b.cliciagrupo = 'Mercatti'
 -- ---Selecciona compa�ia "01"
 
@@ -228,7 +228,7 @@ values(
 -- select b.locdescri from SiacPracticasa.dbo.siactloc a inner join cgblocal b on a.ciacodigo = b.ciacodigo and a.loccodigo = b.loccodigo
 -- 	where a.ciacodigo = '01' and usrcodigo = '�v}xg' and b.locstatus = 'A'
 
--- ---seleccione localidad 
+-- ---seleccione localidad
 
 -- --5 armar menu
 -- select a.* from siacopc a inner join siactusrweb b on a.opctag = b.opctag and a.modcodigo = b.modcodigo
@@ -244,10 +244,10 @@ values(
 insert into SiacIlsaboremio.dbo.fatped values (
 	@ciacodigo,
 	@pednumped,
-	@pedsecuen,NULL,'PR',-1, 'EFE','D',0.00,   ${fechaSistema}, (select clicodigo from SiacIlsaboremio.dbo.facped where pednumped =@pednumped),@loccodigo, 1,@pedstatus, '','01',    @artcodigo,'01','',(select lincodigo from SiacIlsaboremio.dbo.inmart where artcodigo=@artcodigo), 
+	@pedsecuen,NULL,'PR',-1, 'EFE','D',0.00,   ${fechaSistema}, (select clicodigo from SiacIlsaboremio.dbo.facped where pednumped =@pednumped),@loccodigo, 1,@pedstatus, '','01',    @artcodigo,'01','',(select lincodigo from SiacIlsaboremio.dbo.inmart where artcodigo=@artcodigo),
   (select vencodigo from SiacIlsaboremio.dbo.facped where pednumped =@pednumped),
-  (select zoncodigo from SiacIlsaboremio.dbo.facped where pednumped =@pednumped),'',@pedcantidad,0.000000, 0.000000, 
-  (select artprecventa1 from SiacIlsaboremio.dbo.inmart where artcodigo=@artcodigo),0.000000,0.000000, 0.000000, 12.00, 
+  (select zoncodigo from SiacIlsaboremio.dbo.facped where pednumped =@pednumped),'',@pedcantidad,0.000000, 0.000000,
+  (select artprecventa1 from SiacIlsaboremio.dbo.inmart where artcodigo=@artcodigo),0.000000,0.000000, 0.000000, 12.00,
   (select (artprecventa1*0.12) * @pedcantidad from SiacIlsaboremio.dbo.inmart where artcodigo=@artcodigo),
   (select (artprecventa1* @pedcantidad) from SiacIlsaboremio.dbo.inmart where artcodigo=@artcodigo),
   (select ((artprecventa1*0.12) + artprecventa1)*@pedcantidad from SiacIlsaboremio.dbo.inmart where artcodigo=@artcodigo),${fechaSistema}, CONVERT (time, ${horaSistema}), @pedusuisys, User,${fechaSistema}, CONVERT (time, ${horaSistema}), @pedusuisys,  User,'001', 0.000000, '', 0, 0.000000, 'UNI','ISM','0.00', 0, -1, 0,    NULL, 0,'000','000',${fechaSistema}, 0.000000, 0.000000,10.000000,1,'000',(select artdescri from SiacIlsaboremio.dbo.inmart where artcodigo=@artcodigo), NULL, NULL, NULL, NULL, NULL, NULL, NULL,    NULL, NULL, NULL, NULL, NULL, (select mesacodigo from SiacIlsaboremio.dbo.facped where pednumped =@pednumped), 0, NULL, @pedcomencoci )`,

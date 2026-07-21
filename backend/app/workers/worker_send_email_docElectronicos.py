@@ -5,7 +5,7 @@ Proceso independiente que actúa como consumidor de la cola de correos
 para documentos electrónicos.
 
 ARQUITECTURA:
-    - Se conecta a SiacFSBS (BD maestra) para obtener la lista de empresas
+    - Se conecta a DSOFT (BD maestra) para obtener la lista de empresas
     - Por cada empresa, se conecta a su BD (clicianonBD) y busca pendientes
     - Procesa cada pendiente: lee PDF y XML, lee datos SMTP de la misma tabla, envía correo, actualiza estado
     - Ya NO consulta cgblocal. Los datos SMTP viajan en el payload y se guardan en siacdocelectronicoscorreo.
@@ -64,7 +64,7 @@ def ejecutar_worker():
     """
     Punto de entrada principal del worker.
     Loop infinito que:
-        1. Obtiene todas las empresas activas desde SiacFSBS
+        1. Obtiene todas las empresas activas desde DSOFT
         2. Por cada empresa, busca y procesa correos pendientes
         3. Espera INTERVALO_CONSULTA segundos
         4. Repite
@@ -116,12 +116,12 @@ def ejecutar_worker():
 
 def obtener_empresas_activas():
     """
-    Obtiene la lista de todas las empresas (tenants) desde la base maestra SiacFSBS.
+    Obtiene la lista de todas las empresas (tenants) desde la base maestra DSOFT.
 
     Retorna:
         list[dict]: Lista de empresas con cliciaciacodigo, clicianonBD, cliciacianombre
     """
-    sesion = get_session("SiacFSBS")
+    sesion = get_session("DSOFT")
     engine = sesion.bind
 
     with engine.connect() as connection:

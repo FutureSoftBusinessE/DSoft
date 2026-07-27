@@ -416,6 +416,13 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
                                 showCancelButton: true,
                                 confirmButtonColor: "#d33",
                                 confirmButtonText: "Sí, eliminar",
+                                target: document.body,
+                                didOpen: () => {
+                                  const container = document.querySelector(".swal2-container")
+                                  if (container) {
+                                    container.style.zIndex = "99999"
+                                  }
+                                },
                               }).then((r) => {
                                 if (r.isConfirmed) eliminarDoc(doc.documentouuid)
                               })

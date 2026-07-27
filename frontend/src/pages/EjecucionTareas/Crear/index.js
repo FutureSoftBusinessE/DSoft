@@ -722,6 +722,7 @@ const CrearEjecucionTareas = () => {
           eventos={eventos}
           onDeleteTarea={handleDeleteTarea}
           loading={isLoading}
+          onEventClick={handleEventClick}
         />
       </div>
     </ThemeProvider>

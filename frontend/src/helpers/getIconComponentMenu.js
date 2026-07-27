@@ -1,6 +1,13 @@
 import React from "react"
-import * as Icons from "react-icons/fc"
+import * as FcIcons from "react-icons/fc"
+import * as FaIcons from "react-icons/fa"
 import { Icon } from "@iconify/react"
+
+// All icons FcShop
+const Icons = {
+  ...FcIcons,
+  ...FaIcons,
+}
 
 // Función para obtener un icono por defecto seguro
 const getSafeIcon = (iconName) => {

@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useRef, useCallback, Component } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
+import { useSearchParams } from "react-router-dom"
 import {
   IconButton,
   TextField,
@@ -241,6 +242,7 @@ const LargeScreenTable = ({
   useGetObj,
   topToolbarCustomActions,
   visualConfig, // <--- Dinámico
+  initialFilters = {},
 }) => {
   const columns = useMemo(
     () =>
@@ -250,7 +252,11 @@ const LargeScreenTable = ({
           <TextField
             variant="standard"
             placeholder="Filtrar"
-            onChange={(e) => onFilterChange(column.id, e.target.value)}
+            value={column.getFilterValue() || ""}
+            onChange={(e) => {
+              column.setFilterValue(e.target.value)
+              onFilterChange(column.id, e.target.value)
+            }}
           />
         ),
       })),
@@ -260,7 +266,13 @@ const LargeScreenTable = ({
   const table = useMaterialReactTable({
     columns,
     data,
-    initialState: { showColumnFilters: true },
+    initialState: {
+      showColumnFilters: true,
+      columnFilters: columnsTable.map((col) => ({
+        id: col.id || col.accessorKey,
+        value: initialFilters[col.id || col.accessorKey] || "",
+      })),
+    },
     enableEditing: false,
     enableSorting: false,
     enablePagination: false,
@@ -464,6 +476,7 @@ const SmallScreenTable = ({
   useGetObj,
   topToolbarCustomActions,
   visualConfig, // <--- Dinámico
+  initialFilters = {},
 }) => {
   const DataIsVoidMsg = "No hay registros para mostrar"
   const DataIsLoadingMsg = "Cargando..."
@@ -471,6 +484,14 @@ const SmallScreenTable = ({
   const FilterSearchErrorMsg = "Error al cargar los datos"
   const DefaultColumnCotentIsVoidMsg = "-"
   const [filtersOpen, setFiltersOpen] = useState(true)
+
+  // Estado local para los inputs de filtro
+  const [localFilters, setLocalFilters] = useState(initialFilters)
+
+  // Sincronizar cuando initialFilters cambie (al volver de navegación)
+  useEffect(() => {
+    setLocalFilters(initialFilters)
+  }, [initialFilters])
 
   return (
     <div>
@@ -552,22 +573,29 @@ const SmallScreenTable = ({
           </AccordionSummary>
           <AccordionDetails>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, p: 1 }}>
-              {columnsTable.map((col) => (
-                <TextField
-                  key={col.id || col.accessorKey}
-                  variant="outlined"
-                  size="small"
-                  fullWidth
-                  label={`${col.header}`}
-                  onChange={(e) => onFilterChange(col.id || col.accessorKey, e.target.value)}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 1,
-                      backgroundColor: (theme) => theme.palette.common.white,
-                    },
-                  }}
-                />
-              ))}
+              {columnsTable.map((col) => {
+                const fieldKey = col.id || col.accessorKey
+                return (
+                  <TextField
+                    key={fieldKey}
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                    label={`${col.header}`}
+                    value={localFilters[fieldKey] || ""}
+                    onChange={(e) => {
+                      setLocalFilters((prev) => ({ ...prev, [fieldKey]: e.target.value }))
+                      onFilterChange(fieldKey, e.target.value)
+                    }}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 1,
+                        backgroundColor: (theme) => theme.palette.common.white,
+                      },
+                    }}
+                  />
+                )
+              })}
             </Box>
           </AccordionDetails>
         </Accordion>
@@ -784,7 +812,11 @@ const CustomTable = (props) => {
   return (
     <>
       <div>
-        {isMobile ? <SmallScreenTable theme={theme} {...props} /> : <LargeScreenTable theme={theme} {...props} />}
+        {isMobile ? (
+          <SmallScreenTable key={JSON.stringify(props.initialFilters)} theme={theme} {...props} />
+        ) : (
+          <LargeScreenTable theme={theme} {...props} />
+        )}
       </div>
     </>
   )
@@ -806,9 +838,51 @@ const CustomConditionalActionsTableServer = ({
   rowActions = () => [],
   topToolbarCustomActions = () => [],
 }) => {
-  const [filters, setFilters] = useState({})
-  const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(initialPerPage)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const getFiltersFromURL = useCallback(() => {
+    const filters = {}
+    for (const [key, value] of searchParams.entries()) {
+      if (key !== "pagina" && key !== "perPage") {
+        filters[key] = value
+      }
+    }
+    return filters
+  }, [searchParams])
+
+  const syncURL = useCallback(
+    (newFilters, newPage, newPerPage) => {
+      const params = new URLSearchParams()
+
+      Object.entries(newFilters).forEach(([key, value]) => {
+        if (value) {
+          params.set(key, value)
+        }
+      })
+
+      if (newPage && newPage !== 1) {
+        params.set("pagina", newPage.toString())
+      }
+
+      if (newPerPage && newPerPage !== initialPerPage) {
+        params.set("perPage", newPerPage.toString())
+      }
+
+      setSearchParams(params, { replace: true })
+    },
+    [setSearchParams, initialPerPage],
+  )
+
+  const [filters, setFilters] = useState(() => getFiltersFromURL())
+  const [page, setPage] = useState(() => {
+    const pageParam = searchParams.get("pagina")
+    return pageParam ? parseInt(pageParam) : 1
+  })
+  const [perPage, setPerPage] = useState(() => {
+    const perPageParam = searchParams.get("perPage")
+    return perPageParam ? parseInt(perPageParam) : initialPerPage
+  })
+
   const { data, isLoading, isError, refetch, isFetching } = useGetData(page, filters, perPage)
   const [totalPages, setTotalPages] = useState(1)
   const timeoutRef = useRef(null)
@@ -840,34 +914,54 @@ const CustomConditionalActionsTableServer = ({
   }
   // =========================================================================
 
-  const handleFilterChange = useCallback((columnId, value) => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-    }
+  const handleFilterChange = useCallback(
+    (columnId, value) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
 
-    timeoutRef.current = setTimeout(() => {
-      setFilters((prevFilters) => {
-        if (!value.trim()) {
-          const { [columnId]: _, ...rest } = prevFilters
-          return rest
-        }
-        return {
-          ...prevFilters,
-          [columnId]: value.trim(),
-        }
-      })
-    }, 500)
-    setPage(1)
-  }, [])
+      timeoutRef.current = setTimeout(() => {
+        setFilters((prevFilters) => {
+          let newFilters
+          if (!value.trim()) {
+            const { [columnId]: _, ...rest } = prevFilters
+            newFilters = rest
+          } else {
+            newFilters = {
+              ...prevFilters,
+              [columnId]: value.trim(),
+            }
+          }
+          syncURL(newFilters, 1, perPage)
+          return newFilters
+        })
+      }, 500)
+      setPage(1)
+    },
+    [syncURL, perPage],
+  )
 
-  const handleRowsPerPageChange = useCallback((newPerPage) => {
-    setPerPage(newPerPage)
-    setPage(1)
-  }, [])
+  const handleRowsPerPageChange = useCallback(
+    (newPerPage) => {
+      setPerPage(newPerPage)
+      setPage(1)
+      syncURL(filters, 1, newPerPage)
+    },
+    [filters, syncURL],
+  )
+
+  const handlePageChange = useCallback(
+    (newPage) => {
+      setPage(newPage)
+      syncURL(filters, newPage, perPage)
+    },
+    [filters, perPage, syncURL],
+  )
 
   useEffect(() => {
+    syncURL(filters, page, perPage)
     refetch()
-  }, [page, filters, perPage, refetch])
+  }, [page, filters, perPage, refetch, syncURL])
 
   function useGetData(pageNumber, filters, currentPerPage) {
     return useQuery({
@@ -905,7 +999,7 @@ const CustomConditionalActionsTableServer = ({
         isError={isError}
         totalPages={totalPages}
         currentPage={page}
-        onPageChange={setPage}
+        onPageChange={handlePageChange}
         onFilterChange={handleFilterChange}
         errorMsgFilterSearch={errorMsgFilterSearch}
         refetch={refetch}
@@ -913,7 +1007,8 @@ const CustomConditionalActionsTableServer = ({
         rowActions={rowActions}
         useGetObj={{ data, isLoading, isError, refetch, isFetching }}
         topToolbarCustomActions={topToolbarCustomActions}
-        visualConfig={visualConfig} // <--- Inyectamos la configuración
+        visualConfig={visualConfig}
+        initialFilters={filters}
       />
     </Box>
   )

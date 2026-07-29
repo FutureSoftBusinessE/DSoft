@@ -211,6 +211,14 @@ import { TipoDeCompania, CrearTipoDeCompania, EditarTipoDeCompania } from "../pa
 // AsignacionDeClientesAUsu
 import { AsignacionDeClientesAUsu } from "../pages"
 
+// CatalogodeProductos
+import {
+  CatalogodeProductos,
+  CrearCatalogodeProductos,
+  EditarCatalogodeProductos,
+  BuscarCatalogodeProductos,
+} from "../pages"
+
 const protectedRoutes = [
   { path: "Submenu/:label/:id", element: <SubMenu /> },
   { path: "dashboard/AccesoACompañiasYModulos", element: <AccesoACompañiasYModulos /> },
@@ -383,6 +391,10 @@ const protectedRoutes = [
   { path: "dashboard/TipoDeCompania/crear", element: <CrearTipoDeCompania /> },
   { path: "dashboard/TipoDeCompania/editar", element: <EditarTipoDeCompania /> },
   { path: "dashboard/AsignacionDeClientesAUsu", element: <AsignacionDeClientesAUsu /> },
+  { path: "dashboard/CatalogodeProductos", element: <CatalogodeProductos /> },
+  { path: "dashboard/CatalogodeProductos/crear", element: <CrearCatalogodeProductos /> },
+  { path: "dashboard/CatalogodeProductos/editar", element: <EditarCatalogodeProductos /> },
+  { path: "dashboard/CatalogodeProductos/buscar", element: <BuscarCatalogodeProductos /> },
 ]
 
 export default protectedRoutes

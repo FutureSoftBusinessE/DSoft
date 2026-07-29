@@ -20,9 +20,6 @@ import {
   DialogActions,
   Button,
   CircularProgress,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
 } from "@mui/material"
 import DownloadIcon from "@mui/icons-material/Download"
 import DeleteIcon from "@mui/icons-material/Delete"
@@ -30,13 +27,12 @@ import VpnKeyIcon from "@mui/icons-material/VpnKey"
 import FilePresentIcon from "@mui/icons-material/FilePresent"
 import VisibilityIcon from "@mui/icons-material/Visibility"
 import CloseIcon from "@mui/icons-material/Close"
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import fetchwrapper from "../../../../services/interceptors/fetchwrapper"
 import { api } from "../../../../api"
 import Swal from "sweetalert2"
 
-// Helper para forzar alertas al frente
+// Helper para forzar alertas al frente[cite: 8]
 const mostrarAlerta = (titulo, mensaje, icono) => {
   Swal.fire({
     title: titulo,
@@ -52,7 +48,7 @@ const mostrarAlerta = (titulo, mensaje, icono) => {
 const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
   const queryClient = useQueryClient()
 
-  // --- ESTADOS PARA EL VISOR DE DOCUMENTOS ---
+  // --- ESTADOS PARA EL VISOR DE DOCUMENTOS ---[cite: 8]
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [previewFileType, setPreviewFileType] = useState("")
@@ -63,6 +59,7 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
     queryKey: ["documentosAsociados", qgenero, procqgenero],
     queryFn: async () => {
       if (!qgenero) return []
+      // El backend ahora devuelve los documentos filtrados por permisos y eventos
       const res = await fetchwrapper(`/DocumentosAsociadosComponent/getDocumentosAsociados/${qgenero}/${procqgenero}`)
       const json = await res.json()
       const lista = json.data || []
@@ -83,7 +80,7 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
     },
   })
 
-  // --- HELPER CENTRALIZADO PARA OBTENER EL BLOB DEL DOCUMENTO ---
+  // --- HELPER CENTRALIZADO PARA OBTENER EL BLOB DEL DOCUMENTO ---[cite: 8]
   const obtenerBlobDocumento = async (uuid) => {
     let foundToken = ""
     const storages = [localStorage, sessionStorage]
@@ -124,7 +121,7 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
     return await response.blob()
   }
 
-  // --- FUNCIÓN DE DESCARGA ---
+  // --- FUNCIÓN DE DESCARGA ---[cite: 8]
   const handleDescargar = async (uuid, nombre) => {
     try {
       const blob = await obtenerBlobDocumento(uuid)
@@ -142,7 +139,7 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
     }
   }
 
-  // --- NUEVA FUNCIÓN: VISOR DE DOCUMENTOS ---
+  // --- NUEVA FUNCIÓN: VISOR DE DOCUMENTOS ---[cite: 8]
   const handlePrevisualizar = async (uuid, nombre, extension) => {
     const ext = extension.toLowerCase()
     const extensionesNativas = ["pdf", "txt", "jpg", "jpeg", "png", "gif", "webp"]
@@ -205,13 +202,17 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
         let jsonStr = datos.usuario.trim()
 
         try {
+          // 1. Limpieza exhaustiva de errores de tipeo comunes provenientes del backend
           jsonStr = jsonStr.replace(/#respuesta/g, '"respuesta')
+          // Repara casos como "respuesta#: o "respuesta#":
           jsonStr = jsonStr.replace(/respuesta[#|!|$|%|&]*\s*:/g, 'respuesta":')
           jsonStr = jsonStr.replace(/pregunta[#|!|$|%|&]*\s*:/g, 'pregunta":')
+
           // eslint-disable-next-line no-control-regex
           jsonStr = jsonStr.replace(/\},\s*[^{\s[\]"']+\s*\{/g, "},{")
           // eslint-disable-next-line no-control-regex
           jsonStr = jsonStr.replace(/[\x00-\x1F\x7F-\x9F]/g, "")
+
           datos = JSON.parse(jsonStr)
         } catch (e) {
           console.warn("JSON malformado. Usando motor de extracción por Regex avanzado.")
@@ -222,12 +223,15 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
             return match ? match[1] : ""
           }
 
+          // 2. Rescate manual y seguro de las preguntas de seguridad
           const preguntasExtraidas = []
           const bloquePreguntas = jsonStr.match(/"preguntas"\s*:\s*\[(.*?)\]/)
 
           if (bloquePreguntas && bloquePreguntas[1]) {
             const innerStr = bloquePreguntas[1]
+            // Extraemos las preguntas
             const matchPreguntas = [...innerStr.matchAll(/"pregunta"[^:]*:\s*"([^"]*)"/g)]
+            // Extraemos las respuestas ignorando caracteres extraños antes de los dos puntos
             const matchRespuestas = [...innerStr.matchAll(/"respuesta[^:]*:\s*"([^"]*)"/g)]
 
             const maxLen = Math.max(matchPreguntas.length, matchRespuestas.length)
@@ -244,7 +248,7 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
             clave: extraerValor("clave"),
             url: extraerValor("url"),
             email: extraerValor("email"),
-            preguntas: preguntasExtraidas,
+            preguntas: preguntasExtraidas, // Ahora inyectamos las preguntas rescatadas
           }
         }
       } else if (typeof datos === "string") {
@@ -304,23 +308,6 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
 
   if (!qgenero) return null
 
-  // =======================================================================
-  // CLASIFICACIÓN CON LÓGICA DEFENSIVA
-  // =======================================================================
-  const documentosAgrupados = documentos.reduce((acc, doc) => {
-    const procesoRaw = doc.docprocqgenero || doc.DOCPROCQGENERO || doc.procqgenero || "GENERAL"
-    const referenciaRaw = doc.docqgenero || doc.DOCQGENERO || doc.qgenero || "SIN REFERENCIA"
-
-    const proceso = String(procesoRaw).trim().toUpperCase()
-    const referencia = String(referenciaRaw).trim().toUpperCase()
-
-    if (!acc[proceso]) acc[proceso] = {}
-    if (!acc[proceso][referencia]) acc[proceso][referencia] = []
-
-    acc[proceso][referencia].push(doc)
-    return acc
-  }, {})
-
   return (
     <>
       <Card sx={{ mt: 3, mb: 3 }}>
@@ -337,170 +324,112 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
               No existen registros asociados o no cuenta con los permisos para visualizarlos.
             </Typography>
           ) : (
-            // =======================================================================
-            // NUEVA LÓGICA DE ORDENAMIENTO (CXCMCLI primero, GDOCMEVENTOS segundo)
-            // =======================================================================
-            Object.entries(documentosAgrupados)
-              .sort(([procesoA], [procesoB]) => {
-                if (procesoA === "CXCMCLI") return -1
-                if (procesoB === "CXCMCLI") return 1
-                if (procesoA === "GDOCMEVENTOS") return -1
-                if (procesoB === "GDOCMEVENTOS") return 1
-                return procesoA.localeCompare(procesoB)
-              })
-              .map(([proceso, referencias]) => (
-                <Box key={proceso} sx={{ mb: 2 }}>
-                  {Object.entries(referencias).map(([referencia, docs]) => {
-                    let labelProceso = proceso
-                    if (proceso === "CXCMCLI") labelProceso = "PERFIL DEL CLIENTE"
-                    if (proceso === "GDOCMEVENTOS") labelProceso = "TAREA / EVENTO"
-
-                    return (
-                      // =======================================================================
-                      // REEMPLAZO DE BOX POR ACCORDION (Cerrado por defecto)
-                      // =======================================================================
-                      <Accordion
-                        key={referencia}
-                        disableGutters
-                        sx={{ mb: 1, border: "1px solid #e0e0e0", boxShadow: "none" }}
-                      >
-                        <AccordionSummary
-                          expandIcon={<ExpandMoreIcon />}
-                          sx={{
-                            bgcolor: "#f0f4f8",
-                            borderLeft: "4px solid #196C87",
-                            minHeight: 48,
-                            "& .MuiAccordionSummary-content": { my: 1 },
-                          }}
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableHead sx={{ backgroundColor: "#f8f9fa" }}>
+                  <TableRow>
+                    <TableCell>
+                      <b>Nombre de Documento</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Ext.</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Institución</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Observación</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Fecha Registro</b>
+                    </TableCell>
+                    <TableCell align="center">
+                      <b>Acciones</b>
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {documentos.map((doc) => (
+                    <TableRow key={doc.documentouuid} hover>
+                      <TableCell>{doc.docnombre}</TableCell>
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          sx={{ textTransform: "uppercase", fontWeight: "bold", fontSize: "0.8rem" }}
                         >
-                          <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "#333" }}>
-                            Origen: <span style={{ color: "#196C87" }}>{labelProceso}</span>
-                            &nbsp;|&nbsp; Registro N°: <span style={{ color: "#196C87" }}>{referencia}</span>
-                          </Typography>
-                        </AccordionSummary>
+                          {doc.docextension}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>{doc.instidescri || "—"}</TableCell>
+                      <TableCell>{doc.docindex1 || "—"}</TableCell>
+                      <TableCell>{doc.docfechorisys}</TableCell>
+                      <TableCell align="center">
+                        {/* NUEVO BOTÓN: Previsualizar (solo si no es credencial) */}
+                        {doc.docextension !== "clv" && doc.docextension !== "p12" && doc.docextension !== "pfx" && (
+                          <Tooltip title="Previsualizar">
+                            <IconButton
+                              size="small"
+                              sx={{ color: "#4caf50" }}
+                              onClick={() => handlePrevisualizar(doc.documentouuid, doc.docnombre, doc.docextension)}
+                            >
+                              <VisibilityIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
 
-                        <AccordionDetails sx={{ p: 0 }}>
-                          <TableContainer component={Paper} variant="outlined" sx={{ border: "none" }}>
-                            <Table size="small">
-                              <TableHead sx={{ backgroundColor: "#fafafa" }}>
-                                <TableRow>
-                                  <TableCell>
-                                    <b>Nombre de Documento</b>
-                                  </TableCell>
-                                  <TableCell>
-                                    <b>Ext.</b>
-                                  </TableCell>
-                                  <TableCell>
-                                    <b>Institución</b>
-                                  </TableCell>
-                                  <TableCell>
-                                    <b>Observación</b>
-                                  </TableCell>
-                                  <TableCell>
-                                    <b>Fecha Registro</b>
-                                  </TableCell>
-                                  <TableCell align="center">
-                                    <b>Acciones</b>
-                                  </TableCell>
-                                </TableRow>
-                              </TableHead>
-                              <TableBody>
-                                {docs.map((doc) => (
-                                  <TableRow key={doc.documentouuid} hover>
-                                    <TableCell>{doc.docnombre}</TableCell>
-                                    <TableCell>
-                                      <Typography
-                                        variant="body2"
-                                        sx={{ textTransform: "uppercase", fontWeight: "bold", fontSize: "0.8rem" }}
-                                      >
-                                        {doc.docextension}
-                                      </Typography>
-                                    </TableCell>
-                                    <TableCell>{doc.instidescri || "—"}</TableCell>
-                                    <TableCell>{doc.docindex1 || "—"}</TableCell>
-                                    <TableCell>{doc.docfechorisys}</TableCell>
-                                    <TableCell align="center">
-                                      {doc.docextension !== "clv" &&
-                                        doc.docextension !== "p12" &&
-                                        doc.docextension !== "pfx" && (
-                                          <Tooltip title="Previsualizar">
-                                            <IconButton
-                                              size="small"
-                                              sx={{ color: "#4caf50" }}
-                                              onClick={() =>
-                                                handlePrevisualizar(doc.documentouuid, doc.docnombre, doc.docextension)
-                                              }
-                                            >
-                                              <VisibilityIcon fontSize="small" />
-                                            </IconButton>
-                                          </Tooltip>
-                                        )}
+                        {/* Botón original de Descargar */}
+                        {doc.docextension !== "clv" && (
+                          <Tooltip title="Descargar Archivo">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleDescargar(doc.documentouuid, doc.docnombre)}
+                            >
+                              <DownloadIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
 
-                                      {doc.docextension !== "clv" && (
-                                        <Tooltip title="Descargar Archivo">
-                                          <IconButton
-                                            size="small"
-                                            color="primary"
-                                            onClick={() => handleDescargar(doc.documentouuid, doc.docnombre)}
-                                          >
-                                            <DownloadIcon fontSize="small" />
-                                          </IconButton>
-                                        </Tooltip>
-                                      )}
+                        {/* Botón de Credenciales Seguras */}
+                        {(doc.docextension === "clv" || doc.docextension === "p12" || doc.docextension === "pfx") && (
+                          <Tooltip title="Ver Claves">
+                            <IconButton
+                              size="small"
+                              color="secondary"
+                              onClick={() => handleVerDatosSensibles(doc.documentouuid)}
+                            >
+                              <VpnKeyIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
 
-                                      {(doc.docextension === "clv" ||
-                                        doc.docextension === "p12" ||
-                                        doc.docextension === "pfx") && (
-                                        <Tooltip title="Ver Claves">
-                                          <IconButton
-                                            size="small"
-                                            color="secondary"
-                                            onClick={() => handleVerDatosSensibles(doc.documentouuid)}
-                                          >
-                                            <VpnKeyIcon fontSize="small" />
-                                          </IconButton>
-                                        </Tooltip>
-                                      )}
-
-                                      <Tooltip title="Eliminar">
-                                        <IconButton
-                                          size="small"
-                                          color="error"
-                                          onClick={() => {
-                                            Swal.fire({
-                                              title: "¿Eliminar registro?",
-                                              text: "Esta acción no se puede deshacer.",
-                                              icon: "warning",
-                                              showCancelButton: true,
-                                              confirmButtonColor: "#d33",
-                                              confirmButtonText: "Sí, eliminar",
-                                              target: document.body,
-                                              didOpen: () => {
-                                                const container = document.querySelector(".swal2-container")
-                                                if (container) {
-                                                  container.style.zIndex = "99999"
-                                                }
-                                              },
-                                            }).then((r) => {
-                                              if (r.isConfirmed) eliminarDoc(doc.documentouuid)
-                                            })
-                                          }}
-                                        >
-                                          <DeleteIcon fontSize="small" />
-                                        </IconButton>
-                                      </Tooltip>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </TableContainer>
-                        </AccordionDetails>
-                      </Accordion>
-                    )
-                  })}
-                </Box>
-              ))
+                        {/* Botón Eliminar */}
+                        <Tooltip title="Eliminar">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => {
+                              Swal.fire({
+                                title: "¿Eliminar registro?",
+                                text: "Esta acción no se puede deshacer.",
+                                icon: "warning",
+                                showCancelButton: true,
+                                confirmButtonColor: "#d33",
+                                confirmButtonText: "Sí, eliminar",
+                              }).then((r) => {
+                                if (r.isConfirmed) eliminarDoc(doc.documentouuid)
+                              })
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </CardContent>
       </Card>
@@ -534,12 +463,14 @@ const DocumentosAsociadosTabla = ({ qgenero, procqgenero, onDataLoaded }) => {
             </Box>
           ) : previewUrl ? (
             ["jpg", "jpeg", "png", "gif", "webp"].includes(previewFileType) ? (
+              // Visor de Imágenes
               <img
                 src={previewUrl}
                 alt="Vista Previa"
                 style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
               />
             ) : (
+              // Visor de PDF y TXT
               <iframe
                 src={previewUrl}
                 width="100%"

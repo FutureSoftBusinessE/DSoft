@@ -71,6 +71,7 @@ const CrearContraCliDF = () => {
     concodcontrato: "AUTOGENERADO",
     clicodigo: "",
     clinombre: "",
+    clicodigoFac: "", // Cliente Asociado a facturar
     concodigo: "",
     condescri: "",
     confecinicio: getTodayDate(),
@@ -92,7 +93,7 @@ const CrearContraCliDF = () => {
         const response = await api.post("/ContraCliDF/getInitialDataDF")
         return response?.data?.data?.data || response?.data?.data || {}
       } catch (error) {
-        return { clientes: [], tiposContrato: [], articulos: [] }
+        return { clientes: [], clientesAso: [], tiposContrato: [], articulos: [] }
       }
     },
     refetchOnWindowFocus: false,
@@ -103,6 +104,13 @@ const CrearContraCliDF = () => {
     label: `${i.clicodigo} - ${i.clinombre || ""}`,
     nombre: i.clinombre,
   }))
+
+  const listaClientesAso = (Array.isArray(rawInitialData?.clientesAso) ? rawInitialData.clientesAso : []).map((i) => ({
+    id: i.clicodigo,
+    label: `${i.clicodigo} - ${i.clinombre || ""}`,
+    nombre: i.clinombre,
+  }))
+
   const listaTipos = (Array.isArray(rawInitialData?.tiposContrato) ? rawInitialData.tiposContrato : []).map((i) => ({
     id: i.concodigo,
     label: `${i.concodigo} - ${i.condescri || ""}`,
@@ -121,14 +129,32 @@ const CrearContraCliDF = () => {
     queryKey: ["isCreatingContraCliDF"],
     fn: async (dataPayload) => (await api.post("/ContraCliDF/createContraCliDF", dataPayload)).data,
     showError: "modal",
-    showSuccess: "toast", // Retornamos el toast de éxito estándar de SIAC
+    showSuccess: "toast",
     onSuccess: (res) => {
-      // CORRECCIÓN: Usar el window.confirm estándar del navegador
-      const confirmacion = window.confirm(`${res.data}\n\n¿Desea imprimir el documento en PDF ahora?`)
+      // ==========================================================================
+      // EXTRACCIÓN DEFENSIVA PARA EVITAR ERRORES DE LECTURA (UNDEFINED)
+      // ==========================================================================
+      const mensajeStr =
+        typeof res?.data === "string"
+          ? res.data
+          : typeof res?.message === "string"
+            ? res.message
+            : typeof res === "string"
+              ? res
+              : "Contrato creado exitosamente"
+
+      const confirmacion = window.confirm(`${mensajeStr}\n\n¿Desea imprimir el documento en PDF ahora?`)
 
       if (confirmacion) {
-        // Extraemos el código real generado por el backend del mensaje (ej: COA2600000101)
-        const codigoGenerado = res.data.split(" ")[1]
+        // Intenta obtener el código desde diferentes capas o directamente separando el string si aplica
+        let codigoGenerado = res?.concodcontrato || res?.data?.concodcontrato
+
+        if (!codigoGenerado && typeof mensajeStr === "string") {
+          const partes = mensajeStr.split(" ")
+          // Usualmente es "Contrato COAXXX creado...", por tanto la parte 1 es el ID
+          codigoGenerado = partes.length > 1 ? partes[1] : "AUTOGENERADO"
+        }
+
         handlePrintContraCliPDF({ ...formData, concodcontrato: codigoGenerado }, servicios, periodos, infoHome)
       }
 
@@ -254,7 +280,7 @@ const CrearContraCliDF = () => {
                     sx={{ bgcolor: "#f0f0f0" }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={5}>
                   <Autocomplete
                     options={listaClientes}
                     getOptionLabel={(o) => o.label || ""}
@@ -269,6 +295,18 @@ const CrearContraCliDF = () => {
                     renderInput={(p) => <TextField {...p} label="Cliente *" InputLabelProps={{ shrink: true }} />}
                   />
                 </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Autocomplete
+                    options={listaClientesAso}
+                    getOptionLabel={(o) => o.label || ""}
+                    value={listaClientesAso.find((c) => c.id === formData.clicodigoFac) || null}
+                    onChange={(e, v) => handleInputChange("clicodigoFac", v ? v.id : "")}
+                    renderInput={(p) => (
+                      <TextField {...p} label="Cliente a Facturar (Asociado)" InputLabelProps={{ shrink: true }} />
+                    )}
+                  />
+                </Grid>
+
                 <Grid item xs={12} sm={3}>
                   <Autocomplete
                     options={listaTipos}
@@ -278,7 +316,7 @@ const CrearContraCliDF = () => {
                     renderInput={(p) => <TextField {...p} label="Tipo Contrato *" InputLabelProps={{ shrink: true }} />}
                   />
                 </Grid>
-                <Grid item xs={12} sm={9}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     label="Descripción"

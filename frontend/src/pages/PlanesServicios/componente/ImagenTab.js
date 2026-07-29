@@ -414,6 +414,32 @@ const ImageManagementComponent = ({ artcodigo, invcodigo }) => {
     setIsCameraOpen(false)
     setRowSelection({})
   }
+
+  // NUEVA FUNCIÓN: Procesa la imagen seleccionada desde el disco/galería
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onloadend = async () => {
+      const base64String = reader.result
+
+      if (editingRow !== null || Object.keys(rowSelection).length > 0) {
+        // Editar imagen existente con la nueva de la galería
+        const artsecuen = parseInt(Object.keys(rowSelection)[0])
+        await editOldImage(base64String, artsecuen)
+      } else {
+        // Agregar nueva imagen desde la galería
+        await createNewImage(base64String)
+      }
+
+      // Limpiar el input para permitir subir la misma imagen después si es necesario
+      event.target.value = null
+      setRowSelection({})
+    }
+    reader.readAsDataURL(file)
+  }
+
   // Usamos useMaterialReactTable para la lógica de la tabla
   const table = useMaterialReactTable({
     columns,
@@ -474,17 +500,25 @@ const ImageManagementComponent = ({ artcodigo, invcodigo }) => {
 
             {/* Botones de acción */}
             <Stack direction="row" spacing={2} sx={{ mb: 3, flexWrap: "wrap", gap: 1.5 }}>
+              {/* Botón para abrir la cámara web */}
               <Button
                 variant="contained"
                 color="primary"
                 onClick={handleOpenCamera}
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 600,
-                  px: 3,
-                }}
+                sx={{ textTransform: "none", fontWeight: 600, px: 3 }}
               >
-                {Object.keys(rowSelection).length ? "Editar Imagen" : "Agregar Nueva Imagen"}
+                {Object.keys(rowSelection).length ? "Tomar Foto para Reemplazar" : "Tomar Foto (Cámara)"}
+              </Button>
+
+              {/* NUEVO BOTÓN: Subir desde Galería/Archivo */}
+              <Button
+                variant="contained"
+                component="label"
+                color="success"
+                sx={{ textTransform: "none", fontWeight: 600, px: 3 }}
+              >
+                {Object.keys(rowSelection).length ? "Subir Archivo para Reemplazar" : "Subir de Galería"}
+                <input type="file" hidden accept="image/*" onChange={handleFileUpload} />
               </Button>
 
               {/* Mostrar botón "Eliminar" si hay algo seleccionado */}
@@ -493,11 +527,7 @@ const ImageManagementComponent = ({ artcodigo, invcodigo }) => {
                   variant="contained"
                   color="error"
                   onClick={deleteImage}
-                  sx={{
-                    textTransform: "none",
-                    fontWeight: 600,
-                    px: 3,
-                  }}
+                  sx={{ textTransform: "none", fontWeight: 600, px: 3 }}
                 >
                   Eliminar
                 </Button>
@@ -508,11 +538,7 @@ const ImageManagementComponent = ({ artcodigo, invcodigo }) => {
                 color="secondary"
                 onClick={handleClearSelection}
                 disabled={Object.keys(rowSelection).length === 0}
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 600,
-                  px: 3,
-                }}
+                sx={{ textTransform: "none", fontWeight: 600, px: 3 }}
               >
                 Limpiar selección
               </Button>

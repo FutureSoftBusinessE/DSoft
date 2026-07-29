@@ -302,6 +302,12 @@ import EditarTipoDeCompania from "./TipoDeCompania/Editar"
 // AsignacionDeClientesAUsu
 import AsignacionDeClientesAUsu from "./AsignacionDeClientesAUsu"
 
+// CatalogodeProductos
+import CatalogodeProductos from "./CatalogodeProductos"
+import CrearCatalogodeProductos from "./CatalogodeProductos/Crear"
+import EditarCatalogodeProductos from "./CatalogodeProductos/Editar"
+import BuscarCatalogodeProductos from "./CatalogodeProductos/Buscar"
+
 export {
   Login,
   LoginInner,
@@ -478,4 +484,8 @@ export {
   CrearTipoDeCompania,
   EditarTipoDeCompania,
   AsignacionDeClientesAUsu,
+  CatalogodeProductos,
+  CrearCatalogodeProductos,
+  EditarCatalogodeProductos,
+  BuscarCatalogodeProductos,
 }

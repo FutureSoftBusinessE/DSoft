@@ -29,6 +29,7 @@ def createContraCliDF():
     data = request.get_json()
     # Datos de Cabecera
     clicodigo = str(data.get("clicodigo", "")).strip().upper()[:6]
+    clicodigoFac = str(data.get("clicodigoFac", "")).strip().upper()[:6]
     concodigo = str(data.get("concodigo", "")).strip().upper()[:3]
     condescri = str(data.get("condescri", "")).strip().upper()[:250]
     confecinicio = data.get("confecinicio")
@@ -88,12 +89,12 @@ def createContraCliDF():
                     ciacodigo, concodcontrato, condescri, clicodigo, concodigo,
                     constatus, confecinicio, confecfin, confecfirma, confecinifac,
                     confrecuencia, convalor, confecisys, conhorisys, conusuisys,
-                    conestisys, confecmsys, conhormsys, conusumsys, conestmsys
+                    conestisys, confecmsys, conhormsys, conusumsys, conestmsys, clicodigoFac
                 ) VALUES (
                     :ciacodigo, :concodcontrato, :condescri, :clicodigo, :concodigo,
                     'A', :confecinicio, :confecfin, :confecfirma, :confecinifac,
                     :confrecuencia, :convalor, :fecisys, :horisys, :usuisys,
-                    :estisys, :fecmsys, :hormsys, :usumsys, :estmsys
+                    :estisys, :fecmsys, :hormsys, :usumsys, :estmsys, :clicodigoFac
                 )
             """
             )
@@ -119,6 +120,7 @@ def createContraCliDF():
                     "hormsys": hora_pura,
                     "usumsys": sUsuario,
                     "estmsys": sNomEst,
+                    "clicodigoFac": clicodigoFac,
                 },
             )
 

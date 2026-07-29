@@ -32,6 +32,7 @@ def getAllContraCliDF():
             allowed_columns = [
                 {"concodcontrato": FILTER_VALUE_TYPE.STRING},
                 {"clicodigo": FILTER_VALUE_TYPE.STRING},
+                {"clicodigoFac": FILTER_VALUE_TYPE.STRING},
                 {"condescri": FILTER_VALUE_TYPE.STRING},
                 {"constatus": FILTER_VALUE_TYPE.STRING},
             ]
@@ -41,6 +42,7 @@ def getAllContraCliDF():
                 concodcontrato,
                 condescri,
                 clicodigo,
+                clicodigoFac,
                 concodigo,
                 constatus,
                 CONVERT(varchar, confecinicio, 23) AS confecinicio,

@@ -384,6 +384,9 @@ def create_app(config_class=Config):
 
     app.register_blueprint(AsignacionDeClientesAUsu_bp, url_prefix="/AsignacionDeClientesAUsu")
 
+    from app.CatalogodeProductos import bp as CatalogodeProductos_bp
+
+    app.register_blueprint(CatalogodeProductos_bp, url_prefix="/CatalogodeProductos")
     from app.ActualizaClaveOlvidada import bp as ActualizaClaveOlvidada_bp
 
     app.register_blueprint(ActualizaClaveOlvidada_bp, url_prefix="/ActualizaClaveOlvidada")

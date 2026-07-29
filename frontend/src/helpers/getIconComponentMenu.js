@@ -1,6 +1,25 @@
 import React from "react"
-import * as Icons from "react-icons/fc"
+import * as FcIcons from "react-icons/fc"
+import * as FaIcons from "react-icons/fa"
+import * as FiIcons from "react-icons/fi"
+import * as MdIcons from "react-icons/md"
+import * as BiIcons from "react-icons/bi"
+import * as AiIcons from "react-icons/ai"
+import * as HiIcons from "react-icons/hi"
+import * as Io5Icons from "react-icons/io5"
 import { Icon } from "@iconify/react"
+
+// All icons
+const Icons = {
+  ...FcIcons,
+  ...FaIcons,
+  ...FiIcons,
+  ...MdIcons,
+  ...BiIcons,
+  ...AiIcons,
+  ...HiIcons,
+  ...Io5Icons,
+}
 
 // Función para obtener un icono por defecto seguro
 const getSafeIcon = (iconName) => {

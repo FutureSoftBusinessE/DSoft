@@ -13,6 +13,7 @@ import { GlobalContext } from "../../../contexts/GlobalContext"
 import getIconComponent from "../../utils/getIconComponent"
 import CompaniaTabsForm, { COMPANIA_DEFAULT_VALUES } from "../components/CompaniaTabsForm"
 import { validateFormData } from "../utils/validationSchema"
+import { useRucSearch } from "../hooks/useRucSearch"
 
 const theme = createTheme({
   palette: {
@@ -51,6 +52,8 @@ const CrearCompania = () => {
   const ejecutarAction = actionList.find(
     (action) => action?.acccaption === ACCIONES.EJECUTAR || action?.acccodigo === ACCIONES.EJECUTAR,
   )
+
+  const { isSearching, searchRucAndFill } = useRucSearch()
 
   const { mutateAsync: SaveCreacionCompania, isPending: isSavingCreacionCompania } = useMutation({
     queryKey: ["isCreatingCompania"],
@@ -107,6 +110,41 @@ const CrearCompania = () => {
         ...prev,
         [field]: "",
       }))
+    }
+  }
+
+  const handleRucSearch = async (rucNumber) => {
+    try {
+      const result = await searchRucAndFill(rucNumber)
+
+      if (result.success && result.data) {
+        const updates = {}
+        Object.entries(result.data).forEach(([field, value]) => {
+          if (value) {
+            updates[field] = value
+          }
+        })
+
+        setFormData((prev) => ({
+          ...prev,
+          ...updates,
+          ciaruc: rucNumber,
+        }))
+
+        setErrors((prev) => {
+          const newErrors = { ...prev }
+          Object.keys(updates).forEach((field) => {
+            delete newErrors[field]
+          })
+          return newErrors
+        })
+
+        notificationService.showSuccess("Datos del SRI cargados exitosamente. Verifique la información.", "toast")
+      } else {
+        notificationService.showInfo(result.error || "Complete los datos manualmente.", "toast")
+      }
+    } catch (error) {
+      notificationService.showInfo("El servicio SRI no está disponible. Puede crear la compañía manualmente.", "toast")
     }
   }
 
@@ -191,7 +229,7 @@ const CrearCompania = () => {
             <b>Crear Nueva Compañía</b>
           </div>
 
-          <CustomBackdrop isLoading={isSavingCreacionCompania || isLoadingCode} />
+          <CustomBackdrop isLoading={isSavingCreacionCompania || isLoadingCode || isSearching} />
 
           <Box sx={StyledRoot} component="form" onSubmit={handleSubmit}>
             <Alert severity="info" sx={{ mb: 3 }}>
@@ -205,6 +243,8 @@ const CrearCompania = () => {
               readOnly={false}
               actions={actionList}
               isCreating={true}
+              onRucSearch={handleRucSearch}
+              isSearchingRuc={isSearching}
             />
           </Box>
         </div>

@@ -511,7 +511,17 @@ const ModalEjecucionTarea = ({ open, onClose, eventocodigo, onGuardarEjecucion }
 
   if (isLoading) {
     return (
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <Dialog
+        open={open}
+        onClose={(event, reason) => {
+          if (reason && reason === "backdropClick") {
+            return // Evita cerrar al hacer clic FUERA del modal
+          }
+          onClose()
+        }}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogContent>
           <Box display="flex" justifyContent="center" alignItems="center" py={4}>
             <CircularProgress size={24} sx={{ mr: 2 }} />
@@ -527,7 +537,17 @@ const ModalEjecucionTarea = ({ open, onClose, eventocodigo, onGuardarEjecucion }
 
   if (isErrorEventoData) {
     return (
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <Dialog
+        open={open}
+        onClose={(event, reason) => {
+          if (reason && reason === "backdropClick") {
+            return // Evita cerrar al hacer clic FUERA del modal
+          }
+          onClose()
+        }}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>Error</DialogTitle>
         <DialogContent>
           <Alert severity="error">Error al cargar los datos del evento. Intente nuevamente.</Alert>
@@ -541,7 +561,17 @@ const ModalEjecucionTarea = ({ open, onClose, eventocodigo, onGuardarEjecucion }
 
   if (!evento || Object.keys(evento).length === 0) {
     return (
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <Dialog
+        open={open}
+        onClose={(event, reason) => {
+          if (reason && reason === "backdropClick") {
+            return // Evita cerrar al hacer clic FUERA del modal
+          }
+          onClose()
+        }}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>Error</DialogTitle>
         <DialogContent>
           <Alert severity="warning">No se encontraron datos para el evento seleccionado.</Alert>
@@ -565,7 +595,17 @@ const ModalEjecucionTarea = ({ open, onClose, eventocodigo, onGuardarEjecucion }
       : null
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog
+      open={open}
+      onClose={(event, reason) => {
+        if (reason && reason === "backdropClick") {
+          return // Evita cerrar al hacer clic FUERA del modal
+        }
+        onClose()
+      }}
+      maxWidth="md"
+      fullWidth
+    >
       <DialogTitle>
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="h6">

@@ -114,6 +114,15 @@ def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, dato
     if proforma.get("peddetalle"):
         info_adicional_sri.append({"nombre": "Observación", "valor": proforma["peddetalle"]})
 
+    # ========== CONSTRUIR DATOS CORREO ==========
+    query_correo = """
+        SELECT emailsmtp, emailmascara, emailsalida, emailtema,
+            emailsubject, emailmensaje
+        FROM cgblocal
+        WHERE ciacodigo = :ciacodigo AND loccodigo = :loccodigo
+    """
+    result_datos_correo = connection.execute(text(query_correo), {"ciacodigo": ciacodigo, "loccodigo": loccodigo}).mappings().first()
+
     # ========== CONSTRUIR PAYLOAD COMPLETO ==========
     # NOTA: Este payload se envía directamente a emisionFactura
     payload = {
@@ -157,17 +166,13 @@ def construir_payload_sri(proforma, detalles, secuencia_sri, datos_empresa, dato
         "info_adicional": info_adicional_sri,
         "retenciones": [],  # TODO: Implementar si hay retenciones
         "datos_correo": {
-            "smtp_host": "",  # TODO: Configurar SMTP del sistema
-            "puerto": "",  # TODO: Configurar puerto SMTP
-            "email_salida": "",  # TODO: Email del sistema
-            "clave_email": "",  # TODO: Clave del email
-            "destinatario": "prueba@gmail.com",  # TODO: Cambiar por email real del cliente
-            "asunto": "Factura Electrónica",
-            "mensaje": "Adjuntamos su factura electrónica.",
-            "office365": "N",
-            "copia_correo": "N",  # TODO: Configurar si se envía copia
-            "ssl_tls": "S",
-            "mensaje_factura": "N",
+            "smtp_host": result_datos_correo["emailsmtp"],  # Host SMTP
+            "puerto": result_datos_correo["emailmascara"],  # Puerto
+            "email_salida": result_datos_correo["emailsalida"],  # Remitente
+            "clave_email": result_datos_correo["emailtema"],  # Contraseña
+            "destinatario": datos_cliente.get("cliemail", ""),  # Cliente
+            "asunto": result_datos_correo["emailsubject"],  # Subject
+            "mensaje": result_datos_correo["emailmensaje"],  # Cuerpo
         },
         "flags_adicionales": {"guia": "N", "agente_retencion_num_res": "", "rimpe": ""},  # TODO: Verificar en siaccia si aplica RIMPE
     }

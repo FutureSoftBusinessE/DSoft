@@ -314,6 +314,39 @@ def autorizar_sri_nota_debito():
         # Guardar en Base de datos enviando ahora la variable pdf_content
         _guardar_estado_sri_bd(engine, ciacodigo, facnumfac, loccodigo, clave_acceso, xml_nd, xml_firmado, xml_autorizado_final, pdf_content, is_auth_num, mensaje_bd, status_bd, usrcodigo, ipUser, doc)
 
+        # ========== CONSTRUIR DATOS CORREO ==========
+        email_destinatario = str(doc.get("cliemail") or "").strip()
+        datos_correo = {}
+
+        if email_destinatario:
+            with engine.connect() as conn_correo:
+                result_datos_correo = (
+                    conn_correo.execute(
+                        text(
+                            """
+                        SELECT emailsmtp, emailmascara, emailsalida, emailtema,
+                            emailsubject, emailmensaje
+                        FROM cgblocal
+                        WHERE ciacodigo = :ciacodigo AND loccodigo = :loccodigo
+                    """
+                        ),
+                        {"ciacodigo": ciacodigo, "loccodigo": loccodigo},
+                    )
+                    .mappings()
+                    .first()
+                )
+
+                if result_datos_correo:
+                    datos_correo = {
+                        "smtp_host": result_datos_correo["emailsmtp"] or "",
+                        "puerto": result_datos_correo["emailmascara"] or "",
+                        "email_salida": result_datos_correo["emailsalida"] or "",
+                        "clave_email": result_datos_correo["emailtema"] or "",
+                        "destinatario": email_destinatario,
+                        "asunto": result_datos_correo["emailsubject"] or "Nota de Débito",
+                        "mensaje": result_datos_correo["emailmensaje"] or "Adjuntamos su nota de débito electrónica.",
+                    }
+
         if estado_sri == "AUTORIZADO":
             num_aut = auth_data.get("numero_autorizacion", "")
             fec_aut = auth_data.get("fecha_autorizacion", datetime.now())
@@ -327,8 +360,14 @@ def autorizar_sri_nota_debito():
                         WHERE ciacodigo = :cia AND facnumfac = :fac AND loccodigo = :loc
                     """
                     ),
-                    {"aut": num_aut, "fecaut": fec_aut, "usr": usrcodigo, "cia": ciacodigo, "fac": facnumfac, "loc": loccodigo},
+                    {"aut": num_aut, "fecaut": fec_aut, "cia": ciacodigo, "fac": facnumfac, "loc": loccodigo},
                 )
+
+                # ========== ENCOLAR ENVÍO DE CORREO ==========
+                if email_destinatario and pdf_content and datos_correo:
+                    from app.utils.encolar_envio_correo_docelectronico import encolar_envio_correo_docelectronico
+
+                    encolar_envio_correo_docelectronico(connection=conn, ciacodigo=ciacodigo, facnumfac=facnumfac, loccodigo=loccodigo, datos_correo=datos_correo, usrcodigo=usrcodigo, ip_usuario=ipUser)
 
             return jsonify({"success": True, "message": "Nota de Débito Autorizada exitosamente", "numero_autorizacion": num_aut})
         else:

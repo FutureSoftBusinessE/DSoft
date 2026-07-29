@@ -387,6 +387,9 @@ def create_app(config_class=Config):
     from app.CatalogodeProductos import bp as CatalogodeProductos_bp
 
     app.register_blueprint(CatalogodeProductos_bp, url_prefix="/CatalogodeProductos")
+    from app.ActualizaClaveOlvidada import bp as ActualizaClaveOlvidada_bp
+
+    app.register_blueprint(ActualizaClaveOlvidada_bp, url_prefix="/ActualizaClaveOlvidada")
 
     # ************************************************************
     #  RUTAS BASE Y HERRAMIENTAS DE DESARROLLO (SOLO LOCAL)

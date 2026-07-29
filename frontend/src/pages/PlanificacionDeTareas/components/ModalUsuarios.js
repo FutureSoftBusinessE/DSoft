@@ -21,14 +21,43 @@ import {
   Alert,
   CircularProgress,
   Tooltip,
+  Collapse,
 } from "@mui/material"
-import { Search, Close, ArrowBack, Delete, Warning } from "@mui/icons-material"
+import {
+  Search,
+  Close,
+  ArrowBack,
+  Delete,
+  Warning,
+  ExpandMore,
+  ExpandLess,
+  Person,
+  Business,
+} from "@mui/icons-material"
+
+const getColorByStatus = (status) => {
+  switch (status) {
+    case "PENDIENTE":
+      return "warning"
+    case "EN_PROCESO":
+      return "info"
+    case "COMPLETADA":
+      return "success"
+    case "CANCELADA":
+      return "error"
+    case "REPROGRAMADA":
+      return "secondary"
+    default:
+      return "default"
+  }
+}
 
 const ModalUsuarios = ({ open, onClose, usuarios, eventos, onDeleteTarea, loading }) => {
   const [searchTerm, setSearchTerm] = useState("")
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null)
   const [tareasSeleccionadas, setTareasSeleccionadas] = useState({})
   const [busquedaTareas, setBusquedaTareas] = useState("")
+  const [tareaExpandida, setTareaExpandida] = useState(null) // Para controlar qué tarea muestra detalles
 
   // Filtrar usuarios por nombre o código
   const usuariosFiltrados = useMemo(
@@ -66,8 +95,10 @@ const ModalUsuarios = ({ open, onClose, usuarios, eventos, onDeleteTarea, loadin
       (tarea) =>
         tarea.extendedProps.locdescri?.toLowerCase().includes(busquedaTareas.toLowerCase()) ||
         tarea.extendedProps.tareaDescripcion?.toLowerCase().includes(busquedaTareas.toLowerCase()) ||
-        new Date(tarea.start).toLocaleDateString().includes(busquedaTareas) ||
-        tarea.title.toLowerCase().includes(busquedaTareas.toLowerCase()),
+        tarea.extendedProps.clinombre?.toLowerCase().includes(busquedaTareas.toLowerCase()) ||
+        tarea.extendedProps.clicodigo?.toLowerCase().includes(busquedaTareas.toLowerCase()) ||
+        tarea.title.toLowerCase().includes(busquedaTareas.toLowerCase()) ||
+        new Date(tarea.start).toLocaleDateString().includes(busquedaTareas),
     )
   }, [usuarioSeleccionado, getTareasPorUsuario, busquedaTareas])
 
@@ -100,12 +131,14 @@ const ModalUsuarios = ({ open, onClose, usuarios, eventos, onDeleteTarea, loadin
     setUsuarioSeleccionado(usuario)
     setTareasSeleccionadas({})
     setBusquedaTareas("")
+    setTareaExpandida(null)
   }
 
   const handleBackToList = () => {
     setUsuarioSeleccionado(null)
     setTareasSeleccionadas({})
     setBusquedaTareas("")
+    setTareaExpandida(null)
   }
 
   const handleSeleccionarTarea = (tareaId) => (event) => {
@@ -143,6 +176,10 @@ const ModalUsuarios = ({ open, onClose, usuarios, eventos, onDeleteTarea, loadin
     }
   }
 
+  const handleToggleExpandir = (tareaId) => {
+    setTareaExpandida(tareaExpandida === tareaId ? null : tareaId)
+  }
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("es-ES", {
       day: "2-digit",
@@ -169,6 +206,17 @@ const ModalUsuarios = ({ open, onClose, usuarios, eventos, onDeleteTarea, loadin
     return tarea.extendedProps.status === "PENDIENTE"
   }
 
+  // Calcular duración en formato legible
+  const calcularDuracion = (tarea) => {
+    const duracionMinutos = tarea.extendedProps.duracion || 0
+    const horas = Math.floor(duracionMinutos / 60)
+    const minutos = duracionMinutos % 60
+
+    if (horas > 0 && minutos > 0) return `${horas}h ${minutos}m`
+    if (horas > 0) return `${horas}h`
+    return `${minutos}m`
+  }
+
   useEffect(() => {
     if (!open) {
       // Se cerró el modal, reseteamos todo
@@ -176,6 +224,7 @@ const ModalUsuarios = ({ open, onClose, usuarios, eventos, onDeleteTarea, loadin
       setTareasSeleccionadas({})
       setBusquedaTareas("")
       setSearchTerm("")
+      setTareaExpandida(null)
     }
   }, [open])
 
@@ -273,7 +322,7 @@ const ModalUsuarios = ({ open, onClose, usuarios, eventos, onDeleteTarea, loadin
             <TextField
               fullWidth
               variant="outlined"
-              placeholder="Buscar tareas por localidad, descripción o fecha..."
+              placeholder="Buscar tareas por localidad, cliente, descripción o fecha..."
               value={busquedaTareas}
               onChange={(e) => setBusquedaTareas(e.target.value)}
               InputProps={{
@@ -349,39 +398,89 @@ const ModalUsuarios = ({ open, onClose, usuarios, eventos, onDeleteTarea, loadin
                           <Box flex={1}>
                             <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
                               <Box>
-                                <Typography variant="subtitle2">
-                                  {formatDate(tarea.start)}
-                                  {!esTareaPendiente(tarea) && (
-                                    <Chip
-                                      label={tarea.extendedProps.status || "OTRO"}
-                                      size="small"
-                                      color="default"
-                                      variant="outlined"
-                                      sx={{ ml: 1 }}
-                                    />
-                                  )}
-                                </Typography>
+                                <Typography variant="subtitle2">{formatDate(tarea.start)}</Typography>
                                 <Typography variant="body2" color="textSecondary">
                                   {tarea.extendedProps.locdescri || "Sin localidad"}
                                 </Typography>
                               </Box>
                               <Box display="flex" alignItems="center" gap={1}>
-                                {esTareaPendiente(tarea) && (
-                                  <Chip label="PENDIENTE" size="small" color="warning" variant="outlined" />
-                                )}
+                                <Chip
+                                  label={tarea.extendedProps.status}
+                                  size="small"
+                                  color={getColorByStatus(tarea.extendedProps.status)}
+                                  variant="outlined"
+                                />
                                 <Chip label={getHorarioTarea(tarea)} size="small" variant="outlined" color="primary" />
                               </Box>
                             </Box>
 
                             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                              <Typography variant="body2">{getHorarioTarea(tarea)}</Typography>
+                              <Typography variant="body1" fontWeight="medium">
+                                {tarea.title}
+                              </Typography>
+                              <IconButton size="small" onClick={() => handleToggleExpandir(tarea.id)}>
+                                {tareaExpandida === tarea.id ? <ExpandLess /> : <ExpandMore />}
+                              </IconButton>
                             </Box>
 
-                            {tarea.extendedProps.tareaDescripcion && (
-                              <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                                {tarea.extendedProps.tareaDescripcion}
-                              </Typography>
-                            )}
+                            {/* Detalles expandibles */}
+                            <Collapse in={tareaExpandida === tarea.id}>
+                              <Box
+                                sx={{
+                                  mt: 1,
+                                  p: 2,
+                                  backgroundColor: "grey.50",
+                                  borderRadius: 1,
+                                  border: "1px solid",
+                                  borderColor: "divider",
+                                }}
+                              >
+                                <Typography variant="subtitle2" color="primary" gutterBottom>
+                                  <Business sx={{ mr: 0.5, verticalAlign: "middle" }} fontSize="small" />
+                                  Información del Cliente
+                                </Typography>
+
+                                <Box sx={{ pl: 2, mb: 1 }}>
+                                  <Typography variant="body2">
+                                    <strong>Nombre:</strong>{" "}
+                                    {tarea.extendedProps.clinombre || tarea.extendedProps.cliente || "No disponible"}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    <strong>Código:</strong> {tarea.extendedProps.clicodigo || "No disponible"}
+                                  </Typography>
+                                  {tarea.extendedProps.clidireccion && (
+                                    <Typography variant="body2">
+                                      <strong>Dirección:</strong> {tarea.extendedProps.clidireccion}
+                                    </Typography>
+                                  )}
+                                </Box>
+
+                                {tarea.extendedProps.tareaDescripcion && (
+                                  <>
+                                    <Typography variant="subtitle2" color="primary" gutterBottom>
+                                      Detalles de la Tarea
+                                    </Typography>
+                                    <Box sx={{ pl: 2, mb: 1 }}>
+                                      <Typography variant="body2">
+                                        <strong>Descripción:</strong> {tarea.extendedProps.tareaDescripcion}
+                                      </Typography>
+                                      <Typography variant="body2">
+                                        <strong>Duración:</strong> {calcularDuracion(tarea)}
+                                      </Typography>
+                                      {tarea.extendedProps.avance !== undefined && (
+                                        <Typography variant="body2">
+                                          <strong>Avance:</strong> {tarea.extendedProps.avance}%
+                                        </Typography>
+                                      )}
+                                    </Box>
+                                  </>
+                                )}
+
+                                <Typography variant="caption" color="textSecondary">
+                                  ID: {tarea.id}
+                                </Typography>
+                              </Box>
+                            </Collapse>
                           </Box>
                         </Box>
                       </ListItem>

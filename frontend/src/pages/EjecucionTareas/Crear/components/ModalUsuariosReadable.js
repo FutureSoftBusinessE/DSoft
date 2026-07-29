@@ -21,7 +21,7 @@ import {
 } from "@mui/material"
 import { Search, Close, ArrowBack } from "@mui/icons-material"
 
-const ModalUsuariosReadable = ({ open, onClose, usuarios, eventos, loading }) => {
+const ModalUsuariosReadable = ({ open, onClose, usuarios, eventos, loading, onEventClick }) => {
   const [searchTerm, setSearchTerm] = useState("")
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null)
   const [busquedaTareas, setBusquedaTareas] = useState("")
@@ -77,6 +77,26 @@ const ModalUsuariosReadable = ({ open, onClose, usuarios, eventos, loading }) =>
     setBusquedaTareas("")
   }
 
+  // Al hacer clic en una tarea, cierra este modal y abre el de ejecución
+  const handleTareaClick = (tarea) => {
+    onClose()
+
+    if (onEventClick) {
+      const eventInfo = {
+        event: {
+          title: tarea.title,
+          start: tarea.start,
+          end: tarea.end,
+          id: tarea.id,
+          backgroundColor: tarea.backgroundColor,
+          textColor: tarea.textColor,
+          extendedProps: tarea.extendedProps || {},
+        },
+      }
+      onEventClick(eventInfo)
+    }
+  }
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("es-ES", {
       day: "2-digit",
@@ -100,35 +120,20 @@ const ModalUsuariosReadable = ({ open, onClose, usuarios, eventos, loading }) =>
 
   // Obtener color según el estado de la tarea
   const getEstadoColor = (tarea) => {
-    const estado = tarea.extendedProps.estado
-    switch (estado) {
-      case "completado":
-        return "success"
-      case "en-progreso":
+    const status = tarea.extendedProps.status
+    switch (status) {
+      case "PENDIENTE":
         return "warning"
-      case "pendiente":
-        return "default"
-      case "cancelado":
+      case "EN_PROCESO":
+        return "info"
+      case "COMPLETADA":
+        return "success"
+      case "CANCELADA":
         return "error"
+      case "REPROGRAMADA":
+        return "secondary"
       default:
         return "default"
-    }
-  }
-
-  // Obtener texto del estado
-  const getEstadoText = (tarea) => {
-    const estado = tarea.extendedProps.estado
-    switch (estado) {
-      case "completado":
-        return "Completado"
-      case "en-progreso":
-        return "En Progreso"
-      case "pendiente":
-        return "Pendiente"
-      case "cancelado":
-        return "Cancelado"
-      default:
-        return "Sin estado"
     }
   }
 
@@ -255,6 +260,8 @@ const ModalUsuariosReadable = ({ open, onClose, usuarios, eventos, loading }) =>
                   {tareasFiltradas.map((tarea, index) => (
                     <React.Fragment key={tarea.id}>
                       <ListItem
+                        button
+                        onClick={() => handleTareaClick(tarea)}
                         sx={{
                           flexDirection: "column",
                           alignItems: "flex-start",
@@ -263,6 +270,11 @@ const ModalUsuariosReadable = ({ open, onClose, usuarios, eventos, loading }) =>
                           backgroundColor: "background.paper",
                           border: "1px solid",
                           borderColor: "divider",
+                          cursor: "pointer",
+                          "&:hover": {
+                            backgroundColor: "action.hover",
+                            borderColor: "primary.main",
+                          },
                         }}
                       >
                         <Box width="100%">
@@ -277,7 +289,7 @@ const ModalUsuariosReadable = ({ open, onClose, usuarios, eventos, loading }) =>
                             </Box>
                             <Box display="flex" flexDirection="column" alignItems="flex-end" gap={0.5}>
                               <Chip
-                                label={getEstadoText(tarea)}
+                                label={tarea.extendedProps.status}
                                 size="small"
                                 color={getEstadoColor(tarea)}
                                 variant="outlined"
@@ -327,6 +339,11 @@ const ModalUsuariosReadable = ({ open, onClose, usuarios, eventos, loading }) =>
                               />
                             )}
                           </Box>
+
+                          {/* ID de la tarea */}
+                          <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: "block" }}>
+                            ID: {tarea.id}
+                          </Typography>
                         </Box>
                       </ListItem>
                       {index < tareasFiltradas.length - 1 && <Divider />}

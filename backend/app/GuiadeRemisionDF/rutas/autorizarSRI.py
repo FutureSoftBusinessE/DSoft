@@ -372,6 +372,39 @@ def autorizar_sri_guia():
         # 7. ACTUALIZAR BASE DE DATOS
         _guardar_estado_sri_bd(engine, ciacodigo, guinumero, loccodigo, clave_acceso, xml_gr, xml_firmado, xml_autorizado_final, pdf_content, is_auth_num, mensaje_bd, status_bd, usrcodigo, ipUser, doc)
 
+        # ========== CONSTRUIR DATOS CORREO ==========
+        email_destinatario = str(doc.get("cliemail") or "").strip()
+        datos_correo = {}
+
+        if email_destinatario:
+            with engine.connect() as conn_correo:
+                result_datos_correo = (
+                    conn_correo.execute(
+                        text(
+                            """
+                        SELECT emailsmtp, emailmascara, emailsalida, emailtema,
+                            emailsubject, emailmensaje
+                        FROM cgblocal
+                        WHERE ciacodigo = :ciacodigo AND loccodigo = :loccodigo
+                    """
+                        ),
+                        {"ciacodigo": ciacodigo, "loccodigo": loccodigo},
+                    )
+                    .mappings()
+                    .first()
+                )
+
+                if result_datos_correo:
+                    datos_correo = {
+                        "smtp_host": result_datos_correo["emailsmtp"] or "",
+                        "puerto": result_datos_correo["emailmascara"] or "",
+                        "email_salida": result_datos_correo["emailsalida"] or "",
+                        "clave_email": result_datos_correo["emailtema"] or "",
+                        "destinatario": email_destinatario,
+                        "asunto": result_datos_correo["emailsubject"] or "Guía de Remisión",
+                        "mensaje": result_datos_correo["emailmensaje"] or "Adjuntamos su guía de remisión electrónica.",
+                    }
+
         if estado_sri == "AUTORIZADO":
             num_aut = auth_data.get("numero_autorizacion", "")
             fec_aut = auth_data.get("fecha_autorizacion", datetime.now())
@@ -387,6 +420,12 @@ def autorizar_sri_guia():
                     ),
                     {"aut": num_aut, "fecaut": fec_aut, "usr": usrcodigo, "cia": ciacodigo, "gui": guinumero},
                 )
+
+                # ========== ENCOLAR ENVÍO DE CORREO ==========
+                if email_destinatario and pdf_content and datos_correo:
+                    from app.utils.encolar_envio_correo_docelectronico import encolar_envio_correo_docelectronico
+
+                    encolar_envio_correo_docelectronico(connection=conn, ciacodigo=ciacodigo, facnumfac=guinumero, loccodigo=loccodigo, datos_correo=datos_correo, usrcodigo=usrcodigo, ip_usuario=ipUser)
 
             return jsonify({"success": True, "message": "Guía de Remisión Autorizada", "numero_autorizacion": num_aut})
         else:

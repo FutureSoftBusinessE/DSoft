@@ -421,7 +421,7 @@ def crearCompania():
 
     # Obtener sesiones para AMBAS bases de datos
     session_company = get_session(clicianonBD)  # Compania actual donde se hizo login
-    session_fsbs = get_session("SiacFSBS")  # SiacFSBS
+    session_fsbs = get_session("DSOFT")  # DSOFT
 
     engine_company = session_company.bind
     engine_fsbs = session_fsbs.bind
@@ -429,6 +429,7 @@ def crearCompania():
     # Transacción en DOS bases de datos
     with engine_company.connect() as conn_company:
         with engine_fsbs.connect() as conn_fsbs:
+
             # Iniciar transacciones en AMBAS
             trans_company = conn_company.begin()
             trans_fsbs = conn_fsbs.begin()
@@ -442,7 +443,7 @@ def crearCompania():
             #   - siactusr (módulos) + siactusrweb (opciones menú) +
             #     siactusrwebbar (acciones) - Copia permisos usuario 1 desde
             #     compañía origen y asigna mismos permisos al usuario 2
-            # SiacFSBS: fsbsmclicia + fsbsmcliusu (2 usuarios)
+            # DSOFT: fsbsmclicia + fsbsmcliusu (2 usuarios)
             # Si algo falla → ROLLBACK en ambas
             # ══════════════════════════════════════════════════════════════════
 
@@ -452,6 +453,179 @@ def crearCompania():
                 result = conn_company.execute(check_query, {"ciacodigo": ciacodigo}).mappings().fetchone()
                 if result:
                     raise ValidationError("La compañía ya existe")
+
+                # ════════════════════════════════════════════════════════════════════════
+                # Crear la compañía como cliente en DSOFT (ciacodigo = "01")
+                # Verificar si el RUC truncado a 10 dígitos ya existe como cliente en DSOFT
+                # Si YA existe, lanzar error. Si NO existe, crearlo.
+                # ════════════════════════════════════════════════════════════════════════
+                if ciaruc and len(str(ciaruc).strip()) >= 10:
+                    ruc_truncado = str(ciaruc).strip()[:10]
+
+                    check_cliruc_query = text(
+                        """
+                        SELECT COUNT(*) as count
+                        FROM cxcmcli
+                        WHERE ciacodigo = '01' AND cliruc = :cliruc
+                    """
+                    )
+
+                    result_ruc = conn_company.execute(check_cliruc_query, {"cliruc": ruc_truncado}).mappings().fetchone()
+
+                    if result_ruc["count"] > 0:
+                        raise APIError(f"El RUC {ruc_truncado} ya existe como cliente en DSOFT")
+
+                    # Generar código de cliente secuencial en DSOFT
+                    _seccodigo = "CLI"
+
+                    siacsec_query = text(
+                        """
+                        SELECT secnumero
+                        FROM siacsec
+                        WHERE ciacodigo = '01'
+                        AND locservidor = :locservidor
+                        AND seccodigo = :seccodigo
+                    """
+                    )
+
+                    siacsec_result = conn_company.execute(siacsec_query, {"locservidor": "A", "seccodigo": _seccodigo}).mappings().fetchone()
+
+                    if siacsec_result is None:
+                        # Si no existe la secuencia, crearla
+                        conn_company.execute(
+                            text(
+                                """
+                                INSERT INTO siacsec (ciacodigo, locservidor, seccodigo, secnumero)
+                                VALUES ('01', :locservidor, :seccodigo, 0)
+                            """
+                            ),
+                            {"locservidor": "A", "seccodigo": _seccodigo},
+                        )
+                        secuencia_actual = 0
+                    else:
+                        secuencia_actual = siacsec_result["secnumero"]
+
+                    nueva_secuencia = secuencia_actual + 1
+                    cliente_codigo = f"{nueva_secuencia:06}"
+
+                    # Actualizar la secuencia
+                    conn_company.execute(
+                        text(
+                            """
+                            UPDATE siacsec
+                            SET secnumero = :nueva_secuencia
+                            WHERE ciacodigo = '01'
+                            AND locservidor = :locservidor
+                            AND seccodigo = :seccodigo
+                        """
+                        ),
+                        {"nueva_secuencia": nueva_secuencia, "locservidor": "A", "seccodigo": _seccodigo},
+                    )
+
+                    # Obtener datos del cliente consumidor final (plantilla de DSOFT)
+                    codigos_query = text(
+                        """
+                        SELECT zoncodigo, tipcodigo, regcodigo, ciucodigo, procodigo
+                        FROM cxcmcli
+                        WHERE clicodigo = '000001' AND ciacodigo = '01'
+                    """
+                    )
+
+                    codigos = conn_company.execute(codigos_query).mappings().fetchone()
+
+                    if codigos:
+                        zoncodigo_cli = codigos["zoncodigo"]
+                        tipcodigo_cli = codigos["tipcodigo"]
+                        regcodigo_cli = codigos["regcodigo"]
+                        ciucodigo_cli = codigos["ciucodigo"]
+                        procodigo_cli = codigos["procodigo"]
+                    else:
+                        zoncodigo_cli = "000"
+                        tipcodigo_cli = "FIN"
+                        regcodigo_cli = "000"
+                        ciucodigo_cli = None
+                        procodigo_cli = None
+
+                    # Obtener activicodigo y sectorcodigo de cgblocal de DSOFT
+                    local_info_query = text(
+                        """
+                        SELECT activicodigo, sectorcodigo
+                        FROM cgblocal
+                        WHERE ciacodigo = '01' AND loccodigo = :loccodigo
+                    """
+                    )
+
+                    local_info = conn_company.execute(local_info_query, {"loccodigo": "01"}).mappings().fetchone()
+
+                    activicodigo_cli = local_info["activicodigo"] if local_info else None
+                    sectorcodigo_cli = local_info["sectorcodigo"] if local_info else None
+
+                    # Insertar el cliente en DSOFT
+                    insert_cliente_query = text(
+                        """
+                        INSERT INTO cxcmcli (
+                            ciacodigo, clicodigo, clinombre, cliruc, clidirec,
+                            clitelef1, clitelef2, clifax, cliemail,
+                            clifecisys, clihorisys, clistatus,
+                            zoncodigo, regcodigo, tipcodigo,
+                            cliapliiva, procodigo, cliestciv, cliivaped,
+                            clibloqueo, cliidentifica, cliidencon, ciucodigo,
+                            clirucmatriz, clinommatriz, tarenviosta,
+                            clicuotaven, clidiapago, clidiasrecibefac1, clidiaentregafac,
+                            cliconespecial, clipersona, cliorigening,
+                            clidemanda, clicastigada, cliparterel,
+                            activicodigo, sectorcodigo,
+                            cliusuisys, cliusumsys, clifecmsys, clihormsys,
+                            cliestisys, cliestmsys
+                        ) VALUES (
+                            '01', :clicodigo, :clinombre, :cliruc, :clidirec,
+                            :clitelef1, :clitelef2, :clifax, :cliemail,
+                            :clifecisys, :clihorisys, 'A',
+                            :zoncodigo, :regcodigo, :tipcodigo,
+                            -1, :procodigo, 'SOLTERO', -1,
+                            0, :cliidentifica, 'O', :ciucodigo,
+                            :clirucmatriz, :clinommatriz, 'D',
+                            0, 0, 0, 0,
+                            0, 'N', 'I',
+                            0, 0, 0,
+                            :activicodigo, :sectorcodigo,
+                            :cliusuisys, :cliusumsys, :clifecmsys, :clihormsys,
+                            :cliestisys, :cliestmsys
+                        )
+                    """
+                    )
+
+                    conn_company.execute(
+                        insert_cliente_query,
+                        {
+                            "clicodigo": cliente_codigo,
+                            "clinombre": ciadescri,
+                            "cliruc": ruc_truncado,
+                            "clidirec": ciadirec,
+                            "clitelef1": ciatelefono1,
+                            "clitelef2": ciatelefono2,
+                            "clifax": "",
+                            "cliemail": ciaemail,
+                            "zoncodigo": zoncodigo_cli,
+                            "regcodigo": regcodigo_cli,
+                            "tipcodigo": tipcodigo_cli,
+                            "procodigo": procodigo_cli,
+                            "cliidentifica": "R",
+                            "ciucodigo": ciucodigo_cli,
+                            "clirucmatriz": ruc_truncado,
+                            "clinommatriz": ciadescri,
+                            "activicodigo": activicodigo_cli,
+                            "sectorcodigo": sectorcodigo_cli,
+                            "cliusuisys": sUsuario,
+                            "cliusumsys": sUsuario,
+                            "clifecisys": fecha_actual,
+                            "clihorisys": hora_sys,
+                            "clifecmsys": fecha_actual,
+                            "clihormsys": hora_sys,
+                            "cliestisys": ipUser,
+                            "cliestmsys": ipUser,
+                        },
+                    )
 
                 # Obtener el siguiente ID para fsbsmclicia
                 next_id_query = text("SELECT ISNULL(MAX(cliciaidenti), 0) + 1 as next_id FROM fsbsmclicia")

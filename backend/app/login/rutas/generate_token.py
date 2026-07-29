@@ -61,7 +61,7 @@ def generate_token():
 
         if tabla_dict["usrcodigo"] == usrcodigo and tabla_dict["usrclave"] == usrclave:
             # Obtener franquicias si es que tiene
-            db.session = get_session("SiacFSBS")
+            db.session = get_session("DSOFT")
             engine = db.session.bind
             with engine.connect() as connection:
                 with connection.begin():
@@ -137,7 +137,7 @@ def switch_company_token():
             return jsonify({"status": "error", "message": "Operación no autorizada"}), 403
 
         # Obtener franquicias (Misma lógica que generate_token)
-        db.session = get_session("SiacFSBS")
+        db.session = get_session("DSOFT")
         engine = db.session.bind
         with engine.connect() as connection:
             with connection.begin():

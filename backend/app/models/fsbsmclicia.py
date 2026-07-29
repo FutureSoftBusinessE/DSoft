@@ -5,7 +5,7 @@ from app.extensions import ma
 
 class fsbsmclicia(db.Model):
     __tablename__ = "fsbsmclicia"
-    __table_args__ = {"schema": "siacfsbs.dbo"}
+    __table_args__ = {"schema": "DSOFT.dbo"}
     cliciaidenti = db.Column(db.Numeric, primary_key=True)
     cliciagrupo = db.Column(db.String(50))
     cliciarutaBD = db.Column(db.String(100))

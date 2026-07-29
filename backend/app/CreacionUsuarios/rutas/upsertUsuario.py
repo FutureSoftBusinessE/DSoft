@@ -674,7 +674,7 @@ def upsertUsuario():
                 query_initial = text(
                     """
                     SELECT cliciagrupo, cliciaidenti
-                    FROM [SiacFSBS].dbo.fsbsmclicia
+                    FROM [DSOFT].dbo.fsbsmclicia
                     INNER JOIN siaccia ON cliciaruc = ciaruc
                     WHERE ciacodigo = :ciacodigo
                 """
@@ -687,11 +687,11 @@ def upsertUsuario():
                     sCliCiaGrupo = rstTmp.cliciagrupo.strip() if rstTmp.cliciagrupo is not None else ""
                     iCliCiaIdenti = rstTmp.cliciaidenti if rstTmp.cliciaidenti is not None else 0
 
-                    # Averiguo si el Usuario existe en la BD SIACFSBS para Crear/Actualizar
+                    # Averiguo si el Usuario existe en la BD DSOFT para Crear/Actualizar
                     query_check_user = text(
                         """
                         SELECT cliciausu
-                        FROM SiacFSBS.dbo.fsbsmcliusu
+                        FROM DSOFT.dbo.fsbsmcliusu
                         WHERE cliciausu = :cliciausu
                             AND cliciagrupo = :cliciagrupo
                             AND cliciaidenti = :cliciaidenti
@@ -702,7 +702,7 @@ def upsertUsuario():
                     adorstSiaccUsr = result_user.fetchone()
 
                     if not adorstSiaccUsr:
-                        # Inserto en la Base de Datos SIACFSBS en la tabla fsbsmcliusu
+                        # Inserto en la Base de Datos DSOFT en la tabla fsbsmcliusu
                         data_insert = {
                             "cliciausu": encriptar(txtUsrCodigo.strip()),
                             "cliciagrupo": rstTmp.cliciagrupo,
@@ -718,7 +718,7 @@ def upsertUsuario():
 
                         insert_query = text(
                             """
-                            INSERT INTO SiacFSBS.dbo.fsbsmcliusu (
+                            INSERT INTO DSOFT.dbo.fsbsmcliusu (
                                 cliciausu, cliciagrupo, cliciaidenti, cliciausustatus,
                                 cliusufecisys, cliusufecmsys, cliusuusuisys, cliusuusumsys,
                                 cliusuestisys, cliusuestmsys
@@ -736,7 +736,7 @@ def upsertUsuario():
 
                         update_query = text(
                             """
-                            UPDATE SiacFSBS.dbo.fsbsmcliusu
+                            UPDATE DSOFT.dbo.fsbsmcliusu
                             SET cliciausustatus = :cliciausustatus,
                                 cliusufecmsys = :cliusufecmsys,
                                 cliusuusumsys = :cliusuusumsys,

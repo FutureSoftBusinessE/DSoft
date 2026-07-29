@@ -87,28 +87,6 @@ const extractArrayData = (res) => {
   return []
 }
 
-const obtenerPorcentajeIva = (codigoSri) => {
-  const cod = String(codigoSri).trim()
-  switch (cod) {
-    case "0":
-      return 0
-    case 0.0:
-      return 0
-    case 1.0:
-      return 15
-    case "2":
-      return 12
-    case "3":
-      return 14
-    case "4":
-      return 15
-    case "5":
-      return 5
-    default:
-      return 0
-  }
-}
-
 const CrearNotaCreditoDF = () => {
   const navigate = useNavigate()
   const [expandedInfoGeneral, setExpandedInfoGeneral] = useState(true)
@@ -130,6 +108,12 @@ const CrearNotaCreditoDF = () => {
 
   const [detallesAgregados, setDetallesAgregados] = useState([])
   const [isCargandoFactura, setIsCargandoFactura] = useState(false)
+
+  // --- NUEVOS ESTADOS PARA NOTA POR MONTO ---
+  const [servicioSeleccionado, setServicioSeleccionado] = useState(null) // Un solo servicio para todas las líneas
+  const [montoTotalCreditar, setMontoTotalCreditar] = useState(0) // Monto total ingresado por el usuario
+  const [tarifasIvaFactura, setTarifasIvaFactura] = useState([]) // Tarifas de IVA agrupadas de la factura
+  const [subtotalTotalFactura, setSubtotalTotalFactura] = useState(0) // Subtotal total de la factura
 
   // --- QUERYS BÁSICOS ---
   const { data: listaCajasRaw, isLoading: isLoadingCajas } = useQuery({
@@ -201,6 +185,10 @@ const CrearNotaCreditoDF = () => {
     const fetchDetallesFactura = async () => {
       if (!cabecera.facnumfac) {
         setDetallesAgregados([])
+        setTarifasIvaFactura([])
+        setSubtotalTotalFactura(0)
+        setServicioSeleccionado(null)
+        setMontoTotalCreditar(0)
         return
       }
 
@@ -240,13 +228,84 @@ const CrearNotaCreditoDF = () => {
           setIsCargandoFactura(false)
         }
       } else {
-        // Por Monto: limpiamos grilla para ingreso manual
-        setDetallesAgregados([])
+        // Por Monto: Obtener tarifas de IVA agrupadas de la factura
+        setIsCargandoFactura(true)
+        try {
+          const res = await api.post("/NotaCreditoDF/getFacturaDetalleNC", { facnumfac: cabecera.facnumfac })
+          const factData = res.data.data
+          const productos = factData.productos || []
+
+          // Agrupar subtotales por tarifa de IVA
+          const tarifasMap = {}
+          let subtotalTotal = 0
+
+          productos.forEach((prod) => {
+            const iva = Number(prod.ivaPorcentaje) || 0
+            const subtotal = (Number(prod.cantidad_maxima) || 0) * (Number(prod.precioUnitario) || 0)
+
+            if (!tarifasMap[iva]) {
+              tarifasMap[iva] = { ivaPorcentaje: iva, subtotal: 0 }
+            }
+            tarifasMap[iva].subtotal += subtotal
+            subtotalTotal += subtotal
+          })
+
+          const tarifasArray = Object.values(tarifasMap).sort((a, b) => b.ivaPorcentaje - a.ivaPorcentaje)
+
+          setTarifasIvaFactura(tarifasArray)
+          setSubtotalTotalFactura(subtotalTotal)
+          setDetallesAgregados([])
+          setServicioSeleccionado(null)
+          setMontoTotalCreditar(0)
+        } catch (error) {
+          console.error("Error al obtener tarifas de IVA:", error)
+          setTarifasIvaFactura([])
+          setSubtotalTotalFactura(0)
+        } finally {
+          setIsCargandoFactura(false)
+        }
       }
     }
 
     fetchDetallesFactura()
   }, [cabecera.facnumfac, tipoNota]) // Solo reacciona si cambia la factura o el tipo de nota
+
+  // --- NUEVO: Efecto para generar líneas cuando cambia el monto o el servicio ---
+  useEffect(() => {
+    if (tipoNota !== "MONTO" || tarifasIvaFactura.length === 0 || !montoTotalCreditar || montoTotalCreditar <= 0) {
+      if (tipoNota === "MONTO") setDetallesAgregados([])
+      return
+    }
+
+    // Validar que el monto no supere el total de la factura
+    if (montoTotalCreditar > subtotalTotalFactura) {
+      Swal.fire(
+        "Error",
+        `El monto a creditar no puede ser mayor al subtotal de la factura: $${subtotalTotalFactura.toFixed(2)}`,
+        "warning",
+      )
+      setDetallesAgregados([])
+      return
+    }
+
+    const porcentajeProrrateo = montoTotalCreditar / subtotalTotalFactura
+
+    const lineasGeneradas = tarifasIvaFactura.map((tarifa, index) => {
+      const precioUnitario = Number((tarifa.subtotal * porcentajeProrrateo).toFixed(2))
+
+      return {
+        isNew: true,
+        codigo: servicioSeleccionado?.sercodigo || "",
+        descripcion: servicioSeleccionado?.serdescri || "",
+        cantidad: 1,
+        precioUnitario,
+        descuentoPorcentaje: 0,
+        ivaPorcentaje: tarifa.ivaPorcentaje,
+      }
+    })
+
+    setDetallesAgregados(lineasGeneradas)
+  }, [montoTotalCreditar, servicioSeleccionado, tarifasIvaFactura, tipoNota, subtotalTotalFactura])
 
   // --- MUTACION GUARDAR ---
   const { mutate: guardarNCMutation, isPending: isSaving } = useMutation({
@@ -261,14 +320,27 @@ const CrearNotaCreditoDF = () => {
       Swal.fire({
         icon: "success",
         title: "¡Nota de Crédito Creada!",
-        html: `<p>Documento N°: <strong>${data.data?.nccodigo || ""}</strong></p>`,
+        html: `<p>Documento N°: <strong>${data?.nccodigo || ""}</strong></p>`,
         confirmButtonText: "Aceptar",
       }).then(() => navigate(-1))
     },
   })
 
   const handleGuardar = async () => {
-    const validDetalles = detallesAgregados.filter((p) => p.codigo && Number(p.cantidad) > 0)
+    let validDetalles = []
+
+    if (tipoNota === "DEVOLUCION") {
+      validDetalles = detallesAgregados.filter((p) => p.codigo && Number(p.cantidad) > 0)
+    } else {
+      // Para MONTO, verificar que haya servicio seleccionado y líneas generadas
+      if (!servicioSeleccionado?.sercodigo) {
+        return Swal.fire("Atención", "Seleccione un servicio.", "warning")
+      }
+      if (detallesAgregados.length === 0) {
+        return Swal.fire("Atención", "Ingrese un monto a creditar válido.", "warning")
+      }
+      validDetalles = detallesAgregados.filter((p) => p.codigo && Number(p.precioUnitario) > 0)
+    }
 
     if (!cabecera.caja.cjacodigo) return Swal.fire("Atención", "Seleccione una Caja.", "warning")
     if (!cabecera.vendedor.vencodigo) return Swal.fire("Atención", "Seleccione un vendedor.", "warning")
@@ -298,7 +370,9 @@ const CrearNotaCreditoDF = () => {
     const round2 = (num) => Math.round((num + Number.EPSILON) * 100) / 100
 
     detallesAgregados.forEach((p) => {
-      if (!p.codigo) return
+      if (!p.codigo && tipoNota === "DEVOLUCION") return
+      if (tipoNota === "MONTO" && (!p.codigo || !p.precioUnitario)) return
+
       const cant = Number(p.cantidad) || 0
       const precio = Number(p.precioUnitario) || 0
       const desc = Number(p.descuentoPorcentaje) || 0
@@ -439,39 +513,66 @@ const CrearNotaCreditoDF = () => {
               <Typography variant="h6" fontWeight="bold" color="primary">
                 {isDevolucion ? "Productos a Devolver" : "Servicio a Descontar"}
               </Typography>
-
-              {isMonto && (
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  startIcon={<AddIcon />}
-                  disabled={!cabecera.facnumfac || detallesAgregados.length >= 1}
-                  onClick={() => {
-                    setDetallesAgregados([
-                      {
-                        isNew: true,
-                        codigo: "",
-                        descripcion: "",
-                        cantidad: 1,
-                        precioUnitario: 0,
-                        descuentoPorcentaje: 0,
-                        ivaPorcentaje: 0,
-                      },
-                    ])
-                  }}
-                >
-                  Añadir Monto
-                </Button>
-              )}
             </Box>
+
+            {/* NUEVO: Selector de servicio UNICO para modo MONTO */}
+            {isMonto && cabecera.facnumfac && (
+              <Box sx={{ mb: 2, display: "flex", gap: 2, alignItems: "center" }}>
+                <Box sx={{ flex: 1 }}>
+                  <InputLabel sx={{ mb: 1, fontSize: "12px", color: "rgba(0, 0, 0, 0.6)" }}>
+                    Seleccionar Servicio
+                  </InputLabel>
+                  <Autocomplete
+                    size="small"
+                    options={listaServicios}
+                    value={servicioSeleccionado}
+                    getOptionLabel={(opt) => (opt?.sercodigo ? `${opt.sercodigo} - ${opt.serdescri}` : "")}
+                    onChange={(e, val) => {
+                      setServicioSeleccionado(val)
+                    }}
+                    isOptionEqualToValue={(option, value) => option.sercodigo === value?.sercodigo}
+                    renderInput={(params) => <TextField {...params} placeholder="Buscar servicio..." />}
+                  />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <InputLabel sx={{ mb: 1, fontSize: "12px", color: "rgba(0, 0, 0, 0.6)" }}>
+                    Monto Total a Creditar
+                  </InputLabel>
+                  <TextField
+                    size="small"
+                    type="number"
+                    fullWidth
+                    value={montoTotalCreditar || ""}
+                    onChange={(e) => {
+                      const valor = e.target.value === "" ? 0 : Number(e.target.value)
+                      setMontoTotalCreditar(valor)
+                    }}
+                    placeholder="0.00"
+                    InputProps={{
+                      startAdornment: <Typography sx={{ mr: 0.5 }}>$</Typography>,
+                    }}
+                    inputProps={{ min: 0, step: "0.01" }}
+                  />
+                </Box>
+                {subtotalTotalFactura > 0 && (
+                  <Box sx={{ flex: 0.5, textAlign: "center" }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Subtotal Factura:
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      ${subtotalTotalFactura.toFixed(2)}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
 
             <TableContainer>
               <Table size="small">
                 <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
                   <TableRow>
-                    {isMonto && <TableCell width="50px">Acción</TableCell>}
-                    <TableCell>{isDevolucion ? "Artículo Facturado" : "Buscador de Servicio"}</TableCell>
-                    <TableCell width="120px" align="center">
+                    <TableCell>{isDevolucion ? "Artículo Facturado" : "Servicio"}</TableCell>
+                    <TableCell width="80px" align="center">
                       Cantidad
                     </TableCell>
                     <TableCell width="120px" align="center">
@@ -491,11 +592,11 @@ const CrearNotaCreditoDF = () => {
                 <TableBody>
                   {detallesAgregados.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                         <Typography color="text.secondary">
                           {isDevolucion
                             ? "Seleccione una factura para ver sus productos."
-                            : "Haga clic en 'Añadir Monto' para registrar el descuento financiero."}
+                            : "Seleccione un servicio e ingrese el monto a creditar."}
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -509,14 +610,6 @@ const CrearNotaCreditoDF = () => {
 
                       return (
                         <TableRow key={index}>
-                          {isMonto && (
-                            <TableCell align="center">
-                              <IconButton color="error" size="small" onClick={() => setDetallesAgregados([])}>
-                                <DeleteIcon />
-                              </IconButton>
-                            </TableCell>
-                          )}
-
                           <TableCell>
                             {isDevolucion ? (
                               <Typography variant="body2">
@@ -526,71 +619,42 @@ const CrearNotaCreditoDF = () => {
                                 </span>
                               </Typography>
                             ) : (
-                              <Autocomplete
-                                size="small"
-                                options={listaServicios}
-                                getOptionLabel={(opt) => (opt?.sercodigo ? `${opt.sercodigo} - ${opt.serdescri}` : "")}
-                                onChange={(e, val) => {
-                                  const newArr = [...detallesAgregados]
-                                  if (val) {
-                                    newArr[index] = {
-                                      ...row,
-                                      isNew: false,
-                                      codigo: val.sercodigo,
-                                      descripcion: val.serdescri,
-                                      ivaPorcentaje: obtenerPorcentajeIva(val.seriva),
-                                    }
-                                  } else {
-                                    newArr[index] = {
-                                      isNew: true,
-                                      codigo: "",
-                                      descripcion: "",
-                                      cantidad: 1,
-                                      precioUnitario: 0,
-                                      descuentoPorcentaje: 0,
-                                      ivaPorcentaje: 0,
-                                    }
-                                  }
-                                  setDetallesAgregados(newArr)
-                                }}
-                                renderInput={(params) => <TextField {...params} placeholder="Buscar servicio..." />}
-                              />
+                              <Typography variant="body2">
+                                <b>{row.codigo}</b> - {row.descripcion}
+                              </Typography>
                             )}
                           </TableCell>
 
-                          <TableCell>
-                            <TextField
-                              type="number"
-                              size="small"
-                              disabled={isMonto}
-                              value={row.cantidad}
-                              onChange={(e) => {
-                                let val = e.target.value === "" ? "" : Number(e.target.value)
-                                if (isDevolucion && val > row.cantidad_maxima) {
-                                  val = row.cantidad_maxima
-                                  Swal.fire("Límite", `Sólo puede devolver hasta ${val} unidades.`, "warning")
-                                }
-                                const newArr = [...detallesAgregados]
-                                newArr[index].cantidad = val
-                                setDetallesAgregados(newArr)
-                              }}
-                              inputProps={{ min: 1, style: { textAlign: "center" } }}
-                            />
+                          {/* NUEVO: Cantidad visible pero solo lectura en modo MONTO */}
+                          <TableCell align="center">
+                            {isDevolucion ? (
+                              <TextField
+                                type="number"
+                                size="small"
+                                value={row.cantidad}
+                                onChange={(e) => {
+                                  let val = e.target.value === "" ? "" : Number(e.target.value)
+                                  if (val > row.cantidad_maxima) {
+                                    val = row.cantidad_maxima
+                                    Swal.fire("Límite", `Sólo puede devolver hasta ${val} unidades.`, "warning")
+                                  }
+                                  const newArr = [...detallesAgregados]
+                                  newArr[index].cantidad = val
+                                  setDetallesAgregados(newArr)
+                                }}
+                                inputProps={{ min: 1, style: { textAlign: "center" } }}
+                              />
+                            ) : (
+                              <Typography variant="body2">1</Typography>
+                            )}
                           </TableCell>
 
-                          <TableCell>
-                            <TextField
-                              type="number"
-                              size="small"
-                              disabled={isDevolucion}
-                              value={row.precioUnitario}
-                              onChange={(e) => {
-                                const newArr = [...detallesAgregados]
-                                newArr[index].precioUnitario = e.target.value
-                                setDetallesAgregados(newArr)
-                              }}
-                              inputProps={{ min: 0, step: "0.01", style: { textAlign: "right" } }}
-                            />
+                          <TableCell align="center">
+                            {isDevolucion ? (
+                              <Typography variant="body2">${Number(row.precioUnitario).toFixed(2)}</Typography>
+                            ) : (
+                              <Typography variant="body2">${Number(row.precioUnitario).toFixed(2)}</Typography>
+                            )}
                           </TableCell>
 
                           <TableCell align="center">

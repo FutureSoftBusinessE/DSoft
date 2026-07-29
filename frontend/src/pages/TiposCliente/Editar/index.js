@@ -156,6 +156,7 @@ const EditarTiposCliente = () => {
                   error={isError && !formData.tipcodigo}
                   inputProps={{ maxLength: 3 }}
                   InputLabelProps={{ shrink: true }}
+                  disabled
                 />
               </Grid>
 

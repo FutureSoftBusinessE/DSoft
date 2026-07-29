@@ -37,6 +37,23 @@ def getInitialDataDF():
             .fetchall()
         )
 
+        # Clientes Activos y de tipo asociados
+        clientesAso = (
+            connection.execute(
+                text(
+                    """
+            SELECT clicodigo, clinombre
+            FROM cxcmcli
+            WHERE ciacodigo = :cia AND clistatus = 'A' and tipcodigo = 'ASO'
+            ORDER BY clinombre
+        """
+                ),
+                {"cia": sCodCia},
+            )
+            .mappings()
+            .fetchall()
+        )
+
         # Tipos de Contrato y sus frecuencias
         tipos = (
             connection.execute(
@@ -74,4 +91,4 @@ def getInitialDataDF():
             .fetchall()
         )
 
-    return {"data": {"clientes": [dict(c) for c in clientes], "tiposContrato": [dict(t) for t in tipos], "articulos": [dict(a) for a in articulos]}}
+    return {"data": {"clientes": [dict(c) for c in clientes], "clientesAso": [dict(c) for c in clientesAso], "tiposContrato": [dict(t) for t in tipos], "articulos": [dict(a) for a in articulos]}}

@@ -43,17 +43,21 @@ export const handlePrintContraCliPDF = (formData, servicios, periodos, infoHome)
   doc.setFont("helvetica", "bold")
   doc.text("Cliente:", 14, startY + 8)
   doc.setFont("helvetica", "normal")
-  // AQUI: Mostramos Código + Nombre del Cliente
-  // const nombreCli = formData?.clinombre || "";
-  // doc.text(`${formData?.clicodigo || ""} - ${nombreCli}`, 40, startY + 8);
-  const nombreCli = doc.splitTextToSize(`${formData?.clicodigo || ""} - ${formData?.clinombre}` || "", 70)
+  const nombreCli = doc.splitTextToSize(`${formData?.clicodigo || ""} - ${formData?.clinombre || ""}`, 70)
   doc.text(nombreCli, 40, startY + 8)
 
+  // NUEVO CAMPO: Cliente Asociado a facturar
   doc.setFont("helvetica", "bold")
-  doc.text("Descripción:", 14, startY + 16)
+  doc.text("Facturar a:", 14, startY + 16)
+  doc.setFont("helvetica", "normal")
+  const facturarA = formData?.clicodigoFac ? formData.clicodigoFac : "MISMO CLIENTE"
+  doc.text(facturarA, 40, startY + 16)
+
+  doc.setFont("helvetica", "bold")
+  doc.text("Descripción:", 14, startY + 24)
   doc.setFont("helvetica", "normal")
   const splitDescri = doc.splitTextToSize(formData?.condescri || "", 70)
-  doc.text(splitDescri, 40, startY + 16)
+  doc.text(splitDescri, 40, startY + 24)
 
   // Columna Derecha
   doc.setFont("helvetica", "bold")
@@ -68,7 +72,8 @@ export const handlePrintContraCliPDF = (formData, servicios, periodos, infoHome)
   doc.text(formData?.confrecuencia || "", 150, startY + 16)
   doc.text(`$${Number(formData?.convalor || 0).toFixed(2)}`, 150, startY + 24)
 
-  startY += 25 + splitDescri.length * 5
+  // Ajustamos el salto de línea considerando el nuevo campo
+  startY += 32 + splitDescri.length * 5
 
   // 4. TABLA DE SERVICIOS
   doc.setFont("helvetica", "bold")
@@ -118,7 +123,7 @@ export const handlePrintContraCliPDF = (formData, servicios, periodos, infoHome)
     styles: { halign: "center" },
   })
 
-  // 5. FIRMAS
+  // 6. FIRMAS
   let firmaY = doc.lastAutoTable.finalY + 30
   if (firmaY > 270) {
     doc.addPage()

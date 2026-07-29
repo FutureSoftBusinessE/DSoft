@@ -1,81 +1,42 @@
-import React, { useContext, useState, useEffect } from "react"
-import Header from "../../layouts/Header"
+import React, { useContext } from "react"
+import { useNavigate } from "react-router-dom"
 import { styled, createTheme, ThemeProvider } from "@mui/material/styles"
-import { Box } from "@mui/material"
+import { Box, Typography, Chip } from "@mui/material"
+import Swal from "sweetalert2"
 
+// Layouts y Componentes Base
+import Header from "../../layouts/Header"
 import BackIcon from "../../components/BackIcon"
-
-import { NavLink, useNavigate } from "react-router-dom"
-
-import BuscarIcon from "../../assets/iconos/Buscar.ico"
-import CrearIcon from "../../assets/iconos/Crear.ico"
-import EditIcon from "@mui/icons-material/Edit"
-import AddIcon from "@mui/icons-material/Add"
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf"
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
-
 import CustomConditionalActionsTableServer from "../../components/CustomConditionalActionsTableServerSide"
-import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye"
-import EliminarIcon from "../../assets/iconos/Eliminar.ico"
+
+// Contexto y Utilidades
+import { GlobalContext } from "../../contexts/GlobalContext"
+import fetchwrapper from "../../services/interceptors/fetchwrapper"
+import getIconComponent from "../utils/getIconComponent"
 import normalFormatDate from "../utils/date/DDMMYYYFormatDate"
 import {
   handleExportDataPdfLGScreen,
   handleExportDataPdfSMScreen,
   handleAllExportDataCSV,
 } from "../utils/reactTableActions/exportToolbarActions"
-import { GlobalContext } from "../../contexts/GlobalContext"
-import CustomBackdrop from "../../components/CustomBackdrop"
 
-import fetchwrapper from "../../services/interceptors/fetchwrapper"
-import Swal from "sweetalert2"
-
-import getIconComponent from "../utils/getIconComponent"
-import normalFormatHour from "../utils/date/HHMMSSFormatHour"
-
+// =================================================================
+// ESTILOS Y TEMA (Estándar SIAC FUTURESOFT)
+// =================================================================
 const StyledRoot = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
-  marginTop: theme.spacing(8),
+  marginTop: theme.spacing(3),
   flexGrow: 1,
   padding: "0 16px",
-  height: "100vh",
-}))
-
-const StyledIcons = styled(NavLink)(({ theme }) => ({
-  height: 250,
-  width: 250,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  // backgroundColor: theme.palette.background.default,
-  // border: "1px solid #ddd",
-  color: theme.palette.text.primary,
-  cursor: "pointer",
-
-  "& img": {
-    width: "128px",
-  },
-
-  "&:hover": {
-    textDecoration: "underline",
-  },
-}))
-
-const StyledTextIcon = styled("div")(({ theme }) => ({
-  fontSize: "18px",
-  marginTop: "10px",
-  fontWeight: "bolder",
+  minHeight: "80vh",
 }))
 
 const theme = createTheme({
   palette: {
-    primary: {
-      main: "#196C87",
-    },
-    secondary: {
-      main: "#196C87", // Cambia el color secundario a verde azulado
-    },
+    primary: { main: "#196C87" },
+    secondary: { main: "#2E7D32" },
+    error: { main: "#d32f2f" },
   },
 })
 
@@ -83,23 +44,21 @@ const CreacionClientes = () => {
   const navigate = useNavigate()
   const { selectedMenuInfo } = useContext(GlobalContext)
 
+  // =================================================================
+  // LÓGICA DE ELIMINACIÓN DE CLIENTE
+  // =================================================================
   const handleEliminarCliente = async (row) => {
-    console.log("Cliente a eliminar:", row.original)
-
-    // Confirmar eliminación con SweetAlert
     const confirmacion = await Swal.fire({
       title: "¿Eliminar Cliente?",
       html: `
-      <div style="text-align: left; margin: 10px 0;">
-        <p><strong>Código:</strong> ${row.original.clicodigo}</p>
-        <p><strong>Nombre/Razón Social:</strong> ${row.original.clinombre}</p>
-        <p><strong>RUC:</strong> ${row.original.cliruc}</p>
-        <p><strong>Tipo:</strong> ${row.original.clitipo === "N" ? "Persona Natural" : "Persona Jurídica"}</p>
-        ${row.original.cliapellido ? `<p><strong>Apellidos:</strong> ${row.original.cliapellido}</p>` : ""}
-      </div>
-      <p style="color: #d32f2f; font-weight: bold;">¿Está seguro que desea eliminar este cliente?</p>
-      <p style="font-size: 0.9em; color: #666;">Esta acción no se puede deshacer.</p>
-    `,
+        <div style="text-align: left; margin: 10px 0; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
+          <p><strong>Código:</strong> ${row.original.clicodigo}</p>
+          <p><strong>Razón Social:</strong> ${row.original.clinombre}</p>
+          <p><strong>RUC/Cédula:</strong> ${row.original.cliruc || "N/A"}</p>
+        </div>
+        <p style="color: #d32f2f; font-weight: bold;">¿Está seguro que desea eliminar este cliente?</p>
+        <p style="font-size: 0.9em; color: #666;">Esta acción afectará los registros asociados y no se puede deshacer.</p>
+      `,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sí, eliminar",
@@ -109,149 +68,106 @@ const CreacionClientes = () => {
       reverseButtons: true,
     })
 
-    if (!confirmacion.isConfirmed) {
-      Swal.fire("Operación cancelada", "El cliente no ha sido eliminado.", "info")
-      return
-    }
+    if (!confirmacion.isConfirmed) return
 
-    // Mostrar loading
     Swal.fire({
       title: "Eliminando cliente...",
-      text: "Por favor espere",
+      text: "Sincronizando con la base de datos",
       allowOutsideClick: false,
-      showConfirmButton: false,
-      willOpen: () => {
-        Swal.showLoading()
-      },
+      didOpen: () => Swal.showLoading(),
     })
 
     try {
-      // Llamar a la API de eliminación
       const response = await fetchwrapper(`/CreacionCliente/deleteCliente`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          clicodigo: row.original.clicodigo,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clicodigo: row.original.clicodigo }),
       })
-
       const result = await response.json()
 
       if (result.success) {
-        // Éxito
         Swal.fire({
           title: "¡Cliente eliminado!",
-          html: `
-          <div style="text-align: center;">
-            <p style="color: #2e7d32; font-size: 1.2em;">
-              <i class="fas fa-check-circle" style="color: #2e7d32; margin-right: 10px;"></i>
-              Cliente eliminado exitosamente
-            </p>
-            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
-              <p><strong>Código:</strong> ${result.data.clicodigo}</p>
-            </div>
-          </div>
-        `,
+          text: `El cliente ${row.original.clicodigo} ha sido dado de baja exitosamente.`,
           icon: "success",
-          confirmButtonText: "Aceptar",
           confirmButtonColor: "#196C87",
         }).then(() => {
-          navigate(0) // recarga la ruta actual
+          navigate(0)
         })
       } else {
-        // Error del servidor
-        throw new Error(result.error?.msg || "Error al eliminar el cliente")
+        throw new Error(result.message || "Error de integridad al eliminar el cliente")
       }
     } catch (error) {
-      console.error("Error al eliminar cliente:", error)
-
-      Swal.fire({
-        title: "Error al eliminar",
-        html: `
-        <div style="text-align: center;">
-          <p style="color: #d32f2f; font-size: 1.2em;">
-            <i class="fas fa-exclamation-circle" style="color: #d32f2f; margin-right: 10px;"></i>
-            No se pudo eliminar el cliente
-          </p>
-          <p style="margin-top: 10px;">${error.message}</p>
-        </div>
-      `,
-        icon: "error",
-        confirmButtonText: "Entendido",
-        confirmButtonColor: "#d32f2f",
-      })
+      Swal.fire({ title: "Error al eliminar", text: error.message, icon: "error", confirmButtonColor: "#d32f2f" })
     }
   }
 
   return (
     <ThemeProvider theme={theme}>
       <Header />
-      <div className="main main-app p-3 p-lg-4">
+      <div className="main main-app p-3 p-lg-4" style={{ backgroundColor: "#f4f6f8", minHeight: "100vh" }}>
         <BackIcon />
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            margin: "0 30px 30px 30px",
-            fontSize: "25px",
-          }}
-        >
-          <b>Clientes</b>
-        </div>
 
-        <Box className={StyledRoot}>
+        <Box display="flex" justifyContent="center" alignItems="center" mb={4}>
+          <Typography variant="h4" fontWeight="bold" color="primary.main">
+            Catalogo de Clientes
+          </Typography>
+        </Box>
+
+        <StyledRoot>
           <CustomConditionalActionsTableServer
-            // key={`GetallClientesCreacionCliente-${forceDataRefreshKey}`}
-            // key={`UsuariosCreacion`}
             endpoint="/CreacionCliente/getAllClientes"
-            errorMsgFilterSearch="Error en cargar datos"
-            queryKeyModal="GetallClientesCreacionCliente"
-            perPage={10}
-            rowActionsWidthTable={150}
+            errorMsgFilterSearch="Error al cargar la lista de clientes"
+            queryKeyModal="GetAllClientesMaestro"
+            perPage={15}
+            rowActionsWidthTable={180}
+            enableColumnFilters={true} // <-- ACTIVA EL FILTRADO POR COLUMNAS
+            // ACCIONES DE FILA
             rowActions={(row) => {
-              // Buscar todas las acciones necesarias
-              const buscarAction = selectedMenuInfo?.data?.barraAcciones?.find(
-                (action) => action?.acccaption === "BUSCAR",
-              )
-              const eliminarAction = selectedMenuInfo?.data?.barraAcciones?.find(
-                (action) => action?.acccaption === "ELIMINAR",
-              )
+              const buscarAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "BUSCAR")
+              const editarAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "EDITAR")
+              const eliminarAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "ELIMINAR")
+              const actions = []
 
-              const actions = [
-                {
-                  label: buscarAction?.acccaption,
-                  key: buscarAction?.acccaption,
-                  icon: getIconComponent(buscarAction?.accnameicono, buscarAction?.acctipoico),
-                  onClick: (row) => {
-                    navigate(`buscar`, { state: row.original })
-                  },
-                },
-                {
-                  label: eliminarAction?.acccaption,
-                  key: eliminarAction?.acccaption,
-                  icon: getIconComponent(eliminarAction?.accnameicono, eliminarAction?.acctipoico),
-                  onClick: async (row) => {
-                    handleEliminarCliente(row)
-                  },
-                },
-              ]
+              // SECCIÓN AGREGADA: Acción de BUSCAR (Visor Analítico)
+              if (buscarAction) {
+                actions.push({
+                  label: "Consultar / Buscar",
+                  key: "BUSCAR",
+                  icon: getIconComponent(buscarAction.accnameicono, buscarAction.acctipoico),
+                  onClick: (row) => navigate(`buscar`, { state: row.original }),
+                })
+              }
 
+              if (editarAction) {
+                actions.push({
+                  label: "Editar Cliente",
+                  key: "EDITAR",
+                  icon: getIconComponent(editarAction.accnameicono, editarAction.acctipoico),
+                  onClick: (row) => navigate(`editar`, { state: row.original }),
+                })
+              }
+
+              if (eliminarAction) {
+                actions.push({
+                  label: "Eliminar Cliente",
+                  key: "ELIMINAR",
+                  icon: getIconComponent(eliminarAction.accnameicono, eliminarAction.acctipoico),
+                  onClick: (row) => handleEliminarCliente(row),
+                })
+              }
               return actions
             }}
+            // TOP TOOLBAR
             topToolbarCustomActions={({ table, device }) => {
               const crearAction = selectedMenuInfo?.data?.barraAcciones?.find((action) => action.acccaption === "CREAR")
-
               const exportarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action.acccaption === "EXPORTAR",
               )
-
               const toolbarActions = [
                 {
-                  label: crearAction?.acccaption,
-                  key: crearAction?.acccaption,
+                  label: crearAction?.acccaption || "Crear",
+                  key: crearAction?.acccaption || "CREAR",
                   icon: getIconComponent(crearAction?.accnameicono, crearAction?.acctipoico),
                   onClick: () => {
                     navigate("crear")
@@ -259,7 +175,7 @@ const CreacionClientes = () => {
                 },
                 {
                   type: "dropdown",
-                  label: exportarAction?.acccaption,
+                  label: exportarAction?.acccaption || "Exportar",
                   key: "exportarDropdown",
                   icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                   actions: [
@@ -272,15 +188,15 @@ const CreacionClientes = () => {
                           return handleExportDataPdfSMScreen(
                             columns,
                             data,
-                            "Reporte de usuarios",
-                            `Reporte de Usuarios ${new Date().toLocaleString()}`,
+                            "Catalogo de Clientes",
+                            `Reporte_Clientes_${new Date().toLocaleString()}`,
                           )
                         }
                         handleExportDataPdfLGScreen(
                           columns,
                           table.getCoreRowModel().rows,
-                          "Reporte de usuarios",
-                          `Reporte de Usuarios ${new Date().toLocaleString()}`,
+                          "Catalogo de Clientes",
+                          `Reporte_Clientes_${new Date().toLocaleString()}`,
                         )
                       },
                     },
@@ -289,71 +205,71 @@ const CreacionClientes = () => {
                       key: "exportarCSV",
                       icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                       onClick: ({ data }) => {
-                        handleAllExportDataCSV(data, `Reporte de Usuarios ${new Date().toLocaleString()}`)
+                        handleAllExportDataCSV(data, `Reporte_Clientes_${new Date().toLocaleString()}`)
                       },
                     },
                   ],
                 },
               ]
-
-              console.log("aquii topToolbarCustomActions", selectedMenuInfo, exportarAction, toolbarActions)
-
               return toolbarActions
             }}
+            // DEFINICIÓN DE COLUMNAS
             columnsTable={[
               {
                 accessorKey: "clicodigo",
                 header: "Código",
                 size: 100,
-                Cell: ({ cell }) => <span>{cell.getValue()}</span>,
+                enableColumnFilter: true,
+                Cell: ({ cell }) => (
+                  <Typography fontWeight="bold" color="primary.main">
+                    {cell.getValue()}
+                  </Typography>
+                ),
               },
               {
                 accessorKey: "cliruc",
-                header: "RUC/Cédula",
+                header: "RUC / Cédula",
                 size: 140,
-                Cell: ({ cell }) => <span>{cell.getValue() || "-"}</span>,
+                enableColumnFilter: true,
+                Cell: ({ cell }) => <span>{cell.getValue() || "N/A"}</span>,
               },
               {
                 accessorKey: "clinombre",
-                header: "Nombre",
-                size: 250,
-                Cell: ({ cell }) => <span>{cell.getValue()}</span>,
+                header: "Razón Social / Nombre",
+                size: 280,
+                enableColumnFilter: true,
+                Cell: ({ cell }) => <Typography fontWeight="500">{cell.getValue()}</Typography>,
               },
               {
-                accessorKey: "clisexo_desc",
+                accessorKey: "clisexo",
                 header: "Sexo",
                 size: 100,
-                Cell: ({ cell }) => {
-                  const value = cell.getValue()
-                  return <span>{value || "-"}</span>
-                },
+                enableColumnFilter: true,
+                Cell: ({ cell }) => <span>{cell.getValue() || "-"}</span>,
               },
               {
-                accessorKey: "cliestciv_desc",
+                accessorKey: "cliestciv",
                 header: "Estado Civil",
                 size: 120,
-                Cell: ({ cell }) => {
-                  const value = cell.getValue()
-                  return <span>{value || "-"}</span>
-                },
+                enableColumnFilter: true,
+                Cell: ({ cell }) => <span>{cell.getValue() || "-"}</span>,
               },
               {
                 accessorKey: "clidirec",
                 header: "Dirección",
-                size: 200,
-                Cell: ({ cell }) => {
-                  const value = cell.getValue()
-                  return <span>{value || "-"}</span>
-                },
+                size: 250,
+                enableColumnFilter: true,
+                Cell: ({ cell }) => <span>{cell.getValue() || "-"}</span>,
               },
               {
                 accessorKey: "clitelef1",
                 header: "Teléfono",
                 size: 130,
+                enableColumnFilter: true,
                 Cell: ({ cell }) => {
                   const value = cell.getValue()
                   return value ? (
-                    <a href={`tel:${value}`} style={{ color: "#196C87", textDecoration: "none" }}>
+                    <a href={`tel:${value}`} style={{ color: "#196C87", textDecoration: "none", fontWeight: "bold" }}>
                       {value}
                     </a>
                   ) : (
@@ -365,47 +281,137 @@ const CreacionClientes = () => {
                 accessorKey: "cliemail",
                 header: "Email",
                 size: 200,
+                enableColumnFilter: true,
+                Cell: ({ cell }) => <span>{cell.getValue() || "-"}</span>,
+              },
+              {
+                accessorKey: "vendedores",
+                header: "Vendedores",
+                size: 130,
+                enableColumnFilter: true,
+                Cell: ({ cell }) => {
+                  const val = cell.getValue()
+                  return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
+                },
+              },
+              {
+                accessorKey: "referencias",
+                header: "Referencias",
+                size: 130,
+                enableColumnFilter: true,
+                Cell: ({ cell }) => {
+                  const val = cell.getValue()
+                  return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
+                },
+              },
+              {
+                accessorKey: "agencias",
+                header: "Agencias",
+                size: 130,
+                enableColumnFilter: true,
+                Cell: ({ cell }) => {
+                  const val = cell.getValue()
+                  return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
+                },
+              },
+              {
+                accessorKey: "descuentos",
+                header: "Descuentos",
+                size: 120,
+                enableColumnFilter: true,
+                Cell: ({ cell }) => {
+                  const val = cell.getValue()
+                  return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
+                },
+              },
+              {
+                accessorKey: "descuentosart",
+                header: "Desc. Artículos",
+                size: 140,
+                enableColumnFilter: true,
+                Cell: ({ cell }) => {
+                  const val = cell.getValue()
+                  return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
+                },
+              },
+              {
+                accessorKey: "historial",
+                header: "Historial",
+                size: 120,
+                enableColumnFilter: true,
+                Cell: ({ cell }) => {
+                  const val = cell.getValue()
+                  return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
+                },
+              },
+              {
+                accessorKey: "imagenes",
+                header: "Imágenes",
+                size: 120,
+                enableColumnFilter: true,
+                Cell: ({ cell }) => {
+                  const val = cell.getValue()
+                  return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
+                },
+              },
+              {
+                accessorKey: "garante",
+                header: "Garante",
+                size: 150,
+                enableColumnFilter: true,
+                Cell: ({ cell }) => {
+                  const val = cell.getValue()
+                  return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
+                },
+              },
+              {
+                accessorKey: "clistatus",
+                header: "Estado",
+                size: 120,
+                filterVariant: "select",
+                filterSelectOptions: ["ACTIVO", "INACTIVO", "POTENCIAL", "A", "I", "P"],
                 Cell: ({ cell }) => {
                   const value = cell.getValue()
+                  let color = "default"
+                  let label = value
+
+                  if (value === "ACTIVO" || value === "A") {
+                    color = "success"
+                    label = "ACTIVO"
+                  }
+                  if (value === "INACTIVO" || value === "I") {
+                    color = "error"
+                    label = "INACTIVO"
+                  }
+                  if (value === "POTENCIAL" || value === "P") {
+                    color = "warning"
+                    label = "POTENCIAL"
+                  }
+
                   return value ? (
-                    <a href={`mailto:${value}`} style={{ color: "#196C87", textDecoration: "none" }}>
-                      {value}
-                    </a>
+                    <Chip label={label} color={color} size="small" sx={{ fontWeight: "bold" }} />
                   ) : (
                     <span>-</span>
                   )
                 },
               },
               {
-                accessorKey: "cliestado_desc",
-                header: "Estado",
-                size: 100,
-                Cell: ({ cell }) => {
-                  const value = cell.getValue()
-                  return <span>{value || "-"}</span>
-                },
-              },
-              {
                 accessorKey: "clifecisys",
                 header: "Fecha Creación",
-                size: 150,
-                Cell: ({ cell }) => {
-                  const value = cell.getValue()
-                  return <span>{value ? normalFormatDate(value) : "-"}</span>
-                },
+                size: 140,
+                enableColumnFilter: true,
+                Cell: ({ cell }) => <span>{cell.getValue() ? normalFormatDate(cell.getValue()) : "-"}</span>,
               },
               {
                 accessorKey: "clifecmsys",
-                header: "Últ. Modificación",
+                header: "Fecha Modificación",
                 size: 150,
-                Cell: ({ cell }) => {
-                  const value = cell.getValue()
-                  return <span>{value ? normalFormatDate(value) : "-"}</span>
-                },
+                enableColumnFilter: true,
+                Cell: ({ cell }) => <span>{cell.getValue() ? normalFormatDate(cell.getValue()) : "-"}</span>,
               },
             ]}
           />
-        </Box>
+        </StyledRoot>
       </div>
     </ThemeProvider>
   )

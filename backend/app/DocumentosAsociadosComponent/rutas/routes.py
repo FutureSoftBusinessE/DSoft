@@ -91,7 +91,8 @@ def get_documentos_asociados(qgenero, procqgenero):
                 """
                 SELECT 
                     d.documentouuid, 
-                    
+                    d.docprocqgenero,
+                    d.docqgenero,
                     CASE
                         WHEN UPPER(d.docextension) = 'CLV' THEN
                             d.docnombre + ' ' + ISNULL(i.instidescri, '') + ' ' + ISNULL(tc.cladescri, '')

@@ -72,6 +72,7 @@ const EditarContraCliDF = () => {
     concodcontrato: "",
     clicodigo: "",
     clinombre: "",
+    clicodigoFac: "", // NUEVO CAMPO: Cliente Asociado a facturar
     concodigo: "",
     condescri: "",
     confecinicio: getTodayDate(),
@@ -94,7 +95,7 @@ const EditarContraCliDF = () => {
         const response = await api.post("/ContraCliDF/getInitialDataDF")
         return response?.data?.data?.data || response?.data?.data || {}
       } catch (error) {
-        return { clientes: [], tiposContrato: [], articulos: [] }
+        return { clientes: [], clientesAso: [], tiposContrato: [], articulos: [] }
       }
     },
     refetchOnWindowFocus: false,
@@ -105,6 +106,14 @@ const EditarContraCliDF = () => {
     label: `${i.clicodigo} - ${i.clinombre || ""}`,
     nombre: i.clinombre,
   }))
+
+  // NUEVA EXTRACCIÓN: Lista de Clientes Asociados
+  const listaClientesAso = (Array.isArray(rawInitialData?.clientesAso) ? rawInitialData.clientesAso : []).map((i) => ({
+    id: i.clicodigo,
+    label: `${i.clicodigo} - ${i.clinombre || ""}`,
+    nombre: i.clinombre,
+  }))
+
   const listaTipos = (Array.isArray(rawInitialData?.tiposContrato) ? rawInitialData.tiposContrato : []).map((i) => ({
     id: i.concodigo,
     label: `${i.concodigo} - ${i.condescri || ""}`,
@@ -136,7 +145,8 @@ const EditarContraCliDF = () => {
         ...prev,
         concodcontrato: fetchedData.concodcontrato || "",
         clicodigo: fetchedData.clicodigo || "",
-        clinombre: fetchedData.clinombre || "", // IMPORTANTE: Se añade para la impresión
+        clinombre: fetchedData.clinombre || "",
+        clicodigoFac: fetchedData.clicodigoFac || "", // IMPORTANTE: Se añade el nuevo campo
         concodigo: fetchedData.concodigo || "",
         condescri: fetchedData.condescri || "",
         confecinicio: fetchedData.confecinicio || "",
@@ -243,7 +253,7 @@ const EditarContraCliDF = () => {
                     sx={{ bgcolor: "#f0f0f0" }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={5}>
                   <Autocomplete
                     disabled // Siempre bloqueado
                     options={listaClientes}
@@ -255,6 +265,22 @@ const EditarContraCliDF = () => {
                     renderInput={(p) => <TextField {...p} label="Cliente" InputLabelProps={{ shrink: true }} />}
                   />
                 </Grid>
+                {/* NUEVO COMBO: CLIENTE ASOCIADO A FACTURAR (Mismo layout que en Crear) */}
+                <Grid item xs={12} sm={4}>
+                  <Autocomplete
+                    disabled // Siempre bloqueado
+                    options={listaClientesAso}
+                    getOptionLabel={(o) => o.label || ""}
+                    value={
+                      listaClientesAso.find((c) => c.id === formData.clicodigoFac) ||
+                      (formData.clicodigoFac ? { id: formData.clicodigoFac, label: formData.clicodigoFac } : null)
+                    }
+                    renderInput={(p) => (
+                      <TextField {...p} label="Cliente a Facturar (Asociado)" InputLabelProps={{ shrink: true }} />
+                    )}
+                  />
+                </Grid>
+
                 <Grid item xs={12} sm={3}>
                   <Autocomplete
                     disabled // Siempre bloqueado
@@ -267,7 +293,7 @@ const EditarContraCliDF = () => {
                     renderInput={(p) => <TextField {...p} label="Tipo" InputLabelProps={{ shrink: true }} />}
                   />
                 </Grid>
-                <Grid item xs={12} sm={9}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     disabled
                     fullWidth

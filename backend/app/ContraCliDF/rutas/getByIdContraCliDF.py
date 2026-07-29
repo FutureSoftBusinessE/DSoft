@@ -34,7 +34,7 @@ def getByIdContraCliDF():
         query_cab = text(
             """
             SELECT
-                c.concodcontrato, c.condescri, c.clicodigo, cl.clinombre,
+                c.concodcontrato, c.condescri, c.clicodigo, c.clicodigoFac, cl.clinombre,
                 c.concodigo, tc.condescri AS tipcondescri, c.constatus,
                 CONVERT(varchar, c.confecinicio, 23) AS confecinicio,
                 CONVERT(varchar, c.confecfin, 23) AS confecfin,

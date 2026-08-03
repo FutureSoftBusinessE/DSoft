@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from "react"
+import React, { useContext, useState, useEffect, useRef } from "react"
 import Header from "../../../layouts/Header"
 import { styled, createTheme, ThemeProvider } from "@mui/material/styles"
 import { Box, Button } from "@mui/material"
@@ -85,7 +85,16 @@ const BuscarAccesoACompañiasYModulos = () => {
   const location = useLocation()
   const [expanded, setExpanded] = useState(true)
   const handleToggle = () => setExpanded((prev) => !prev)
-  const { usrcodigo, usrnombre, usrstatus, usrflagperfil } = location.state
+
+  const userDataRef = useRef(null)
+  // Si location.state tiene datos, actualiza el ref
+  if (location.state) {
+    userDataRef.current = location.state
+  }
+  // Usa los datos del ref si location.state es null
+  const userData = location.state || userDataRef.current
+  const { usrcodigo, usrnombre, usrstatus, usrflagperfil } = userData || {}
+
   const { selectedMenuInfo } = useContext(GlobalContext)
   const [isLoadingHandleConfirmModalAcceso, setIsLoadingHandleConfirmModalAcceso] = useState(false)
   const [forceDataRefreshKey, setForceDataRefreshKey] = useState(1)

@@ -121,7 +121,7 @@ const CreacionClientes = () => {
             queryKeyModal="GetAllClientesMaestro"
             perPage={15}
             rowActionsWidthTable={180}
-            enableColumnFilters={true} // <-- ACTIVA EL FILTRADO POR COLUMNAS
+            // enableColumnFilters={true} // <-- ACTIVA EL FILTRADO POR COLUMNAS
             // ACCIONES DE FILA
             rowActions={(row) => {
               const buscarAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "BUSCAR")
@@ -219,7 +219,6 @@ const CreacionClientes = () => {
                 accessorKey: "clicodigo",
                 header: "Código",
                 size: 100,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => (
                   <Typography fontWeight="bold" color="primary.main">
                     {cell.getValue()}
@@ -230,42 +229,36 @@ const CreacionClientes = () => {
                 accessorKey: "cliruc",
                 header: "RUC / Cédula",
                 size: 140,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => <span>{cell.getValue() || "N/A"}</span>,
               },
               {
                 accessorKey: "clinombre",
                 header: "Razón Social / Nombre",
                 size: 280,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => <Typography fontWeight="500">{cell.getValue()}</Typography>,
               },
               {
                 accessorKey: "clisexo",
                 header: "Sexo",
                 size: 100,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => <span>{cell.getValue() || "-"}</span>,
               },
               {
                 accessorKey: "cliestciv",
                 header: "Estado Civil",
                 size: 120,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => <span>{cell.getValue() || "-"}</span>,
               },
               {
                 accessorKey: "clidirec",
                 header: "Dirección",
                 size: 250,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => <span>{cell.getValue() || "-"}</span>,
               },
               {
                 accessorKey: "clitelef1",
                 header: "Teléfono",
                 size: 130,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => {
                   const value = cell.getValue()
                   return value ? (
@@ -281,14 +274,12 @@ const CreacionClientes = () => {
                 accessorKey: "cliemail",
                 header: "Email",
                 size: 200,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => <span>{cell.getValue() || "-"}</span>,
               },
               {
                 accessorKey: "vendedores",
                 header: "Vendedores",
                 size: 130,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => {
                   const val = cell.getValue()
                   return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
@@ -298,7 +289,6 @@ const CreacionClientes = () => {
                 accessorKey: "referencias",
                 header: "Referencias",
                 size: 130,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => {
                   const val = cell.getValue()
                   return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
@@ -308,7 +298,6 @@ const CreacionClientes = () => {
                 accessorKey: "agencias",
                 header: "Agencias",
                 size: 130,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => {
                   const val = cell.getValue()
                   return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
@@ -318,7 +307,6 @@ const CreacionClientes = () => {
                 accessorKey: "descuentos",
                 header: "Descuentos",
                 size: 120,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => {
                   const val = cell.getValue()
                   return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
@@ -328,7 +316,6 @@ const CreacionClientes = () => {
                 accessorKey: "descuentosart",
                 header: "Desc. Artículos",
                 size: 140,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => {
                   const val = cell.getValue()
                   return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
@@ -338,7 +325,6 @@ const CreacionClientes = () => {
                 accessorKey: "historial",
                 header: "Historial",
                 size: 120,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => {
                   const val = cell.getValue()
                   return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
@@ -348,7 +334,6 @@ const CreacionClientes = () => {
                 accessorKey: "imagenes",
                 header: "Imágenes",
                 size: 120,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => {
                   const val = cell.getValue()
                   return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
@@ -358,7 +343,6 @@ const CreacionClientes = () => {
                 accessorKey: "garante",
                 header: "Garante",
                 size: 150,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => {
                   const val = cell.getValue()
                   return <span>{val >= 1 ? "SI" : Number(val) === 0 ? "NO" : val || "-"}</span>
@@ -368,8 +352,6 @@ const CreacionClientes = () => {
                 accessorKey: "clistatus",
                 header: "Estado",
                 size: 120,
-                filterVariant: "select",
-                filterSelectOptions: ["ACTIVO", "INACTIVO", "POTENCIAL", "A", "I", "P"],
                 Cell: ({ cell }) => {
                   const value = cell.getValue()
                   let color = "default"
@@ -399,14 +381,12 @@ const CreacionClientes = () => {
                 accessorKey: "clifecisys",
                 header: "Fecha Creación",
                 size: 140,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => <span>{cell.getValue() ? normalFormatDate(cell.getValue()) : "-"}</span>,
               },
               {
                 accessorKey: "clifecmsys",
                 header: "Fecha Modificación",
                 size: 150,
-                enableColumnFilter: true,
                 Cell: ({ cell }) => <span>{cell.getValue() ? normalFormatDate(cell.getValue()) : "-"}</span>,
               },
             ]}

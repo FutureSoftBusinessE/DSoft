@@ -8,7 +8,9 @@ from app.extensions import db
 from app.CreacionCliente import bp
 import base64
 from decimal import Decimal
-from services.encrip_desencrip import desencriptar
+from services.encrip_desencrip import desencriptar, encriptar
+from app.utils.build_paginated_query import build_paginated_query
+from app.Clases.FILTER_VALUE_TYPE import FILTER_VALUE_TYPE
 
 
 # =================================================================
@@ -106,8 +108,6 @@ def get_permisos_cliente():
         loccodigo = claims["seleccion"].get("loccodigo", "01")
         usuario_id = claims["user"]
         bd_cliente = claims["seleccion"]["clicianonBD"]
-
-        from services.encrip_desencrip import encriptar
 
         usr_encriptado = encriptar(usuario_id)
 
@@ -985,9 +985,6 @@ def get_all_clientes():
         # Aquí atrapamos el diccionario "filters: {cliruc: '1311...', clinombre: '...'}"
         filtros_dict = payload.get("filters", {})
 
-        # Paginación: si la página 1 es la inicial, el offset es 0
-        offset = (page - 1) * page_size if page > 0 else 0
-
         db.session = get_session(bd_cliente)
         with db.session.bind.connect() as conn:
             # 1. VERIFICACIÓN DE PERFIL GERENCIAL
@@ -1006,90 +1003,76 @@ def get_all_clientes():
             if is_gerente_result and is_gerente_result["usrflagger"] != 0:
                 is_gerente_flag = True
 
-            where_clause = "ciacodigo = :cia"
-            params = {"cia": ciacodigo}
-
-            # 2. FILTRO DE CARTERA ASIGNADA
-            # Si el usuario NO es gerente, limitamos la vista a los clientes en su cartera
-            if not is_gerente_flag:
-                where_clause += """
-                  AND clicodigo IN (
-                      SELECT clientecodigo
-                      FROM gdoc_usuariocliente
-                      WHERE ciacodigo = :cia
-                        AND usrcodigo = :usr_asignacion
-                  )
-                """
-                params["usr_asignacion"] = usr_encriptado
-
-            # 3. Filtro global (Buscador Superior)
-            if global_filter:
-                where_clause += " AND (clicodigo LIKE :filtro OR clinombre LIKE :filtro OR cliruc LIKE :filtro)"
-                params["filtro"] = f"%{global_filter}%"
-
-            # 4. Filtros por Columna Específica (Server-Side Filtering)
-            i = 0
-            # Definimos cuáles son las columnas "booleanas" que reciben SI / NO
-            bool_columns = ["vendedores", "referencias", "agencias", "descuentos", "descuentosart", "historial", "imagenes", "garante"]
-            columnas_validas = ["clicodigo", "cliruc", "clinombre", "clisexo", "cliestciv", "clidirec", "clitelef1", "cliemail", "clistatus", "clifecisys", "clifecmsys"] + bool_columns
-
-            for col, val in filtros_dict.items():
-                val = str(val).strip()
-                if not val:
-                    continue
-
-                # Mapeo del campo virtual "Estado" al campo real en BD
-                if col == "cliestado_desc":
-                    col = "clistatus"
-                    if val.upper() == "ACTIVO":
-                        val = "A"
-                    elif val.upper() == "INACTIVO":
-                        val = "I"
-                    elif val.upper() == "POTENCIAL":
-                        val = "P"
-
-                # LÓGICA AGREGADA: Traducción de SI/NO para columnas booleanas
-                if col in bool_columns:
-                    if val.upper() == "SI":
-                        where_clause += f" AND {col} >= 1"
-                    elif val.upper() == "NO":
-                        where_clause += f" AND {col} = 0"
-                    # Salta a la siguiente iteración, no aplica LIKE
-                    continue
-
-                # Seguridad: Permitir buscar solo en las columnas declaradas (Aplica LIKE a las demás)
-                if col in columnas_validas:
-                    p_name = f"col_val_{i}"
-                    where_clause += f" AND {col} LIKE :{p_name}"
-                    params[p_name] = f"%{val}%"
-                    i += 1
-
-            # 5. Total de Registros (Para que funcione el paginador de MUI)
-            q_count = text(f"SELECT COUNT(*) as total FROM view_cxcmcli WHERE {where_clause}")
-            total_rows = conn.execute(q_count, params).scalar()
-
-            # 6. Obtener los Datos Filtrados
-            q_data = text(
-                f"""
+            # 2. CONSULTA BASE
+            base_query = """
                 SELECT
                     clicodigo, cliruc, clinombre, clisexo, cliestciv,
                     clidirec, clitelef1, cliemail,
                     vendedores, referencias, agencias, descuentos, descuentosart, historial,  imagenes,  garante,
                     clistatus, clifecisys, clifecmsys
                 FROM view_cxcmcli
-                WHERE {where_clause}
-                ORDER BY clinombre ASC
-                OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY
+                WHERE ciacodigo = :ciacodigo
             """
+
+            # 3. FILTRO DE CARTERA ASIGNADA
+            # Si el usuario NO es gerente, limitamos la vista a los clientes en su cartera
+            if not is_gerente_flag:
+                base_query += """
+                  AND clicodigo IN (
+                      SELECT clientecodigo
+                      FROM gdoc_usuariocliente
+                      WHERE ciacodigo = :ciacodigo
+                        AND usrcodigo = :usr_asignacion
+                  )
+                """
+
+            # 4. Filtro global (Buscador Superior)
+            if global_filter:
+                base_query += " AND (clicodigo LIKE :filtro OR clinombre LIKE :filtro OR cliruc LIKE :filtro)"
+
+            # 5. Columnas permitidas para filtros por columna (Server-Side Filtering)
+            allowed_columns = [
+                {"clicodigo": FILTER_VALUE_TYPE.STRING},
+                {"cliruc": FILTER_VALUE_TYPE.STRING},
+                {"clinombre": FILTER_VALUE_TYPE.STRING},
+                {"clisexo": FILTER_VALUE_TYPE.STRING},
+                {"cliestciv": FILTER_VALUE_TYPE.STRING},
+                {"clidirec": FILTER_VALUE_TYPE.STRING},
+                {"clitelef1": FILTER_VALUE_TYPE.STRING},
+                {"cliemail": FILTER_VALUE_TYPE.STRING},
+                {"clistatus": FILTER_VALUE_TYPE.STRING},
+                {"clifecisys": FILTER_VALUE_TYPE.STRING},
+                {"clifecmsys": FILTER_VALUE_TYPE.STRING},
+            ]
+
+            # 6. Construir consulta paginada con filtros
+            final_query, params = build_paginated_query(
+                base_query=base_query,
+                order_by=["clinombre ASC"],
+                filters=filtros_dict,
+                page=page,
+                per_page=page_size,
+                allowed_columns=allowed_columns,
             )
-            params["offset"] = offset
-            params["limit"] = page_size
 
-            resultados = conn.execute(q_data, params).mappings().fetchall()
+            # Añadir parámetros fijos
+            params.update({"ciacodigo": ciacodigo})
+            if not is_gerente_flag:
+                params.update({"usr_asignacion": usr_encriptado})
+            if global_filter:
+                params.update({"filtro": f"%{global_filter}%"})
 
+            # 7. Ejecutar consulta
+            resultados = conn.execute(text(final_query), params).mappings().fetchall()
+
+            # 8. Total de Registros (Para que funcione el paginador de MUI)
+            total_rows = resultados[0]["total"] if resultados else 0
+
+            # 9. Procesar resultados
             clientes = []
             for r in resultados:
                 cliente = dict(r)
+                cliente.pop("total", None)
 
                 # Mapeo de estados para el Frontend
                 if r["clistatus"] == "A":
@@ -1106,6 +1089,7 @@ def get_all_clientes():
                 cliente["clifecmsys"] = r["clifecmsys"].strftime("%Y-%m-%d") if r["clifecmsys"] else None
 
                 clientes.append(cliente)
+
         return (
             jsonify(
                 {

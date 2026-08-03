@@ -371,11 +371,46 @@ def guardar_cliente():
                     "par2": maestro.get("cliparentesco2", ""),
                     "tel2": maestro.get("clireftelefono2", ""),
                     "parro": maestro.get("parrocodigo") or None,
-                    # Corrección del NOT NULL asignando el mismo dato del cliente (Lógica VB6)
                     "rucmatriz": maestro.get("clirucmatriz") or cliruc,
                     "nommatriz": maestro.get("clinommatriz") or clinombre,
                 }
                 conn.execute(q_maestro, params_maestro)
+
+                # =========================================================================
+                # 3.1 ASIGNAR CLIENTE AUTOMÁTICAMENTE AL USUARIO CREADOR
+                # Se asocia el nuevo cliente a la cartera del usuario que lo registra.
+                # =========================================================================
+                if modo == "NEW":
+                    from services.encrip_desencrip import encriptar
+
+                    usr_encriptado = encriptar(usuario_id)
+
+                    insert_asignacion_query = text(
+                        """
+                        INSERT INTO gdoc_usuariocliente (
+                            ciacodigo, usrcodigo, clientecodigo, hereda_documentos, estado,
+                            fecisys, horisys, usuisys, estisys
+                        ) VALUES (
+                            :ciacodigo, :usrcodigo, :clientecodigo, :hereda_documentos, :estado,
+                            :fecisys, :horisys, :usuisys, :estisys
+                        )
+                    """
+                    )
+
+                    conn.execute(
+                        insert_asignacion_query,
+                        {
+                            "ciacodigo": ciacodigo,
+                            "usrcodigo": usr_encriptado,
+                            "clientecodigo": clicodigo,
+                            "hereda_documentos": 1,
+                            "estado": "A",
+                            "fecisys": fecha_sys,
+                            "horisys": hora_sys,
+                            "usuisys": str(usuario_id)[:10],
+                            "estisys": str(estacion)[:40],
+                        },
+                    )
 
                 # 4. Auditoría (Espejo a cxchmcli usando la lógica VB6)
                 accion_auditoria = "INSERT" if modo == "NEW" else "UPDATE"
@@ -931,6 +966,12 @@ def get_all_clientes():
         claims = get_jwt()
         ciacodigo = claims["seleccion"]["cliciaciacodigo"]
         bd_cliente = claims["seleccion"]["clicianonBD"]
+        loccodigo = claims["localidad"]["loccodigo"]
+        usuario_id = claims["user"]
+
+        from services.encrip_desencrip import encriptar
+
+        usr_encriptado = encriptar(usuario_id)
 
         payload = request.get_json() or {}
 
@@ -949,15 +990,44 @@ def get_all_clientes():
 
         db.session = get_session(bd_cliente)
         with db.session.bind.connect() as conn:
+            # 1. VERIFICACIÓN DE PERFIL GERENCIAL
+            is_gerente_flag = False
+            is_gerente_query = text(
+                """
+                SELECT usrflagger
+                FROM siactloc
+                WHERE ciacodigo = :cia
+                  AND loccodigo = :loc
+                  AND usrcodigo = :usr
+            """
+            )
+            is_gerente_result = conn.execute(is_gerente_query, {"cia": ciacodigo, "loc": loccodigo, "usr": usr_encriptado}).mappings().fetchone()
+
+            if is_gerente_result and is_gerente_result["usrflagger"] != 0:
+                is_gerente_flag = True
+
             where_clause = "ciacodigo = :cia"
             params = {"cia": ciacodigo}
 
-            # 1. Filtro global (Buscador Superior)
+            # 2. FILTRO DE CARTERA ASIGNADA
+            # Si el usuario NO es gerente, limitamos la vista a los clientes en su cartera
+            if not is_gerente_flag:
+                where_clause += """
+                  AND clicodigo IN (
+                      SELECT clientecodigo
+                      FROM gdoc_usuariocliente
+                      WHERE ciacodigo = :cia
+                        AND usrcodigo = :usr_asignacion
+                  )
+                """
+                params["usr_asignacion"] = usr_encriptado
+
+            # 3. Filtro global (Buscador Superior)
             if global_filter:
                 where_clause += " AND (clicodigo LIKE :filtro OR clinombre LIKE :filtro OR cliruc LIKE :filtro)"
                 params["filtro"] = f"%{global_filter}%"
 
-            # 2. Filtros por Columna Específica (Server-Side Filtering)
+            # 4. Filtros por Columna Específica (Server-Side Filtering)
             i = 0
             # Definimos cuáles son las columnas "booleanas" que reciben SI / NO
             bool_columns = ["vendedores", "referencias", "agencias", "descuentos", "descuentosart", "historial", "imagenes", "garante"]
@@ -994,11 +1064,11 @@ def get_all_clientes():
                     params[p_name] = f"%{val}%"
                     i += 1
 
-            # 3. Total de Registros (Para que funcione el paginador de MUI)
+            # 5. Total de Registros (Para que funcione el paginador de MUI)
             q_count = text(f"SELECT COUNT(*) as total FROM view_cxcmcli WHERE {where_clause}")
             total_rows = conn.execute(q_count, params).scalar()
 
-            # 4. Obtener los Datos Filtrados
+            # 6. Obtener los Datos Filtrados
             q_data = text(
                 f"""
                 SELECT
@@ -1049,7 +1119,6 @@ def get_all_clientes():
             ),
             200,
         )
-        # return jsonify({"success": True, "data": clientes, "total": total_rows, "page": page, "per_page": page_size}), 200
 
     except Exception as e:
         import traceback

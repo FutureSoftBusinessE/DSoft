@@ -173,19 +173,23 @@ const ServiciosNDNC = () => {
               const exportarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action.acccaption === "EXPORTAR",
               )
+              const importarAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (action) => action.acccaption === "IMPORTAR",
+              )
 
-              const toolbarActions = [
-                {
-                  label: crearAction?.acccaption || "Crear",
-                  key: crearAction?.acccaption || "CREAR",
+              const toolbarActions = []
+              if (crearAction) {
+                toolbarActions.push({
+                  label: crearAction?.acccaption,
+                  key: crearAction?.acccaption,
                   icon: getIconComponent(crearAction?.accnameicono, crearAction?.acctipoico),
-                  onClick: () => {
-                    navigate("crear")
-                  },
-                },
-                {
+                  onClick: () => navigate("crear"),
+                })
+              }
+              if (exportarAction) {
+                toolbarActions.push({
                   type: "dropdown",
-                  label: exportarAction?.acccaption || "Exportar",
+                  label: exportarAction?.acccaption,
                   key: "exportarDropdown",
                   icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                   actions: [
@@ -194,19 +198,20 @@ const ServiciosNDNC = () => {
                       key: "exportarPDF",
                       icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                       onClick: ({ columns, data }) => {
+                        const title = "Reporte de Servicios para Nc y Nd"
                         if (device === "sm") {
                           return handleExportDataPdfSMScreen(
                             columns,
                             data,
-                            "Reporte de Servicios para ND/NC",
-                            `Reporte de Servicios ND/NC ${new Date().toLocaleString()}`,
+                            title,
+                            `${title} ${new Date().toLocaleString()}`,
                           )
                         }
                         handleExportDataPdfLGScreen(
                           columns,
                           table.getCoreRowModel().rows,
-                          "Reporte de Servicios para ND/NC",
-                          `Reporte de Servicios ND/NC ${new Date().toLocaleString()}`,
+                          title,
+                          `${title} ${new Date().toLocaleString()}`,
                         )
                       },
                     },
@@ -214,21 +219,23 @@ const ServiciosNDNC = () => {
                       label: "Exportar CSV",
                       key: "exportarCSV",
                       icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
-                      onClick: ({ data }) => {
-                        handleAllExportDataCSV(data, `Reporte de Servicios ND/NC ${new Date().toLocaleString()}`)
-                      },
+                      onClick: ({ data }) =>
+                        handleAllExportDataCSV(data, `Servicios NcNd ${new Date().toLocaleString()}`),
                     },
                   ],
-                },
-                {
-                  label: "Importar",
-                  key: "importarDropdown",
-                  icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
-                  onClick: () => {
-                    setOpenImportModal(true)
-                  },
-                },
-              ]
+                })
+              }
+              if (importarAction) {
+                toolbarActions.push({
+                  label: importarAction?.acccaption || "Importar",
+                  key: "importarBtn",
+                  icon: getIconComponent(
+                    importarAction?.accnameicono || "UploadFile",
+                    importarAction?.acctipoico || "MaterialIcons",
+                  ),
+                  onClick: () => setOpenImportModal(true),
+                })
+              }
               return toolbarActions
             }}
           />

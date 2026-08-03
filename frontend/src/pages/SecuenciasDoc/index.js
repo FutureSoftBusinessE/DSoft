@@ -168,19 +168,23 @@ const SecuenciasDoc = () => {
               const exportarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action.acccaption === "EXPORTAR",
               )
+              const importarAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (action) => action.acccaption === "IMPORTAR",
+              )
 
-              const toolbarActions = [
-                {
-                  label: crearAction?.acccaption || "Crear",
-                  key: crearAction?.acccaption || "CREAR",
+              const toolbarActions = []
+              if (crearAction) {
+                toolbarActions.push({
+                  label: crearAction?.acccaption,
+                  key: crearAction?.acccaption,
                   icon: getIconComponent(crearAction?.accnameicono, crearAction?.acctipoico),
-                  onClick: () => {
-                    navigate("crear")
-                  },
-                },
-                {
+                  onClick: () => navigate("crear"),
+                })
+              }
+              if (exportarAction) {
+                toolbarActions.push({
                   type: "dropdown",
-                  label: exportarAction?.acccaption || "Exportar",
+                  label: exportarAction?.acccaption,
                   key: "exportarDropdown",
                   icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                   actions: [
@@ -189,19 +193,20 @@ const SecuenciasDoc = () => {
                       key: "exportarPDF",
                       icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                       onClick: ({ columns, data }) => {
+                        const title = "Reporte de Secuencias de Documento"
                         if (device === "sm") {
                           return handleExportDataPdfSMScreen(
                             columns,
                             data,
-                            "Reporte de Secuencias de Documentos",
-                            `Reporte de Secuencias de Documentos ${new Date().toLocaleString()}`,
+                            title,
+                            `${title} ${new Date().toLocaleString()}`,
                           )
                         }
                         handleExportDataPdfLGScreen(
                           columns,
                           table.getCoreRowModel().rows,
-                          "Reporte de Secuencias de Documentos",
-                          `Reporte de Secuencias de Documentos ${new Date().toLocaleString()}`,
+                          title,
+                          `${title} ${new Date().toLocaleString()}`,
                         )
                       },
                     },
@@ -209,21 +214,23 @@ const SecuenciasDoc = () => {
                       label: "Exportar CSV",
                       key: "exportarCSV",
                       icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
-                      onClick: ({ data }) => {
-                        handleAllExportDataCSV(data, `Reporte_Secuencias_Documentos_${new Date().toLocaleString()}`)
-                      },
+                      onClick: ({ data }) =>
+                        handleAllExportDataCSV(data, `Secuencias Doc ${new Date().toLocaleString()}`),
                     },
                   ],
-                },
-                {
-                  label: "Importar",
-                  key: "importarDropdown",
-                  icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
-                  onClick: () => {
-                    setOpenImportModal(true)
-                  },
-                },
-              ]
+                })
+              }
+              if (importarAction) {
+                toolbarActions.push({
+                  label: importarAction?.acccaption || "Importar",
+                  key: "importarBtn",
+                  icon: getIconComponent(
+                    importarAction?.accnameicono || "UploadFile",
+                    importarAction?.acctipoico || "MaterialIcons",
+                  ),
+                  onClick: () => setOpenImportModal(true),
+                })
+              }
               return toolbarActions
             }}
           />

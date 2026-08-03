@@ -129,50 +129,74 @@ const Instituciones = () => {
               ]
             }}
             topToolbarCustomActions={({ table, device }) => {
-              const crearAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "CREAR")
-              const exportarAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "EXPORTAR")
+              const crearAction = selectedMenuInfo?.data?.barraAcciones?.find((action) => action.acccaption === "CREAR")
+              const exportarAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (action) => action.acccaption === "EXPORTAR",
+              )
+              const importarAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (action) => action.acccaption === "IMPORTAR",
+              )
 
-              return [
-                {
-                  label: crearAction?.acccaption || "Crear",
-                  key: "CREAR",
+              const toolbarActions = []
+              if (crearAction) {
+                toolbarActions.push({
+                  label: crearAction?.acccaption,
+                  key: crearAction?.acccaption,
                   icon: getIconComponent(crearAction?.accnameicono, crearAction?.acctipoico),
                   onClick: () => navigate("crear"),
-                },
-                {
+                })
+              }
+              if (exportarAction) {
+                toolbarActions.push({
                   type: "dropdown",
-                  label: exportarAction?.acccaption || "Exportar",
+                  label: exportarAction?.acccaption,
                   key: "exportarDropdown",
                   icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                   actions: [
                     {
                       label: "Exportar PDF",
                       key: "exportarPDF",
+                      icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                       onClick: ({ columns, data }) => {
-                        device === "sm"
-                          ? handleExportDataPdfSMScreen(columns, data, "Instituciones", "Reporte")
-                          : handleExportDataPdfLGScreen(
-                              columns,
-                              table.getCoreRowModel().rows,
-                              "Instituciones",
-                              "Reporte",
-                            )
+                        const title = "Reporte de Instituciones"
+                        if (device === "sm") {
+                          return handleExportDataPdfSMScreen(
+                            columns,
+                            data,
+                            title,
+                            `${title} ${new Date().toLocaleString()}`,
+                          )
+                        }
+                        handleExportDataPdfLGScreen(
+                          columns,
+                          table.getCoreRowModel().rows,
+                          title,
+                          `${title} ${new Date().toLocaleString()}`,
+                        )
                       },
                     },
                     {
                       label: "Exportar CSV",
                       key: "exportarCSV",
-                      onClick: ({ data }) => handleAllExportDataCSV(data, "Reporte de Instituciones"),
+                      icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
+                      onClick: ({ data }) =>
+                        handleAllExportDataCSV(data, `Instituciones ${new Date().toLocaleString()}`),
                     },
                   ],
-                },
-                {
-                  label: "Importar",
-                  key: "importarDropdown",
-                  icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
+                })
+              }
+              if (importarAction) {
+                toolbarActions.push({
+                  label: importarAction?.acccaption || "Importar",
+                  key: "importarBtn",
+                  icon: getIconComponent(
+                    importarAction?.accnameicono || "UploadFile",
+                    importarAction?.acctipoico || "MaterialIcons",
+                  ),
                   onClick: () => setOpenImportModal(true),
-                },
-              ]
+                })
+              }
+              return toolbarActions
             }}
           />
         </StyledRoot>

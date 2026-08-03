@@ -36,7 +36,7 @@ const TipoDeCredenciales = () => {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const { selectedMenuInfo } = useContext(GlobalContext)
-  const [openImportModal, setOpenImportModal] = useState(false)
+  const [openModal, setOpenModal] = useState(false)
 
   // Mutación para eliminación
   const { mutateAsync: SaveEliminacion, isPending: isDeleting } = useMutation({
@@ -85,8 +85,8 @@ const TipoDeCredenciales = () => {
 
         <StyledRoot>
           <ModalImportCSV
-            open={openImportModal}
-            onClose={() => setOpenImportModal(false)}
+            open={openModal}
+            onClose={() => setOpenModal(false)}
             templateFileName="Plantilla_TiposCredenciales.csv"
             fieldConfigs={fieldConfigs}
             validateEndpoint="/TipoDeCredenciales/validarTipoDeCredencialesIMP"
@@ -127,50 +127,74 @@ const TipoDeCredenciales = () => {
               ]
             }}
             topToolbarCustomActions={({ table, device }) => {
-              const crearAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "CREAR")
-              const exportarAction = selectedMenuInfo?.data?.barraAcciones?.find((a) => a.acccaption === "EXPORTAR")
+              const crearAction = selectedMenuInfo?.data?.barraAcciones?.find((action) => action.acccaption === "CREAR")
+              const exportarAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (action) => action.acccaption === "EXPORTAR",
+              )
+              const importarAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (action) => action.acccaption === "IMPORTAR",
+              )
 
-              return [
-                {
-                  label: crearAction?.acccaption || "Crear",
-                  key: "CREAR",
+              const toolbarActions = []
+              if (crearAction) {
+                toolbarActions.push({
+                  label: crearAction?.acccaption,
+                  key: crearAction?.acccaption,
                   icon: getIconComponent(crearAction?.accnameicono, crearAction?.acctipoico),
                   onClick: () => navigate("crear"),
-                },
-                {
+                })
+              }
+              if (exportarAction) {
+                toolbarActions.push({
                   type: "dropdown",
-                  label: exportarAction?.acccaption || "Exportar",
+                  label: exportarAction?.acccaption,
                   key: "exportarDropdown",
                   icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                   actions: [
                     {
                       label: "Exportar PDF",
                       key: "exportarPDF",
+                      icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                       onClick: ({ columns, data }) => {
-                        device === "sm"
-                          ? handleExportDataPdfSMScreen(columns, data, "Tipos de Credenciales", "Reporte")
-                          : handleExportDataPdfLGScreen(
-                              columns,
-                              table.getCoreRowModel().rows,
-                              "Tipos de Credenciales",
-                              "Reporte",
-                            )
+                        const title = "Reporte de Tipo de Credenciales"
+                        if (device === "sm") {
+                          return handleExportDataPdfSMScreen(
+                            columns,
+                            data,
+                            title,
+                            `${title} ${new Date().toLocaleString()}`,
+                          )
+                        }
+                        handleExportDataPdfLGScreen(
+                          columns,
+                          table.getCoreRowModel().rows,
+                          title,
+                          `${title} ${new Date().toLocaleString()}`,
+                        )
                       },
                     },
                     {
                       label: "Exportar CSV",
                       key: "exportarCSV",
-                      onClick: ({ data }) => handleAllExportDataCSV(data, "Reporte de Tipos de Credenciales"),
+                      icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
+                      onClick: ({ data }) =>
+                        handleAllExportDataCSV(data, `Credenciales ${new Date().toLocaleString()}`),
                     },
                   ],
-                },
-                {
-                  label: "Importar",
-                  key: "importarDropdown",
-                  icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
-                  onClick: () => setOpenImportModal(true),
-                },
-              ]
+                })
+              }
+              if (importarAction) {
+                toolbarActions.push({
+                  label: importarAction?.acccaption || "Importar",
+                  key: "importarBtn",
+                  icon: getIconComponent(
+                    importarAction?.accnameicono || "UploadFile",
+                    importarAction?.acctipoico || "MaterialIcons",
+                  ),
+                  onClick: () => setOpenModal(true),
+                })
+              }
+              return toolbarActions
             }}
           />
         </StyledRoot>

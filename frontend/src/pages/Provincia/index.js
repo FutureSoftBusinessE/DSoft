@@ -140,17 +140,21 @@ const Provincia = () => {
               const exportarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action.acccaption === "EXPORTAR",
               )
+              const importarAction = selectedMenuInfo?.data?.barraAcciones?.find(
+                (action) => action.acccaption === "IMPORTAR",
+              )
 
-              const toolbarActions = [
-                {
+              const toolbarActions = []
+              if (crearAction) {
+                toolbarActions.push({
                   label: crearAction?.acccaption,
                   key: crearAction?.acccaption,
                   icon: getIconComponent(crearAction?.accnameicono, crearAction?.acctipoico),
-                  onClick: () => {
-                    navigate("crear")
-                  },
-                },
-                {
+                  onClick: () => navigate("crear"),
+                })
+              }
+              if (exportarAction) {
+                toolbarActions.push({
                   type: "dropdown",
                   label: exportarAction?.acccaption,
                   key: "exportarDropdown",
@@ -161,19 +165,20 @@ const Provincia = () => {
                       key: "exportarPDF",
                       icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
                       onClick: ({ columns, data }) => {
+                        const title = "Reporte de Provincias"
                         if (device === "sm") {
                           return handleExportDataPdfSMScreen(
                             columns,
                             data,
-                            "Reporte de Provincias",
-                            `Reporte de Provincias ${new Date().toLocaleString()}`,
+                            title,
+                            `${title} ${new Date().toLocaleString()}`,
                           )
                         }
                         handleExportDataPdfLGScreen(
                           columns,
                           table.getCoreRowModel().rows,
-                          "Reporte de Provincias",
-                          `Reporte de Provincias ${new Date().toLocaleString()}`,
+                          title,
+                          `${title} ${new Date().toLocaleString()}`,
                         )
                       },
                     },
@@ -181,21 +186,22 @@ const Provincia = () => {
                       label: "Exportar CSV",
                       key: "exportarCSV",
                       icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
-                      onClick: ({ data }) => {
-                        handleAllExportDataCSV(data, `Reporte de Provincias ${new Date().toLocaleString()}`)
-                      },
+                      onClick: ({ data }) => handleAllExportDataCSV(data, `Provincias ${new Date().toLocaleString()}`),
                     },
                   ],
-                },
-                {
-                  label: "importar",
-                  key: "importarDropdown",
-                  icon: getIconComponent(exportarAction?.accnameicono, exportarAction?.acctipoico),
-                  onClick: () => {
-                    setOpenModal(true)
-                  },
-                },
-              ]
+                })
+              }
+              if (importarAction) {
+                toolbarActions.push({
+                  label: importarAction?.acccaption || "Importar",
+                  key: "importarBtn",
+                  icon: getIconComponent(
+                    importarAction?.accnameicono || "UploadFile",
+                    importarAction?.acctipoico || "MaterialIcons",
+                  ),
+                  onClick: () => setOpenModal(true),
+                })
+              }
               return toolbarActions
             }}
             columnsTable={[

@@ -1461,6 +1461,81 @@ def crearCompania():
                     },
                 )
 
+                # 11.5. INSERT en siacsec (copiar secuencias de compañía 01)
+                conn_company.execute(
+                    text(
+                        """
+                        INSERT INTO siacsec (
+                            ciacodigo, locservidor, seccodigo, secnumero,
+                            secfecisys, secfecmsys, sechorisys, sechormsys,
+                            secusuisys, secusumsys, secdescri
+                        )
+                        SELECT
+                            :nuevo_ciacodigo,
+                            locservidor,
+                            seccodigo,
+                            0 as secnumero,
+                            :fecha_actual,
+                            :fecha_actual,
+                            :hora_actual,
+                            :hora_actual,
+                            :usuario_actual,
+                            :usuario_actual,
+                            secdescri
+                        FROM siacsec
+                        WHERE ciacodigo = :ciacodigo_origen
+                            AND locservidor = 'A'
+                        """,
+                    ),
+                    {
+                        "nuevo_ciacodigo": ciacodigo,
+                        "ciacodigo_origen": "01",
+                        "fecha_actual": fecha_actual,
+                        "hora_actual": hora_sys,
+                        "usuario_actual": sUsuario,
+                    },
+                )
+
+                # 11.6. INSERT en cgpdpto (copiar secuencias de compañía 01)
+                conn_company.execute(
+                    text(
+                        """
+                        INSERT INTO cgpdpto (
+                            ciacodigo, dptoanio, dptocodigo, dptodescri, loccodigo,
+                            dptofecisys, dptofecmsys, dptohorisys, dptohormsys,
+                            dptonumsec, dptousuisys, dptousumsys,
+                            doccodigo, locservidor
+                        )
+                        SELECT
+                            :nuevo_ciacodigo,
+                            dptoanio,
+                            dptocodigo,
+                            dptodescri,
+                            loccodigo,
+                            :fecha_actual,
+                            :fecha_actual,
+                            :hora_actual,
+                            :hora_actual,
+                            0 as dptonumsec,
+                            :usuario_actual,
+                            :usuario_actual,
+                            doccodigo,
+                            locservidor
+                        FROM cgpdpto
+                        WHERE ciacodigo = :ciacodigo_origen
+                            AND loccodigo = :loccodigo
+                        """,
+                    ),
+                    {
+                        "nuevo_ciacodigo": ciacodigo,
+                        "ciacodigo_origen": "01",
+                        "loccodigo": "01",
+                        "fecha_actual": fecha_actual,
+                        "hora_actual": hora_sys,
+                        "usuario_actual": sUsuario,
+                    },
+                )
+
                 # 12. INSERT en siactloc
                 # Primer usuario: el que crea la compañía
                 conn_company.execute(

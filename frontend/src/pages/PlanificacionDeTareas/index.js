@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import React, { useState, useEffect } from "react"
 import {
   Box,
@@ -11,6 +12,10 @@ import {
   Grid,
   CircularProgress,
   IconButton,
+  TextField,
+  FormControlLabel,
+  Checkbox,
+  Autocomplete,
 } from "@mui/material"
 import Header from "../../layouts/Header"
 import BackIcon from "../../components/BackIcon"
@@ -121,12 +126,26 @@ const handleEventDidMount = (info) => {
 }
 
 // Función para obtener eventos desde la API
-function useGetEventos() {
+function useGetEventos(filtros) {
   return useQuery({
-    queryKey: ["CrearPlanificacionTareas", "getAllEventsCalendar"],
+    queryKey: ["CrearPlanificacionTareas", "getAllEventsCalendar", filtros],
     queryFn: async () => {
       try {
-        const response = await fetchwrapper(`/PlanificacionTareas/getAllEventsCalendar`)
+        const options = {
+          method: "POST",
+          body: JSON.stringify({
+            fecha_inicio: filtros.fechaInicio,
+            fecha_fin: filtros.fechaFin,
+            estados: filtros.estados,
+            usuarios: filtros.usuarios,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+
+        const response = await fetchwrapper(`/PlanificacionTareas/getAllEventsCalendar`, options)
         const result = await response.json()
 
         if (!result.success) {
@@ -139,7 +158,7 @@ function useGetEventos() {
         throw error
       }
     },
-    enabled: false,
+    enabled: true,
     onError: (error) => {
       console.log("Error fetching eventos:", error.message)
     },
@@ -158,6 +177,22 @@ const CrearPlanificacionTareas = () => {
   const [loading, setLoading] = useState({ eventos: true })
   const [isLoadingDeletingEventos, setIsLoadingDeletingEventos] = useState(false)
 
+  // Filtros aplicados (los que se envían al backend)
+  const [filtros, setFiltros] = useState({
+    fechaInicio: dayjs().startOf("month").format("YYYY-MM-DD"),
+    fechaFin: dayjs().endOf("month").format("YYYY-MM-DD"),
+    estados: ["PENDIENTE", "EN_PROCESO", "COMPLETADA", "REPROGRAMADA", "CANCELADA"],
+    usuarios: [],
+  })
+
+  // Filtros temporales (los que el usuario está editando)
+  const [filtrosTemp, setFiltrosTemp] = useState({
+    fechaInicio: dayjs().startOf("month").format("YYYY-MM-DD"),
+    fechaFin: dayjs().endOf("month").format("YYYY-MM-DD"),
+    estados: ["PENDIENTE", "EN_PROCESO", "COMPLETADA", "REPROGRAMADA", "CANCELADA"],
+    usuarios: [],
+  })
+
   // Query para obtener eventos desde la API
   const {
     data: eventosApi = [],
@@ -165,7 +200,7 @@ const CrearPlanificacionTareas = () => {
     isError: isErrorEventos,
     isFetching: isFetchingEventos,
     refetch: refetchEventos,
-  } = useGetEventos()
+  } = useGetEventos(filtros)
 
   const {
     data: usuariosFake = [],
@@ -209,10 +244,10 @@ const CrearPlanificacionTareas = () => {
     })
   }
 
-  // Solo cuando se monte la pagina obtener todo los eventos
+  // Refetch cuando se aplican filtros nuevos
   useEffect(() => {
     refetchEventos()
-  }, [])
+  }, [filtros])
 
   // Actualizar eventos cuando lleguen de la API
   useEffect(() => {
@@ -307,6 +342,54 @@ const CrearPlanificacionTareas = () => {
     }
   }
 
+  // Manejar cambio de checkboxes de estados (filtros temporales)
+  const handleEstadoChange = (estado) => {
+    setFiltrosTemp((prev) => {
+      const estadosActuales = prev.estados
+      const estadoExiste = estadosActuales.includes(estado)
+
+      let nuevosEstados
+      if (estadoExiste) {
+        nuevosEstados = estadosActuales.filter((e) => e !== estado)
+      } else {
+        nuevosEstados = [...estadosActuales, estado]
+      }
+
+      return {
+        ...prev,
+        estados: nuevosEstados,
+      }
+    })
+  }
+
+  // Manejar cambio de usuarios (multitag)
+  const handleUsuariosChange = (event, newValue) => {
+    setFiltrosTemp((prev) => ({
+      ...prev,
+      usuarios: newValue.map((u) => u.usrcodigo),
+    }))
+  }
+
+  // Aplicar filtros (pasar de temp a aplicados)
+  const handleAplicarFiltros = () => {
+    setFiltros(filtrosTemp)
+    // El useEffect detectará el cambio en 'filtros' y hará refetch
+  }
+
+  // Limpiar filtros
+  const handleLimpiarFiltros = () => {
+    const filtrosDefault = {
+      fechaInicio: dayjs().startOf("month").format("YYYY-MM-DD"),
+      fechaFin: dayjs().endOf("month").format("YYYY-MM-DD"),
+      estados: ["PENDIENTE", "EN_PROCESO", "COMPLETADA", "REPROGRAMADA", "CANCELADA"],
+      usuarios: [],
+    }
+
+    setFiltrosTemp(filtrosDefault)
+    setFiltros(filtrosDefault)
+    // El useEffect detectará el cambio y hará refetch
+  }
+
   // Calcular estadísticas
   const estadisticas = {
     totalEventos: eventos.length,
@@ -354,6 +437,97 @@ const CrearPlanificacionTareas = () => {
               <div className="stickybar">
                 <div className="card">
                   <div className="card-body p-3">
+                    {/* Filtros */}
+                    <div className="border-bottom pb-4 mb-4">
+                      <h5 className="mb-3">Filtros</h5>
+
+                      {/* Filtro de fechas */}
+                      <TextField
+                        label="Fecha inicio"
+                        type="date"
+                        value={filtrosTemp.fechaInicio}
+                        onChange={(e) => setFiltrosTemp((prev) => ({ ...prev, fechaInicio: e.target.value }))}
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                        size="small"
+                        sx={{ mb: 2 }}
+                      />
+                      <TextField
+                        label="Fecha fin"
+                        type="date"
+                        value={filtrosTemp.fechaFin}
+                        onChange={(e) => setFiltrosTemp((prev) => ({ ...prev, fechaFin: e.target.value }))}
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                        size="small"
+                        sx={{ mb: 2 }}
+                      />
+
+                      {/* Filtro de estados */}
+                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                        Estados
+                      </Typography>
+                      {["PENDIENTE", "EN_PROCESO", "COMPLETADA", "REPROGRAMADA", "CANCELADA"].map((estado) => (
+                        <FormControlLabel
+                          key={estado}
+                          control={
+                            <Checkbox
+                              checked={filtrosTemp.estados.includes(estado)}
+                              onChange={() => handleEstadoChange(estado)}
+                              size="small"
+                            />
+                          }
+                          label={
+                            <Typography variant="body2">{estado.charAt(0) + estado.slice(1).toLowerCase()}</Typography>
+                          }
+                          sx={{ display: "flex", mb: 0.5 }}
+                        />
+                      ))}
+
+                      {/* Filtro de usuarios (multitag) */}
+                      <Typography variant="subtitle2" sx={{ mb: 1, mt: 2 }}>
+                        Usuarios
+                      </Typography>
+                      <Autocomplete
+                        multiple
+                        options={usuariosFake}
+                        value={usuariosFake.filter((u) => filtrosTemp.usuarios.includes(u.usrcodigo))}
+                        onChange={handleUsuariosChange}
+                        getOptionLabel={(option) => `${option.usrnombre} (${option.usrcodigo})`}
+                        renderInput={(params) => (
+                          <TextField {...params} placeholder="Seleccionar usuarios..." size="small" />
+                        )}
+                        renderTags={(value, getTagProps) =>
+                          value.map((option, index) => (
+                            <Chip
+                              key={option.usrcodigo}
+                              label={option.usrnombre}
+                              size="small"
+                              {...getTagProps({ index })}
+                            />
+                          ))
+                        }
+                        limitTags={2}
+                        sx={{ mb: 2 }}
+                      />
+
+                      {/* Botones de acción */}
+                      <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          fullWidth
+                          onClick={handleAplicarFiltros}
+                          sx={{ flex: 2 }}
+                        >
+                          Aplicar Filtros
+                        </Button>
+                        <Button variant="outlined" size="small" onClick={handleLimpiarFiltros} sx={{ flex: 1 }}>
+                          Limpiar
+                        </Button>
+                      </Box>
+                    </div>
+
                     <div className="border-bottom pb-4 mb-4">
                       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                         <h5 className="mb-0">Usuarios</h5>

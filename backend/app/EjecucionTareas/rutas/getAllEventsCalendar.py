@@ -11,11 +11,12 @@ from sqlalchemy import Table, text
 from datetime import datetime
 
 
-@bp.route("/getAllEventsCalendar", methods=["GET"])
+@bp.route("/getAllEventsCalendar", methods=["POST"])
 @jwt_required()
 def getAllEventsCalendar():
     """
     Obtiene todos los eventos para el calendario combinando fecha y hora correctamente
+    Con soporte para filtros de fecha, estados y usuarios
     """
     try:
         claims = get_jwt()
@@ -26,6 +27,17 @@ def getAllEventsCalendar():
 
         db.session = get_session(clicianonBD)
         engine = db.session.bind
+
+        # Obtener filtros del body
+        data = request.get_json() or {}
+        fecha_inicio = data.get("fecha_inicio")
+        fecha_fin = data.get("fecha_fin")
+        estados = data.get("estados", [])
+        usuarios_filtro = data.get("usuarios", [])
+
+        # Validar fechas obligatorias
+        if not fecha_inicio or not fecha_fin:
+            return jsonify({"success": False, "message": "fecha_inicio y fecha_fin son obligatorios"}), 400
 
         print(usrcodigo)
         with engine.connect() as connection:
@@ -95,16 +107,32 @@ def getAllEventsCalendar():
                             AND gdocmeventos.loccodigo = :loccodigo
                     """
 
+                params = {"ciacodigo": ciacodigo, "loccodigo": loccodigo, "fecha_inicio": fecha_inicio, "fecha_fin": fecha_fin}
+
                 # Agregar la condición 'IN :all_usrcodigos' solo si el usuario NO es gerente
                 if not is_gerente_flag:
                     query += " AND gdocmeventos.usrcodigo IN :all_usrcodigos"
+                    params["all_usrcodigos"] = tuple(all_usrcodigos)
+
+                # Filtro por rango de fechas (obligatorio)
+                query += " AND gdocmeventos.eventofecha BETWEEN :fecha_inicio AND :fecha_fin"
+
+                # Filtro por estados (opcional - solo si hay estados seleccionados)
+                if estados and len(estados) > 0:
+                    query += " AND gdocmeventos.eventostatus IN :estados"
+                    params["estados"] = tuple(estados)
+
+                # Filtro por usuarios (opcional - solo si hay usuarios seleccionados)
+                if usuarios_filtro and len(usuarios_filtro) > 0:
+                    query += " AND gdocmeventos.usrcodigo IN :usuarios_filtro"
+                    params["usuarios_filtro"] = tuple(usuarios_filtro)
 
                 # Finalizar la consulta con el ordenamiento
                 query += """
                     ORDER BY gdocmeventos.eventofecha, gdocmeventos.eventohorainicio
                 """
 
-                result = connection.execute(text(query), {"ciacodigo": ciacodigo, "loccodigo": loccodigo, "all_usrcodigos": tuple(all_usrcodigos)}).mappings().fetchall()
+                result = connection.execute(text(query), params).mappings().fetchall()
 
                 eventos = []
 

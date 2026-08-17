@@ -19,6 +19,21 @@ export default function GeneralesSection({ data, change, readOnly, errors, Field
     })) || []),
   ]
 
+  // Manejar selección de régimen (solo uno activo)
+  const handleRegimenChange = (name, value) => {
+    // Al marcar un régimen, desmarcar los otros dos
+    if (value === -1 || value === true || value === 1) {
+      const otrosRegimenes = ["ciaregimenemprendedores", "ciaregimenpopular", "ciaregimengeneral"].filter(
+        (field) => field !== name,
+      )
+
+      otrosRegimenes.forEach((field) => {
+        change(field, 0)
+      })
+    }
+    change(name, value)
+  }
+
   return (
     <Section title="Generales">
       <Grid item xs={12}>
@@ -120,25 +135,58 @@ export default function GeneralesSection({ data, change, readOnly, errors, Field
       </Grid>
       <Grid item xs={12} sm={4}>
         <Field
-          label="No. Resolución"
+          label="No. Resolución Agente"
           name="sriagenteretencionnumres"
           value={data.sriagenteretencionnumres}
           onChange={change}
           readOnly={readOnly}
         />
       </Grid>
+
+      {/* NUEVOS CAMPOS DE RÉGIMEN TRIBUTARIO */}
+      <Grid item xs={12} sx={{ mt: 1 }}>
+        <Typography variant="subtitle2" color="primary">
+          Régimen Tributario
+        </Typography>
+        <Divider sx={{ mt: 0.4 }} />
+      </Grid>
       <Grid item xs={12} sm={4}>
         <Field
-          label="Es RIMPE?"
-          name="srimicroempresa"
-          value={data.srimicroempresa}
-          onChange={change}
+          label="RIMPE Emprendedores"
+          name="ciaregimenemprendedores"
+          value={data.ciaregimenemprendedores}
+          onChange={handleRegimenChange}
           readOnly={readOnly}
           type="checkbox"
-          checkedValue="S"
-          uncheckedValue="N"
+          checkedValue={-1}
+          uncheckedValue={0}
         />
       </Grid>
+      <Grid item xs={12} sm={4}>
+        <Field
+          label="RIMPE Popular"
+          name="ciaregimenpopular"
+          value={data.ciaregimenpopular}
+          onChange={handleRegimenChange}
+          readOnly={readOnly}
+          type="checkbox"
+          checkedValue={-1}
+          uncheckedValue={0}
+        />
+      </Grid>
+      <Grid item xs={12} sm={4}>
+        <Field
+          label="Régimen General"
+          name="ciaregimengeneral"
+          value={data.ciaregimengeneral}
+          onChange={handleRegimenChange}
+          readOnly={readOnly}
+          type="checkbox"
+          checkedValue={-1}
+          uncheckedValue={0}
+        />
+      </Grid>
+
       <Grid item xs={12}>
         <Field
           label="Identificación del Contribuyente para el ATS"

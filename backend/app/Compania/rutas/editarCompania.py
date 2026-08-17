@@ -135,6 +135,9 @@ INTEGER_FIELDS_BACKEND = {
     "CiaNivelOrg",
     "cianumvend",
     "ciavehele",
+    "ciaregimenemprendedores",
+    "ciaregimenpopular",
+    "ciaregimengeneral",
 }
 
 DECIMAL_FIELDS_BACKEND = {"ciaporretiva", "ciaporretfuente", "ciabasepuntos", "ciasecuencliente", "ciasecuenproveedor", "ciasecuenartventa", "ciasecuenarticulo", "ciadiasretencion", "ciadiasemitirretencion"}
@@ -232,6 +235,9 @@ NON_NULL_FIELDS = {
     "cialistprecdefweb",
     "ciavalidaemp",
     "ciabasepuntos",
+    "ciaregimenemprendedores",
+    "ciaregimenpopular",
+    "ciaregimengeneral",
 }
 
 DEFAULT_ON_NULL_FIELDS = {
@@ -295,6 +301,9 @@ DEFAULT_ON_NULL_FIELDS = {
     "cialistprecdefweb": 1,
     "ciavalidaemp": 0,
     "ciabasepuntos": 0,
+    "ciaregimenemprendedores": 0,
+    "ciaregimenpopular": 0,
+    "ciaregimengeneral": 0,
 }
 
 ALLOWED_UPDATE_FIELDS = {
@@ -432,6 +441,9 @@ ALLOWED_UPDATE_FIELDS = {
     "ciavalidaemp",
     "ciabasepuntos",
     "ciatipocompania",
+    "ciaregimenemprendedores",
+    "ciaregimenpopular",
+    "ciaregimengeneral",
 }
 
 

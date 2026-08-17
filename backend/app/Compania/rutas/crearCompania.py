@@ -190,23 +190,63 @@ def validate_field_length(field_name, field_value):
         raise ValidationError(f"El campo '{field_name}' no puede exceder {max_length} caracteres. " f"Largo proporcionado: {len(value_str)}")
 
 
-def generate_cliciagrupo(nombre, codigo):
-    """Genera cliciagrupo: iniciales de cada palabra en mayusculas + código. Ej: empresa prueba web -> EPW+CODIGO"""
+def extract_domain_from_alias(alias):
+    """Extrae el dominio de un email respetando el formato original.
+    user@Email.com -> Email
+    user@test -> test
+    """
+    if not alias:
+        return None
+
+    alias = alias.strip()
+
+    # Detectar si es email
+    if "@" in alias:
+        # Tomar lo que está después del @
+        parte_despues_aroba = alias.split("@")[1]
+
+        # Si hay punto, tomar lo que está antes del primer punto
+        if "." in parte_despues_aroba:
+            dominio = parte_despues_aroba.split(".")[0]
+            return dominio if dominio else None
+        else:
+            # Si no hay punto, retornar todo lo que está después del @
+            return parte_despues_aroba if parte_despues_aroba else None
+
+    return None
+
+
+def generate_cliciagrupo(nombre, codigo, ciaalias=None):
+    """Genera cliciagrupo:
+    - Si ciaalias es email -> usa el dominio extraído (respetando formato)
+    - Si no -> iniciales de cada palabra + código
+    """
+    # Intentar extraer dominio del alias
+    dominio = extract_domain_from_alias(ciaalias)
+
+    if dominio:
+        return dominio
+
+    # Comportamiento actual si no hay email
     iniciales = "".join([palabra[0].upper() for palabra in nombre.split() if palabra])
     return f"{iniciales}{codigo}"
 
 
 def generate_usuario_extra(nombre):
     """Genera usuario extra: alias@generate_cliciagrupo()"""
-    try:
-        usr_nombre = nombre.strip().lower()
-        if len(usr_nombre) > 10:
-            raise f"El nombre de usuario {nombre} excede los 10 caracteres"
+    usr_nombre = nombre.strip().lower()
 
-        return usr_nombre
+    # Si es un email, extraer solo el dominio (lo que está entre @ y el primer .)
+    if "@" in usr_nombre:
+        dominio = extract_domain_from_alias(usr_nombre)
+        if dominio:
+            usr_nombre = dominio.lower()
 
-    except Exception as error:
-        raise (error)
+    # Truncar a 10 caracteres si excede
+    if len(usr_nombre) > 10:
+        usr_nombre = usr_nombre[:10]
+
+    return usr_nombre
 
 
 @bp.route("/crearCompania", methods=["POST"])
@@ -637,6 +677,16 @@ def crearCompania():
                 next_id_result = conn_fsbs.execute(next_id_query).mappings().fetchone()
                 cliciaidenti = next_id_result["next_id"]
 
+                # Generar cliciagrupo
+                fsbs_cliciagrupo = generate_cliciagrupo(ciadescri, ciacodigo, ciaalias)
+
+                # Verificar si el grupo ya existe
+                check_grupo_query = text("SELECT cliciagrupo FROM fsbsmclicia WHERE cliciagrupo = :cliciagrupo")
+                grupo_existente = conn_fsbs.execute(check_grupo_query, {"cliciagrupo": fsbs_cliciagrupo}).mappings().fetchone()
+
+                if grupo_existente:
+                    raise ValidationError(f"El dominio/grupo '{fsbs_cliciagrupo}' ya está registrado")
+
                 # INSERT en fsbsmclicia
                 insert_fsbsmclicia_query = text(
                     """
@@ -652,14 +702,12 @@ def crearCompania():
                 """
                 )
 
-                fsbs_cliciagrupo = generate_cliciagrupo(ciadescri, ciacodigo)
-
                 conn_fsbs.execute(
                     insert_fsbsmclicia_query,
                     {
                         "cliciaidenti": cliciaidenti,
                         "cliciagrupo": fsbs_cliciagrupo,
-                        "cliciarutaBD": f"{config_env('DB_SERVER')},{config_env('DB_PORT')}",  # Tomarlo desde la variable de entorne .venv
+                        "cliciarutaBD": f"{config_env('DB_SERVER')},{config_env('DB_PORT')}",
                         "clicianonBD": clicianonBD,
                         "cliciausuBD": config_env("DB_USER"),
                         "cliciaclaveBD": config_env("DB_PASS"),
@@ -1833,7 +1881,7 @@ def crearCompania():
                 # Rollback automático en AMBAS
                 trans_company.rollback()
                 trans_fsbs.rollback()
-                raise APIError(e)
+                raise e
 
     return {"data": f"Compania creada exitosamente. Usuarios creados (2): {sUsuario}@{fsbs_cliciagrupo}, {fsbs_new_cliciausu}@{fsbs_cliciagrupo}"}
 
@@ -1987,7 +2035,7 @@ def crearRegimenTributario():
 
         except Exception as e:
             trans_company.rollback()
-            raise APIError(e)
+            raise e
 
     return {"data": f"Registro tributario creado exitosamente con secuencia {regsecuencia}"}
 
@@ -2058,7 +2106,7 @@ def eliminarRegimenTributario():
 
         except Exception as e:
             trans_company.rollback()
-            raise APIError(e)
+            raise e
 
     return {"data": f"Registro tributario eliminado exitosamente"}
 

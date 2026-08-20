@@ -26,3 +26,4 @@ from app.CatalogodeProductos.rutas import getParametrosCia
 from app.CatalogodeProductos.rutas import getSecuenciaArticulo
 from app.CatalogodeProductos.rutas import getProductoId
 from app.CatalogodeProductos.rutas import getProductoBuscar
+from app.CatalogodeProductos.rutas import getTarifasIVA

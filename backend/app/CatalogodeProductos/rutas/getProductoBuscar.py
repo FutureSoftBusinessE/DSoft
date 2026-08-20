@@ -114,7 +114,7 @@ def getProductoBuscar():
             "artancho": str(row.get("artnumregsan", "") or "").strip(),
             "artcantbulto": str(row.get("artprov4", "") or "").strip(),
             "artprodven": bool(row["artprodven"]),
-            "artapliiva": bool(row["artapliiva"]),
+            "artapliiva": row["artapliiva"],
             "artretiene": bool(row.get("artapliret", False)),
             "artnocompra": bool(row.get("artbloqueocompra", False)),
             "artfaccero": bool(row["artfaccero"]),

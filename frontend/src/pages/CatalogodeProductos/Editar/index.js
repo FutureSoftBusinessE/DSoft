@@ -11,6 +11,9 @@ import {
   Grid,
   MenuItem,
   FormControlLabel,
+  FormControl,
+  FormLabel,
+  Select,
   Checkbox,
   Accordion,
   AccordionSummary,
@@ -24,6 +27,7 @@ import {
   DialogContent,
   DialogActions,
   InputAdornment,
+  CircularProgress,
 } from "@mui/material"
 import {
   DataGrid,
@@ -97,7 +101,7 @@ const initialFormData = {
   artwebsite: "",
 
   artprodven: true,
-  artapliiva: true,
+  artapliiva: "", // Ahora es string (código de tarifa IVA)
   artretiene: false,
   artnocompra: false,
   artfaccero: false,
@@ -337,6 +341,10 @@ const EditarCatalogodeProductos = () => {
   const [isCameraOpen, setIsCameraOpen] = useState(false)
   const webcamRef = useRef(null)
 
+  // Estados para las tarifas IVA
+  const [tarifasIVA, setTarifasIVA] = useState([])
+  const [loadingTarifas, setLoadingTarifas] = useState(true)
+
   // Función para capturar y guardar la foto en el arreglo "imagenes"
   const handleCapture = () => {
     const screenshot = webcamRef.current.getScreenshot()
@@ -345,6 +353,26 @@ const EditarCatalogodeProductos = () => {
     }
     setIsCameraOpen(false)
   }
+
+  // ====================================================================================
+  // EFECTO: CARGAR TARIFAS IVA
+  // ====================================================================================
+  useEffect(() => {
+    const cargarTarifas = async () => {
+      setLoadingTarifas(true)
+      try {
+        const response = await api.get("/CatalogodeProductos/getTarifasIVA")
+        const tarifas = response.data?.data?.data || response.data?.data || []
+        setTarifasIVA(tarifas)
+      } catch (error) {
+        console.error("Error cargando tarifas IVA:", error)
+        showWarning("No se pudieron cargar las tarifas de IVA")
+      } finally {
+        setLoadingTarifas(false)
+      }
+    }
+    cargarTarifas()
+  }, [])
 
   // ====================================================================================
   // CARGA DE DATOS DEL PRODUCTO EXISTENTE (EXTRACCIÓN RIGUROSA)
@@ -373,7 +401,13 @@ const EditarCatalogodeProductos = () => {
 
   useEffect(() => {
     if (dataEdicion && dataEdicion.cabecera) {
-      setFormData((prev) => ({ ...prev, ...dataEdicion.cabecera }))
+      const cabecera = { ...dataEdicion.cabecera }
+
+      if (cabecera.artapliiva !== undefined && cabecera.artapliiva !== null && cabecera.artapliiva !== "") {
+        cabecera.artapliiva = String(cabecera.artapliiva)
+      }
+
+      setFormData((prev) => ({ ...prev, ...cabecera }))
       setProveedoresProd(dataEdicion.proveedores || [])
       setBarrasProd(dataEdicion.barras || [])
       setSustitutos(dataEdicion.sustitutos || [])
@@ -473,11 +507,12 @@ const EditarCatalogodeProductos = () => {
   const handleGuardar = async () => {
     if (!formData.artdescri.trim()) return showWarning("La Descripción del Artículo es obligatoria.")
     if (!formData.lincodigo) return showWarning("Debe seleccionar una Línea.")
+    if (!formData.artapliiva) return showWarning("Debe seleccionar una tarifa de IVA.")
 
     const payload = {
       ...formData,
       artprodven: formData.artprodven ? 1 : 0,
-      artapliiva: formData.artapliiva ? 1 : 0,
+      artapliiva: formData.artapliiva, // Ya es un código string
       artretiene: formData.artretiene ? 1 : 0,
       artnocompra: formData.artnocompra ? 1 : 0,
       artfaccero: formData.artfaccero ? 1 : 0,
@@ -982,7 +1017,7 @@ const EditarCatalogodeProductos = () => {
                     <legend style={{ fontSize: "14px", fontWeight: "bold", color: "#196C87", padding: "0 5px" }}>
                       Parámetros Generales
                     </legend>
-                    <Grid container spacing={1}>
+                    <Grid container spacing={2} alignItems="center">
                       <Grid item xs={12} sm={6} md={4} lg={3}>
                         <FormControlLabel
                           control={
@@ -995,15 +1030,44 @@ const EditarCatalogodeProductos = () => {
                         />
                       </Grid>
                       <Grid item xs={12} sm={6} md={4} lg={3}>
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={formData.artapliiva}
-                              onChange={(e) => handleCheckboxChange("artapliiva", e.target.checked)}
-                            />
-                          }
-                          label="Aplica I.V.A."
-                        />
+                        <FormControl fullWidth size="small">
+                          <FormLabel component="legend">Aplica IVA *</FormLabel>
+                          <Select
+                            value={formData.artapliiva || ""}
+                            onChange={(e) => handleInputChange("artapliiva", e.target.value)}
+                            disabled={loadingTarifas}
+                            displayEmpty
+                            renderValue={(selected) => {
+                              if (!selected) {
+                                return <em style={{ color: "#888" }}>-- Seleccione una tarifa --</em>
+                              }
+                              // Buscar la tarifa por código exacto para mostrar la descripción
+                              const tarifaSeleccionada = tarifasIVA.find((t) => t.codigo === selected)
+                              if (tarifaSeleccionada) {
+                                return `${tarifaSeleccionada.descripcion} (${tarifaSeleccionada.porcentaje}%)`
+                              }
+                              // Si no se encuentra, mostrar el código
+                              return `Código: ${selected}`
+                            }}
+                          >
+                            <MenuItem value="" disabled>
+                              <em>-- Seleccione una tarifa --</em>
+                            </MenuItem>
+
+                            {loadingTarifas ? (
+                              <MenuItem value="" disabled>
+                                <CircularProgress size={20} sx={{ mr: 1 }} />
+                                Cargando tarifas...
+                              </MenuItem>
+                            ) : (
+                              tarifasIVA.map((tarifa) => (
+                                <MenuItem key={tarifa.codigo} value={tarifa.codigo}>
+                                  {tarifa.descripcion} ({tarifa.porcentaje}%)
+                                </MenuItem>
+                              ))
+                            )}
+                          </Select>
+                        </FormControl>
                       </Grid>
                       <Grid item xs={12} sm={6} md={4} lg={3}>
                         <FormControlLabel

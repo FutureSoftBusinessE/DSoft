@@ -87,7 +87,7 @@ def getProductoId():
             "artcantbulto": str(row["artprov4"] or "").strip(),
             # Parámetros booleanos y de control
             "artprodven": bool(row["artprodven"]),
-            "artapliiva": bool(row["artapliiva"]),
+            "artapliiva": row["artapliiva"],
             "artretiene": bool(row["artapliret"]),
             "artnocompra": bool(row["artbloqueocompra"]),
             "artfaccero": bool(row["artfaccero"]),

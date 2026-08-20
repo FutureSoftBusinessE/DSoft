@@ -1,3 +1,5 @@
+/* eslint-disable camelcase */
+/* eslint-disable react/jsx-key */
 import React, { useState, useEffect } from "react"
 import { useParams, useLocation } from "react-router-dom"
 import { styled, createTheme, ThemeProvider } from "@mui/material/styles"
@@ -8,6 +10,9 @@ import {
   Grid,
   MenuItem,
   FormControlLabel,
+  FormControl,
+  FormLabel,
+  Select,
   Checkbox,
   Accordion,
   AccordionSummary,
@@ -17,6 +22,7 @@ import {
   IconButton,
   Autocomplete,
   Dialog,
+  CircularProgress,
 } from "@mui/material"
 import { DataGrid, GridToolbarQuickFilter } from "@mui/x-data-grid"
 
@@ -25,7 +31,7 @@ import { ExpandMore as ExpandMoreIcon, PictureAsPdf as PdfIcon, Close as CloseIc
 import Header from "../../../layouts/Header"
 import BackIcon from "../../../components/BackIcon"
 import CustomBackdrop from "../../../components/CustomBackdrop"
-import { useQuery, api } from "../../../api"
+import { useQuery, api, showWarning } from "../../../api"
 
 // =================================================================
 // ESTILOS Y TEMA
@@ -77,7 +83,7 @@ const initialFormData = {
   artobservacion: "",
   artwebsite: "",
   artprodven: false,
-  artapliiva: false,
+  artapliiva: "", // Ahora es string (código de tarifa IVA)
   artretiene: false,
   artnocompra: false,
   artfaccero: false,
@@ -145,6 +151,30 @@ const BuscarCatalogodeProductos = () => {
   const [principiosProd, setPrincipiosProd] = useState([])
   const [auditoriaProd, setAuditoriaProd] = useState([]) // NUEVO HISTORIAL
 
+  // Estados para las tarifas IVA
+  const [tarifasIVA, setTarifasIVA] = useState([])
+  const [loadingTarifas, setLoadingTarifas] = useState(true)
+
+  // ====================================================================================
+  // EFECTO: CARGAR TARIFAS IVA
+  // ====================================================================================
+  useEffect(() => {
+    const cargarTarifas = async () => {
+      setLoadingTarifas(true)
+      try {
+        const response = await api.get("/CatalogodeProductos/getTarifasIVA")
+        const tarifas = response.data?.data?.data || response.data?.data || []
+        setTarifasIVA(tarifas)
+      } catch (error) {
+        console.error("Error cargando tarifas IVA:", error)
+        showWarning("No se pudieron cargar las tarifas de IVA")
+      } finally {
+        setLoadingTarifas(false)
+      }
+    }
+    cargarTarifas()
+  }, [])
+
   // ====================================================================================
   // CARGA DE DATOS DEL PRODUCTO EXISTENTE (LLAMA A getProductoBuscar)
   // ====================================================================================
@@ -165,7 +195,14 @@ const BuscarCatalogodeProductos = () => {
 
   useEffect(() => {
     if (dataBuscar && dataBuscar.cabecera) {
-      setFormData((prev) => ({ ...prev, ...dataBuscar.cabecera }))
+      const cabecera = { ...dataBuscar.cabecera }
+
+      // Convertir artapliiva a string
+      if (cabecera.artapliiva !== undefined && cabecera.artapliiva !== null && cabecera.artapliiva !== "") {
+        cabecera.artapliiva = String(cabecera.artapliiva)
+      }
+
+      setFormData((prev) => ({ ...prev, ...cabecera }))
       setProveedoresProd(dataBuscar.proveedores || [])
       setBarrasProd(dataBuscar.barras || [])
       setSustitutos(dataBuscar.sustitutos || [])
@@ -703,7 +740,7 @@ const BuscarCatalogodeProductos = () => {
                     <legend style={{ fontSize: "14px", fontWeight: "bold", color: "#196C87", padding: "0 5px" }}>
                       Parámetros Generales
                     </legend>
-                    <Grid container spacing={1}>
+                    <Grid container spacing={2} alignItems="center">
                       <Grid item xs={12} sm={6} md={4} lg={3}>
                         <FormControlLabel
                           control={<Checkbox checked={formData.artprodven} disabled />}
@@ -711,10 +748,42 @@ const BuscarCatalogodeProductos = () => {
                         />
                       </Grid>
                       <Grid item xs={12} sm={6} md={4} lg={3}>
-                        <FormControlLabel
-                          control={<Checkbox checked={formData.artapliiva} disabled />}
-                          label="Aplica I.V.A."
-                        />
+                        <FormControl fullWidth size="small">
+                          <FormLabel component="legend">Tarifa IVA</FormLabel>
+                          <Select
+                            value={formData.artapliiva || ""}
+                            disabled
+                            displayEmpty
+                            renderValue={(selected) => {
+                              // CORRECCIÓN: Manejar "false", false, "0", 0, null, undefined
+                              if (
+                                !selected ||
+                                selected === "false" ||
+                                selected === false ||
+                                selected === "0" ||
+                                selected === 0
+                              ) {
+                                return <em style={{ color: "#888" }}>No aplica</em>
+                              }
+                              // CORRECCIÓN: Comparar usando String() para evitar problemas de tipos
+                              const tarifaSeleccionada = tarifasIVA.find((t) => String(t.codigo) === String(selected))
+                              if (tarifaSeleccionada) {
+                                return `${tarifaSeleccionada.descripcion} (${tarifaSeleccionada.porcentaje}%)`
+                              }
+                              // Si no se encuentra, mostrar el código
+                              return `Código: ${selected}`
+                            }}
+                          >
+                            <MenuItem value="" disabled>
+                              <em>No aplica</em>
+                            </MenuItem>
+                            {tarifasIVA.map((tarifa) => (
+                              <MenuItem key={tarifa.codigo} value={String(tarifa.codigo)}>
+                                {tarifa.descripcion} ({tarifa.porcentaje}%)
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
                       </Grid>
                       <Grid item xs={12} sm={6} md={4} lg={3}>
                         <FormControlLabel

@@ -15,27 +15,27 @@ from error_handling import api_endpoint, ValidationError
 @jwt_required()
 @api_endpoint
 def updateCatalogodeProductos():
-    # 1. Extracción de sesión[cite: 9]
+    # 1. Extracción de sesión
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
     sCodCia = claims["seleccion"]["cliciaciacodigo"]
     sUsuario = claims["user"]
     sNomEst = request.headers.get("X-Forwarded-For", request.remote_addr)
 
-    # 2. Lógica de separación de Fecha y Hora puras[cite: 9]
+    # 2. Lógica de separación de Fecha y Hora puras
     now = datetime.now()
     fecha_pura = now.strftime("%Y-%m-%d 00:00:00")
     hora_pura = now.strftime("1900-01-01 %H:%M:%S")
 
     data = request.get_json()
 
-    # 3. Manejo de Llaves Maestras (Old -> New)[cite: 9]
+    # 3. Manejo de Llaves Maestras (Old -> New)
     invcodigo_old = str(data.get("invcodigoOld", data.get("invcodigo", ""))).strip().upper()[:2]
     invcodigo_new = str(data.get("invcodigoNew", data.get("invcodigo", ""))).strip().upper()[:2]
     artcodigo_old = str(data.get("artcodigoOld", data.get("artcodigo", ""))).strip().upper()[:15]
     artcodigo_new = str(data.get("artcodigoNew", data.get("artcodigo", ""))).strip().upper()[:15]
 
-    # Datos Actualizados[cite: 9]
+    # Datos Actualizados
     artdescri = str(data.get("artdescri", "")).strip().upper()[:300]
     lincodigo = str(data.get("lincodigo", "")).strip().upper()[:20]
     marcodigo = str(data.get("marcodigo", "")).strip().upper()[:5]
@@ -43,15 +43,21 @@ def updateCatalogodeProductos():
     precodigo = str(data.get("precodigo", "")).strip().upper()[:2]
     artstatus = str(data.get("artstatus", "A")).strip().upper()[:1]
 
-    # Validaciones obligatorias[cite: 9]
+    # Nuevo: Obtener y validar la tarifa IVA
+    artapliiva_raw = data.get("artapliiva", "")
+    artapliiva = str(artapliiva_raw).strip()
+
+    # Validaciones obligatorias
     if not invcodigo_old or not invcodigo_new:
         raise ValidationError("El Inventario (invcodigo) es obligatorio.")
     if not artcodigo_old or not artcodigo_new:
         raise ValidationError("El Código del Artículo es obligatorio.")
     if not artdescri:
         raise ValidationError("La Descripción del Artículo es obligatoria.")
+    if not artapliiva:
+        raise ValidationError("Debe seleccionar una tarifa de IVA.")
 
-    # Colecciones extraídas del frontend[cite: 9]
+    # Colecciones extraídas del frontend
     bodegas = data.get("bodegas", [])
     imagenes = data.get("imagenes", [])
     documentos_pdf = data.get("documentos_pdf", [])
@@ -66,7 +72,7 @@ def updateCatalogodeProductos():
     with engine.connect() as connection:
         with connection.begin():
             # =================================================================
-            # A. VALIDACIÓN DE INACTIVACIÓN CON STOCK (Regla de negocio VB6)[cite: 9]
+            # A. VALIDACIÓN DE INACTIVACIÓN CON STOCK (Regla de negocio VB6)
             # =================================================================
             sql_stock_val = text(
                 """
@@ -103,7 +109,28 @@ def updateCatalogodeProductos():
                 raise ValidationError("No se puede inactivar un producto que tiene stock disponible.")
 
             # =================================================================
-            # B. ACTUALIZACIÓN DE LA CABECERA (inmart)[cite: 9]
+            # B. VALIDACIÓN DE TARIFA IVA
+            # =================================================================
+            query_tarifa = text(
+                """
+                SELECT codigo
+                FROM siacsritarifaiva
+                WHERE codigo = :codigo AND disponible = 1
+                """
+            )
+            result_tarifa = connection.execute(query_tarifa, {"codigo": artapliiva}).fetchone()
+
+            if not result_tarifa:
+                raise ValidationError("La tarifa de IVA seleccionada no existe o no está disponible")
+
+            # Convertir a entero si es necesario para la base de datos
+            try:
+                artapliiva_int = int(str(artapliiva))
+            except (ValueError, TypeError):
+                raise ValidationError("El código de tarifa IVA debe ser un valor numérico válido")
+
+            # =================================================================
+            # C. ACTUALIZACIÓN DE LA CABECERA (inmart)
             # =================================================================
             data_inmart_update = {
                 "ciacodigo": sCodCia,
@@ -126,7 +153,7 @@ def updateCatalogodeProductos():
                 "artstatus": artstatus,
                 "artprodven": int(data.get("artprodven", 1)),
                 "artservicio": int(data.get("artservicio", 0)),
-                "artapliiva": int(data.get("artapliiva", 1)),
+                "artapliiva": artapliiva_int,  # Usar el valor validado
                 "artprecventa1": float(data.get("artprecventa1", 0.0)),
                 "artprecventa2": float(data.get("artprecventa2", 0.0)),
                 "artprecventa3": float(data.get("artprecventa3", 0.0)),
@@ -172,7 +199,7 @@ def updateCatalogodeProductos():
                 "artregissani": str(data.get("artregissani", ""))[:20],
                 "artporpartida": float(data.get("parporcentaje", 0.0)),
                 # =================================================================
-                # Campos re-mapeados según indicación específica[cite: 9]
+                # Campos re-mapeados según indicación específica
                 # =================================================================
                 "artmondes": float(data.get("artvolumen", 0.0)),
                 "artnumregsan": str(data.get("artancho", ""))[:20],
@@ -197,7 +224,7 @@ def updateCatalogodeProductos():
                 "artusupre": str(sUsuario)[:10],
             }
 
-            # Construimos la sentencia UPDATE dinámicamente ignorando llaves PK[cite: 9]
+            # Construimos la sentencia UPDATE dinámicamente ignorando llaves PK
             columnas_update = ", ".join([f"{k} = :{k}" for k in data_inmart_update.keys() if k not in ["ciacodigo", "invcodigoOld", "artcodigoOld", "invcodigoNew", "artcodigoNew"]])
             sql_inmart = text(
                 f"""
@@ -217,7 +244,7 @@ def updateCatalogodeProductos():
                 raise ValidationError("No se puede editar el Artículo porque el código actual está siendo usado en otros registros o transacciones.")
 
             # =================================================================
-            # C. ACTUALIZACIÓN EN CASCADA A BODEGAS (inmstock)[cite: 9]
+            # D. ACTUALIZACIÓN EN CASCADA A BODEGAS (inmstock)
             # =================================================================
             sql_stock_sync = text(
                 """
@@ -282,7 +309,7 @@ def updateCatalogodeProductos():
                     )
 
             # =================================================================
-            # D. REEMPLAZO DE TABLAS DETALLE (Proveedores, Barras, Sustitutos, P. Activo)[cite: 9]
+            # E. REEMPLAZO DE TABLAS DETALLE (Proveedores, Barras, Sustitutos, P. Activo)
             # =================================================================
 
             # 1. Proveedores
@@ -404,7 +431,7 @@ def updateCatalogodeProductos():
                     )
 
             # =================================================================
-            # E. REEMPLAZO DE IMÁGENES (intimagen)[cite: 9]
+            # F. REEMPLAZO DE IMÁGENES (intimagen)
             # =================================================================
             sql_del_img = text(
                 """
@@ -455,7 +482,7 @@ def updateCatalogodeProductos():
                     )
 
             # =================================================================
-            # F. REEMPLAZO DE DOCUMENTOS PDF (intPDF)[cite: 9]
+            # G. REEMPLAZO DE DOCUMENTOS PDF (intPDF)
             # =================================================================
             sql_del_pdf = text(
                 """
@@ -508,7 +535,7 @@ def updateCatalogodeProductos():
                     )
 
             # =================================================================
-            # G. AUDITORÍA (inmartaud)[cite: 9]
+            # H. AUDITORÍA (inmartaud)
             # =================================================================
             sql_max_aud = text(
                 """

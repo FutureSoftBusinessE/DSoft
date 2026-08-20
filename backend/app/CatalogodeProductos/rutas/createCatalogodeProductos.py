@@ -36,12 +36,18 @@ def createCatalogodeProductos():
     artprodven = int(data.get("artprodven", 1))
     artservicio = int(data.get("artservicio", 0))
 
+    # Nuevo: Obtener y validar la tarifa IVA
+    artapliiva_raw = data.get("artapliiva", "")
+    artapliiva = str(artapliiva_raw).strip()
+
     if not invcodigo:
         raise ValidationError("Debe seleccionar un Inventario (invcodigo).")
     if not artdescri:
         raise ValidationError("La Descripción del Artículo es obligatoria.")
     if not lincodigo or not marcodigo or not medcodigo or not precodigo:
         raise ValidationError("Línea, Marca, Medida y Presentación son obligatorios.")
+    if not artapliiva:
+        raise ValidationError("Debe seleccionar una tarifa de IVA.")
 
     # Colecciones extraídas del frontend
     imagenes = data.get("imagenes", [])
@@ -127,7 +133,28 @@ def createCatalogodeProductos():
                 raise ValidationError(f"El artículo '{artcodigo}' ya existe en el inventario '{invcodigo}'.")
 
             # =================================================================
-            # C. INSERCIÓN DE LA CABECERA (inmart)
+            # C. VALIDACIÓN DE TARIFA IVA
+            # =================================================================
+            query_tarifa = text(
+                """
+                SELECT codigo
+                FROM siacsritarifaiva
+                WHERE codigo = :codigo AND disponible = 1
+                """
+            )
+            result_tarifa = connection.execute(query_tarifa, {"codigo": artapliiva}).fetchone()
+
+            if not result_tarifa:
+                raise ValidationError("La tarifa de IVA seleccionada no existe o no está disponible")
+
+            # Convertir a entero si es necesario para la base de datos
+            try:
+                artapliiva_int = int(str(artapliiva))
+            except (ValueError, TypeError):
+                raise ValidationError("El código de tarifa IVA debe ser un valor numérico válido")
+
+            # =================================================================
+            # D. INSERCIÓN DE LA CABECERA (inmart)
             # =================================================================
             data_inmart = {
                 "ciacodigo": sCodCia,
@@ -152,7 +179,7 @@ def createCatalogodeProductos():
                 "artstatus": str(data.get("artstatus", "A"))[:1],
                 "artprodven": artprodven,
                 "artservicio": artservicio,
-                "artapliiva": int(data.get("artapliiva", 1)),
+                "artapliiva": artapliiva_int,  # Usar el valor validado
                 "artcobraiva": 0.0,
                 "artcostoinicial": 0.0,
                 "artcostoactual": 0.0,
@@ -238,7 +265,7 @@ def createCatalogodeProductos():
             connection.execute(sql_inmart, data_inmart)
 
             # =================================================================
-            # D. ASIGNACIÓN A BODEGAS (SÓLO SI NO ES UN SERVICIO)
+            # E. ASIGNACIÓN A BODEGAS (SÓLO SI NO ES UN SERVICIO)
             # =================================================================
             if artservicio == 0:
                 sql_get_bodegas = text(
@@ -293,7 +320,7 @@ def createCatalogodeProductos():
                         connection.execute(sql_stock, data_stock)
 
             # =================================================================
-            # E. INSERCIÓN DE TABLAS DETALLE (Proveedores, Barras, Sustitutos, P. Activo)
+            # F. INSERCIÓN DE TABLAS DETALLE (Proveedores, Barras, Sustitutos, P. Activo)
             # =================================================================
 
             # 1. Proveedores
@@ -411,7 +438,7 @@ def createCatalogodeProductos():
                     )
 
             # =================================================================
-            # F. INSERCIÓN DE IMÁGENES (intimagen)
+            # G. INSERCIÓN DE IMÁGENES (intimagen)
             # =================================================================
             if imagenes:
                 sql_imagen = text(
@@ -445,7 +472,7 @@ def createCatalogodeProductos():
                     connection.execute(sql_imagen, data_imagen)
 
             # =================================================================
-            # G. INSERCIÓN DE DOCUMENTOS PDF (intPDF)
+            # H. INSERCIÓN DE DOCUMENTOS PDF (intPDF)
             # =================================================================
             if documentos_pdf:
                 sql_pdf = text(
@@ -485,7 +512,7 @@ def createCatalogodeProductos():
                     connection.execute(sql_pdf, data_pdf)
 
             # =================================================================
-            # H. AUDITORÍA (inmartaud)
+            # I. AUDITORÍA (inmartaud)
             # =================================================================
             sql_max_aud = text(
                 """

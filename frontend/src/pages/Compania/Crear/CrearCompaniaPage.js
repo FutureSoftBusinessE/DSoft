@@ -58,7 +58,9 @@ const CrearCompania = () => {
   const { mutateAsync: SaveCreacionCompania, isPending: isSavingCreacionCompania } = useMutation({
     queryKey: ["isCreatingCompania"],
     fn: async (data) => {
-      const response = await api.post("/Compania/crearCompania", data)
+      const response = await api.post("/Compania/crearCompania", data, {
+        timeout: 300000,
+      })
       return response.data
     },
     showError: false,

@@ -216,37 +216,76 @@ def extract_domain_from_alias(alias):
     return None
 
 
-def generate_cliciagrupo(nombre, codigo, ciaalias=None):
-    """Genera cliciagrupo:
-    - Si ciaalias es email -> usa el dominio extraído (respetando formato)
-    - Si no -> iniciales de cada palabra + código
+def generate_cliciagrupo(ciadescri, ciacodigo, ciaalias):
     """
-    # Intentar extraer dominio del alias
-    dominio = extract_domain_from_alias(ciaalias)
+    Genera el campo cliciagrupo basado en el alias o descripción.
 
-    if dominio:
-        return dominio
+    - Si ciaalias es un correo electrónico (contiene '@'),
+      toma todo lo que está después del '@'.
+      Ejemplo: "user01@domain.ec.com" -> "domain.ec.com"
 
-    # Comportamiento actual si no hay email
-    iniciales = "".join([palabra[0].upper() for palabra in nombre.split() if palabra])
-    return f"{iniciales}{codigo}"
+    - Si ciaalias no es un correo, toma las iniciales de cada palabra
+      de ciadescri y le concatena el ciacodigo.
+      Ejemplo: ciadescri="empresa de comesticos", ciacodigo="01" -> "edc01"
+
+    Args:
+        ciadescri (str): Descripción de la empresa.
+        ciacodigo (str/int): Código de la empresa.
+        ciaalias (str): Alias o correo electrónico.
+
+    Returns:
+        str: El cliciagrupo generado.
+    """
+    # Sanitizar entrada: eliminar espacios al inicio/final y convertir a minúsculas
+    ciadescri = ciadescri.strip().lower()
+    ciaalias = ciaalias.strip().lower()
+    ciacodigo = str(ciacodigo).strip().lower()
+
+    # Verificar si ciaalias es un correo electrónico
+    if "@" in ciaalias:
+        # Tomar todo lo que está después del '@'
+        return ciaalias.split("@")[1].strip()
+    else:
+        # Tomar las iniciales de cada palabra de la descripción
+        iniciales = "".join(palabra[0] for palabra in ciadescri.split() if palabra)
+        # Concatenar con el código
+        return f"{iniciales}{ciacodigo}"
 
 
-def generate_usuario_extra(nombre):
-    """Genera usuario extra: alias@generate_cliciagrupo()"""
-    usr_nombre = nombre.strip().lower()
+def generate_usuario_extra(ciaalias):
+    """
+    Genera un usuario extra a partir de un alias.
 
-    # Si es un email, extraer solo el dominio (lo que está entre @ y el primer .)
-    if "@" in usr_nombre:
-        dominio = extract_domain_from_alias(usr_nombre)
-        if dominio:
-            usr_nombre = dominio.lower()
+    - Si el alias es un correo electrónico (contiene '@'),
+      toma todo lo que está antes del '@'.
+      Ejemplo: "user01@domain.ec.com" -> "user01"
 
-    # Truncar a 10 caracteres si excede
-    if len(usr_nombre) > 10:
-        usr_nombre = usr_nombre[:10]
+    - Si el alias no es un correo, toma la palabra completa.
+      Ejemplo: "userlastname" -> "userlastname"
 
-    return usr_nombre
+    Args:
+        ciaalias (str): El alias o correo electrónico.
+
+    Returns:
+        str: El usuario extra generado.
+
+    Raises:
+        APIError: Si el usuario encriptado generado excede los 10 caracteres.
+    """
+    # Sanitizar entrada
+    ciaalias = ciaalias.strip().lower()
+
+    # Generar usuario según el tipo de entrada
+    if "@" in ciaalias:
+        user = ciaalias.split("@")[0].strip()
+    else:
+        user = ciaalias
+
+    # Validar longitud máxima (esto es por la tabla siaccusr campo usrcodigo)
+    if len(encriptar(user)) > 10:
+        raise APIError(f"El nombre de usuario '{user}' excede los 10 caracteres encriptados")
+
+    return user
 
 
 @bp.route("/crearCompania", methods=["POST"])

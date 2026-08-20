@@ -188,18 +188,53 @@ def emisionFactura():
         ruta_ride = None
         pdf_content = None
         if auth_data.get("estado") == "AUTORIZADO":
-            if config_env("DOC_ELECTRONICOS_RIDES_FACTURA_PDF_ENABLED") == "true":
+            guardar_en_disco = config_env("DOC_ELECTRONICOS_RIDES_FACTURA_PDF_ENABLED") == "true"
+
+            if guardar_en_disco:
                 ahora = datetime.now()
                 ride_dir = Path(config_env("DOC_ELECTRONICOS_RIDES_FACTURA_PDF_PATH")) / str(ahora.year) / f"{ahora.month:02d}" / f"{ahora.day:02d}"
+                ride_dir.mkdir(parents=True, exist_ok=True)
+
                 ruta_ride, ride_error, ride_details = generate_ride_pdf(factura_data=data, auth_data=auth_data, clave_acceso=clave_acceso, output_dir=ride_dir)
 
                 if ruta_ride is None:
                     raise APIError(ride_error, details=ride_details)
-            try:
-                with open(ruta_ride, "rb") as f:
-                    pdf_content = f.read()
-            except Exception as e:
-                print(f"Error leyendo PDF del RIDE: {str(e)}")
+
+                try:
+                    with open(ruta_ride, "rb") as f:
+                        pdf_content = f.read()
+                except Exception as e:
+                    pdf_content = None
+                    raise APIError(f"Error leyendo PDF del RIDE: {str(e)}")
+            else:
+                # En el caso de que DOC_ELECTRONICOS_RIDES_FACTURA_PDF_ENABLED sea false, igual generar el pdf en un archivo temporal
+                # para guardarlo en la variable sripdf y luego borrar ese archivo temporal del sistema
+                import tempfile
+                import os
+
+                ride_dir = Path(tempfile.gettempdir()) / "rides_temporales"
+                ride_dir.mkdir(parents=True, exist_ok=True)
+
+                try:
+                    ruta_ride, ride_error, ride_details = generate_ride_pdf(factura_data=data, auth_data=auth_data, clave_acceso=clave_acceso, output_dir=ride_dir)
+
+                    if ruta_ride is None:
+                        raise APIError(ride_error, details=ride_details)
+
+                    try:
+                        with open(ruta_ride, "rb") as f:
+                            pdf_content = f.read()
+                    except Exception as e:
+                        pdf_content = None
+                        raise APIError(f"Error leyendo PDF del RIDE: {str(e)}")
+
+                finally:
+                    if ruta_ride is not None and os.path.exists(ruta_ride):
+                        try:
+                            os.remove(ruta_ride)
+                            ruta_ride = None
+                        except Exception:
+                            pass
 
         # ========== PASO 11: EXTRACCIÓN DETALLADA DE MENSAJES SRI ==========
         # --- AQUÍ ESTÁ EL AJUSTE PARA CAPTURAR EL DETALLE EXACTO DEL ERROR ---

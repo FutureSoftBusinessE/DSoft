@@ -39,6 +39,7 @@ import HighlightOffIcon from "@mui/icons-material/HighlightOff"
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos"
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos"
 import QrCode2Icon from "@mui/icons-material/QrCode2"
+import fetchwrapper from "../../services/interceptors/fetchwrapper"
 
 const theme = createTheme({
   palette: { primary: { main: "#196C87" }, secondary: { main: "#2e7d32" }, info: { main: "#0288d1" } },
@@ -220,12 +221,8 @@ const FirmarPDFDF = () => {
         return showWarning("No se detectó sesión activa. Por favor, recargue la página.")
       }
 
-      const authHeader = `Bearer ${foundToken.replace(/"/g, "")}`
-      const baseUrl = api.defaults && api.defaults.baseURL ? api.defaults.baseURL : "http://127.0.0.1:5000"
-
-      const response = await fetch(`${baseUrl}/FirmarPDFDF/firmarDocumentoVisualDF`, {
+      const response = await fetchwrapper(`/FirmarPDFDF/firmarDocumentoVisualDF`, {
         method: "POST",
-        headers: { Authorization: authHeader },
         body: formData,
       })
 

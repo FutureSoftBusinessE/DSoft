@@ -7,8 +7,10 @@ import useCleanSession from "../hooks/cleanSession"
 import ProductNotifications from "../components/ProductNotifications"
 import fetchwrapper from "../services/interceptors/fetchwrapper"
 import Swal from "sweetalert2"
+import { useQueryClient } from "@tanstack/react-query"
 
 export default function Header({ onSkin }) {
+  const queryClient = useQueryClient()
   const cleanSession = useCleanSession()
 
   // ---- ESTADOS PARA EL SWITCH DE COMPAÑÍA ----
@@ -117,7 +119,7 @@ export default function Header({ onSkin }) {
       // 1. Obtener el nuevo Token (Sin pedir clave)
       const resToken = await fetchwrapper("/login/switch_company_token", {
         method: "POST",
-        headers: { "Content-Type": "application/json" }, // <--- CABECERA AÑADIDA
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user,
           seleccion: selectedCia,
@@ -132,22 +134,40 @@ export default function Header({ onSkin }) {
         localStorage.setItem("token", dataToken.token)
         localStorage.setItem("accessToken", JSON.stringify(dataToken.token))
 
-        // Limpiamos el caché del menú viejo
+        // 3. LIMPIAR TODO EL CACHÉ DE REACT QUERY
+        queryClient.clear() // Limpia todo el caché
+        queryClient.removeQueries() // Remueve todas las queries activas
+        queryClient.invalidateQueries() // Invalida todas las queries
+
+        // 4. Limpiar el caché del menú viejo
         localStorage.removeItem("menuAcciones")
 
-        // 3. Obtener el nuevo menú correspondiente a la nueva compañía
-        // (Ajuste el endpoint si en su proyecto la ruta es diferente)
+        // 5. Obtener el nuevo menú correspondiente a la nueva compañía
         const resMenu = await fetchwrapper("/menu/get_menu_opciones_acciones", { method: "GET" })
         const dataMenu = await resMenu.json()
         localStorage.setItem("menuAcciones", JSON.stringify(dataMenu.data || dataMenu))
 
-        // 4. "Hard Reload" para limpiar toda la memoria RAM/Context de React y aplicar los cambios
-        // Usamos reload() para que se quede en la misma pantalla (o cambie a la ruta de su dashboard si prefiere)
-        window.location.reload()
+        // 6. LIMPIAR HISTORIAL DEL NAVEGADOR
+        // Reemplazar la entrada actual del historial
+        window.history.replaceState(null, "", "/home")
 
-        // NOTA: Si al recargar la página actual le da problemas porque la nueva compañía no tiene
-        // permisos para esa pantalla, use la ruta base de su dashboard, por ejemplo:
-        // window.location.href = "/home/dashboard";
+        // Sobrescribir todas las entradas anteriores del historial
+        for (let i = 0; i < window.history.length; i++) {
+          window.history.pushState(null, "", "/home")
+        }
+
+        // Bloquear navegación hacia atrás
+        window.addEventListener("popstate", function (event) {
+          window.history.replaceState(null, "", "/home")
+        })
+
+        // 7. Redireccionar a /home limpiando el historial
+        window.location.replace("/home")
+
+        // 8. Recargar para asegurar limpieza completa
+        setTimeout(() => {
+          window.location.reload()
+        }, 100)
       } else {
         Swal.fire("Error", dataToken.message || "No se pudo realizar el cambio.", "error")
       }

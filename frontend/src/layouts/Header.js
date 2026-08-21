@@ -2,7 +2,6 @@ import React, { useState } from "react"
 import { Link } from "react-router-dom"
 import Dropdown from "react-bootstrap/Dropdown"
 import { Button, Modal, Form, Spinner } from "react-bootstrap"
-import userAvatar from "../assets/img/logo-sm.png"
 import useCleanSession from "../hooks/cleanSession"
 import ProductNotifications from "../components/ProductNotifications"
 import fetchwrapper from "../services/interceptors/fetchwrapper"
@@ -275,13 +274,27 @@ export default function Header({ onSkin }) {
         <Dropdown className="dropdown-profile ms-3 ms-xl-4" align="end">
           <Dropdown.Toggle as={CustomToggle}>
             <div className="avatar online">
-              <img src={userAvatar} alt="" />
+              <img
+                src={`data:image/jpeg;base64,${localStorage.getItem("cialogo")}`}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                }}
+              />
             </div>
           </Dropdown.Toggle>
           <Dropdown.Menu className="mt-10-f">
             <div className="dropdown-menu-body">
               <div className="avatar avatar-xl online mb-3">
-                <img src={userAvatar} alt="" />
+                <img
+                  src={`data:image/jpeg;base64,${localStorage.getItem("cialogo")}`}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                  }}
+                />
               </div>
               <h5 className="mb-1 text-dark fw-semibold">{localStorage.getItem("cliciausu")}</h5>
               <p className="fs-sm text-secondary" style={{ marginBottom: "5px" }}>

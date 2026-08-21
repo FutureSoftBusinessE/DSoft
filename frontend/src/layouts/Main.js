@@ -243,6 +243,7 @@ export default function Main() {
         // Guardar valores en localstorage para acceso global (ej. el Sidebar)
         localStorage.setItem("ciaalias", result.ciaalias)
         localStorage.setItem("ciatipomenu", result.ciatipomenu || 0)
+        localStorage.setItem("cialogo", result.cialogo)
 
         // Ejecutar los estilos dinámicos inmediatamente al recibir los datos
         aplicarPerfilVisual(result.ciacolor, result.ciatipoletra, result.ciatamanioletra)

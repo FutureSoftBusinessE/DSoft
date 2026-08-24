@@ -820,6 +820,9 @@ const EditarFacturaDesdeArticulos = () => {
                     onHandleSelectedData={(v) => {
                       handleSetCabeceraProforma("cliente", v)
                       handleSetCabeceraProforma("nombre", v.clinombre)
+                      handleSetCabeceraProforma("direccion", v.clidirec)
+                      handleSetCabeceraProforma("telefono", v.clitelef1)
+                      handleSetCabeceraProforma("ruc", v.cliruc)
                     }}
                     sxInputMain={{ minWidth: "170px", maxWidth: "170px", marginRight: "10px" }}
                     sxInputSecondary={{ width: "100%" }}

@@ -851,6 +851,9 @@ const CrearFacturaDesdeArticulos = () => {
                     onHandleSelectedData={(v) => {
                       handleSetCabeceraFactura("cliente", v)
                       handleSetCabeceraFactura("nombre", v.clinombre)
+                      handleSetCabeceraFactura("direccion", v.clidirec)
+                      handleSetCabeceraFactura("telefono", v.clitelef1)
+                      handleSetCabeceraFactura("ruc", v.cliruc)
                     }}
                     sxInputMain={{ minWidth: "170px", maxWidth: "170px", marginRight: "10px" }}
                     sxInputSecondary={{ width: "100%" }}

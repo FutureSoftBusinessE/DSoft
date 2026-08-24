@@ -20,6 +20,7 @@ import base64
 def getAllFacturas():
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
+    ciacodigo = claims["seleccion"]["cliciaciacodigo"]
 
     # Obtener los parámetros de la solicitud
     data = request.get_json()
@@ -44,7 +45,7 @@ def getAllFacturas():
                 {"audnumxml": FILTER_VALUE_TYPE.STRING},  # NUEVO: Filtrar por autorización
             ]
 
-            base_query = """
+            base_query = f"""
             SELECT
                 f.ciacodigo,
                 f.pednumped,
@@ -85,6 +86,7 @@ def getAllFacturas():
             LEFT JOIN facfac fa ON f.ciacodigo = fa.ciacodigo
                 AND f.pednumped = fa.pednumped
                 AND f.loccodigo = fa.loccodigo
+            WHERE f.ciacodigo = {ciacodigo}
             """
 
             final_query, params = build_paginated_query(

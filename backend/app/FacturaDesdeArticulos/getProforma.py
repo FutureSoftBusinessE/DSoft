@@ -73,13 +73,13 @@ def getProforma(pednumped):
                 cxcmcli.cliapliiva,
                 cxcmcli.clibloqueo
             FROM cxcmcli
-            INNER JOIN cxcbtipcli ON cxcmcli.tipcodigo = cxcbtipcli.tipcodigo
-            INNER JOIN fapzona ON cxcmcli.zoncodigo = fapzona.zoncodigo
-            INNER JOIN cxcbreg ON cxcmcli.regcodigo = cxcbreg.regcodigo
-            INNER JOIN hotbciu ON cxcmcli.ciucodigo = hotbciu.ciucodigo
-            INNER JOIN rhbprov ON cxcmcli.procodigo = rhbprov.procodigo
-            INNER JOIN cxcbacteconomicas ON cxcmcli.activicodigo = cxcbacteconomicas.activicodigo
-            INNER JOIN cxcbsectorpublico ON cxcbsectorpublico.sectorcodigo = cxcmcli.sectorcodigo
+            LEFT JOIN cxcbtipcli ON cxcmcli.tipcodigo = cxcbtipcli.tipcodigo
+            LEFT JOIN fapzona ON cxcmcli.zoncodigo = fapzona.zoncodigo
+            LEFT JOIN cxcbreg ON cxcmcli.regcodigo = cxcbreg.regcodigo
+            LEFT JOIN hotbciu ON cxcmcli.ciucodigo = hotbciu.ciucodigo
+            LEFT JOIN rhbprov ON cxcmcli.procodigo = rhbprov.procodigo
+            LEFT JOIN cxcbacteconomicas ON cxcmcli.activicodigo = cxcbacteconomicas.activicodigo
+            LEFT JOIN cxcbsectorpublico ON cxcbsectorpublico.sectorcodigo = cxcmcli.sectorcodigo
             WHERE cxcmcli.ciacodigo = :ciacodigo
             AND cxcmcli.clicodigo = :clicodigo
         """

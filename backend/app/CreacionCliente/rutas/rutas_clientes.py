@@ -1111,6 +1111,128 @@ def get_all_clientes():
         return jsonify({"success": False, "message": f"Error al cargar la lista de clientes: {str(e)}"}), 500
 
 
+@bp.route("/exportAllClientes", methods=["POST"])
+@jwt_required()
+def export_all_clientes():
+    try:
+        claims = get_jwt()
+        ciacodigo = claims["seleccion"]["cliciaciacodigo"]
+        bd_cliente = claims["seleccion"]["clicianonBD"]
+        loccodigo = claims["localidad"]["loccodigo"]
+        usuario_id = claims["user"]
+
+        from services.encrip_desencrip import encriptar
+
+        usr_encriptado = encriptar(usuario_id)
+
+        payload = request.get_json() or {}
+
+        # Recibir columnas seleccionadas desde el frontend
+        selected_export_columns = payload.get("columnas", [])
+
+        # Validar que haya columnas
+        if not selected_export_columns:
+            return jsonify({"success": False, "message": "Debe seleccionar al menos una columna"}), 400
+
+        # Construir SELECT dinámico
+        select_clause = ", ".join(selected_export_columns)
+
+        db.session = get_session(bd_cliente)
+        with db.session.bind.connect() as conn:
+            # 1. VERIFICACIÓN DE PERFIL GERENCIAL (igual que getAllClientes)
+            is_gerente_flag = False
+            is_gerente_query = text(
+                """
+                SELECT usrflagger
+                FROM siactloc
+                WHERE ciacodigo = :cia
+                  AND loccodigo = :loc
+                  AND usrcodigo = :usr
+            """
+            )
+            is_gerente_result = conn.execute(is_gerente_query, {"cia": ciacodigo, "loc": loccodigo, "usr": usr_encriptado}).mappings().fetchone()
+
+            if is_gerente_result and is_gerente_result["usrflagger"] != 0:
+                is_gerente_flag = True
+
+            # 2. CONSULTA BASE con columnas dinámicas
+            base_query = f"""
+                SELECT {select_clause}
+                FROM view_cxcmcli
+                WHERE ciacodigo = :ciacodigo
+            """
+
+            # 3. FILTRO DE CARTERA ASIGNADA (igual que getAllClientes)
+            if not is_gerente_flag:
+                base_query += """
+                  AND clicodigo IN (
+                      SELECT clientecodigo
+                      FROM gdoc_usuariocliente
+                      WHERE ciacodigo = :ciacodigo
+                        AND usrcodigo = :usr_asignacion
+                  )
+                """
+
+            # 4. ORDER BY
+            base_query += " ORDER BY clinombre ASC"
+
+            # 5. Parámetros
+            params = {"ciacodigo": ciacodigo}
+            if not is_gerente_flag:
+                params.update({"usr_asignacion": usr_encriptado})
+
+            # 6. Ejecutar consulta
+            resultados = conn.execute(text(base_query), params).mappings().fetchall()
+
+            # 7. Procesar resultados con transformaciones
+            clientes = []
+            for r in resultados:
+                cliente = dict(r)
+
+                # Aplicar transformaciones solo si la columna fue solicitada
+                if "clistatus" in selected_export_columns and r.get("clistatus"):
+                    if r["clistatus"] == "A":
+                        cliente["clistatus"] = "ACTIVO"
+                    elif r["clistatus"] == "P":
+                        cliente["clistatus"] = "POTENCIAL"
+                    elif r["clistatus"] == "I":
+                        cliente["clistatus"] = "INACTIVO"
+
+                if "clifecisys" in selected_export_columns and r.get("clifecisys"):
+                    cliente["clifecisys"] = r["clifecisys"].strftime("%Y-%m-%d")
+
+                if "clifecmsys" in selected_export_columns and r.get("clifecmsys"):
+                    cliente["clifecmsys"] = r["clifecmsys"].strftime("%Y-%m-%d")
+
+                # Transformar columnas booleanas a SI/NO
+                columnas_booleanas = ["vendedores", "referencias", "agencias", "descuentos", "descuentosart", "historial", "imagenes", "garante"]
+
+                for col in columnas_booleanas:
+                    if col in selected_export_columns and col in cliente:
+                        valor = cliente[col]
+                        if valor is not None:
+                            cliente[col] = "SI" if valor >= 1 else "NO"
+
+                clientes.append(cliente)
+
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "data": clientes,
+                    "total": len(clientes),
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"Error al exportar clientes: {str(e)}"}), 500
+
+
 # =================================================================
 # 7. ELIMINAR CLIENTE (CON AUDITORÍA)
 # Equivalente a mnuOpcionesDelete_Click en VB6

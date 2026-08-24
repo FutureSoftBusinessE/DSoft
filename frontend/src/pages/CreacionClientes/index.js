@@ -1,4 +1,4 @@
-import React, { useContext } from "react"
+import React, { useContext, useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { styled, createTheme, ThemeProvider } from "@mui/material/styles"
 import { Box, Typography, Chip } from "@mui/material"
@@ -19,6 +19,9 @@ import {
   handleExportDataPdfSMScreen,
   handleAllExportDataCSV,
 } from "../utils/reactTableActions/exportToolbarActions"
+
+import CustomExportAllDataButton from "../../components/CustomExportAllDataButton"
+import CustomBackdrop from "../../components/CustomBackdrop"
 
 // =================================================================
 // ESTILOS Y TEMA (Estándar SIAC FUTURESOFT)
@@ -43,6 +46,8 @@ const theme = createTheme({
 const CreacionClientes = () => {
   const navigate = useNavigate()
   const { selectedMenuInfo } = useContext(GlobalContext)
+  const [openModalExport, setOpenModalExport] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   // =================================================================
   // LÓGICA DE ELIMINACIÓN DE CLIENTE
@@ -105,6 +110,7 @@ const CreacionClientes = () => {
   return (
     <ThemeProvider theme={theme}>
       <Header />
+      <CustomBackdrop isLoading={isExporting} />
       <div className="main main-app p-3 p-lg-4" style={{ backgroundColor: "#f4f6f8", minHeight: "100vh" }}>
         <BackIcon />
 
@@ -156,6 +162,7 @@ const CreacionClientes = () => {
                   onClick: (row) => handleEliminarCliente(row),
                 })
               }
+
               return actions
             }}
             // TOP TOOLBAR
@@ -163,6 +170,9 @@ const CreacionClientes = () => {
               const crearAction = selectedMenuInfo?.data?.barraAcciones?.find((action) => action.acccaption === "CREAR")
               const exportarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action.acccaption === "EXPORTAR",
+              )
+              const exportarTodoAccion = selectedMenuInfo?.data?.barraAcciones?.find(
+                (a) => a.acccaption === "EXPORTAR TODO",
               )
               const toolbarActions = [
                 {
@@ -209,6 +219,48 @@ const CreacionClientes = () => {
                       },
                     },
                   ],
+                },
+                {
+                  type: "modal",
+                  label: exportarTodoAccion?.acccaption,
+                  key: exportarTodoAccion?.acccaption,
+                  icon: getIconComponent(exportarTodoAccion?.accnameicono, exportarTodoAccion?.acctipoico),
+                  onClick: () => setOpenModalExport(true),
+                  Component: (
+                    <CustomExportAllDataButton
+                      columnsTable={[
+                        { accessorKey: "clicodigo", header: "Código" },
+                        { accessorKey: "cliruc", header: "RUC / Cédula" },
+                        { accessorKey: "clinombre", header: "Razón Social / Nombre" },
+                        { accessorKey: "clisexo", header: "Sexo" },
+                        { accessorKey: "cliestciv", header: "Estado Civil" },
+                        { accessorKey: "clidirec", header: "Dirección" },
+                        { accessorKey: "clitelef1", header: "Teléfono" },
+                        { accessorKey: "cliemail", header: "Email" },
+                        { accessorKey: "vendedores", header: "Vendedores" },
+                        { accessorKey: "referencias", header: "Referencias" },
+                        { accessorKey: "agencias", header: "Agencias" },
+                        { accessorKey: "descuentos", header: "Descuentos" },
+                        { accessorKey: "descuentosart", header: "Desc. Artículos" },
+                        { accessorKey: "historial", header: "Historial" },
+                        { accessorKey: "imagenes", header: "Imágenes" },
+                        { accessorKey: "garante", header: "Garante" },
+                        { accessorKey: "clistatus", header: "Estado" },
+                        { accessorKey: "clifecisys", header: "Fecha Creación" },
+                        { accessorKey: "clifecmsys", header: "Fecha Modificación" },
+                      ]}
+                      endpoint="/CreacionCliente/exportAllClientes"
+                      fileName="Reporte_Clientes_Completo"
+                      onClose={() => setOpenModalExport(false)}
+                      onLoadingChange={setIsExporting}
+                    />
+                  ),
+                  propsModal: {
+                    open: openModalExport,
+                    onClose: () => setOpenModalExport(false),
+                    title: "Descargar Reporte Completo",
+                    showDefaultActions: false,
+                  },
                 },
               ]
               return toolbarActions

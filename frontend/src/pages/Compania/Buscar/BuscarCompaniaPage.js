@@ -11,6 +11,7 @@ import CustomBackdrop from "../../../components/CustomBackdrop"
 import CompaniaTabsForm, { COMPANIA_DEFAULT_VALUES } from "../components/CompaniaTabsForm"
 import { companiaToDisplayLabels } from "../utils/companiaLabelMappings"
 import { GlobalContext } from "../../../contexts/GlobalContext"
+import HistorialRegimenTributario from "../components/HistorialRegimenTributario"
 
 const theme = createTheme({
   palette: {
@@ -119,6 +120,22 @@ const BuscarCompania = () => {
         <Box sx={StyledRoot}>
           <CompaniaTabsForm data={c} onChange={() => {}} readOnly actions={actionList} />
         </Box>
+
+        {/* Historial de Régimen Tributario en modo solo lectura */}
+        {ciacodigo && compania && (
+          <Box
+            sx={{
+              maxWidth: "1200px",
+              margin: "20px auto",
+              padding: "20px",
+              backgroundColor: "#f5f7fa",
+              borderRadius: "12px",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+            }}
+          >
+            <HistorialRegimenTributario ciacodigo={ciacodigo} companiaData={c} readOnly={true} />
+          </Box>
+        )}
       </div>
     </ThemeProvider>
   )

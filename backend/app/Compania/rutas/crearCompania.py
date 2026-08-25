@@ -190,23 +190,102 @@ def validate_field_length(field_name, field_value):
         raise ValidationError(f"El campo '{field_name}' no puede exceder {max_length} caracteres. " f"Largo proporcionado: {len(value_str)}")
 
 
-def generate_cliciagrupo(nombre, codigo):
-    """Genera cliciagrupo: iniciales de cada palabra en mayusculas + código. Ej: empresa prueba web -> EPW+CODIGO"""
-    iniciales = "".join([palabra[0].upper() for palabra in nombre.split() if palabra])
-    return f"{iniciales}{codigo}"
+def extract_domain_from_alias(alias):
+    """Extrae el dominio de un email respetando el formato original.
+    user@Email.com -> Email
+    user@test -> test
+    """
+    if not alias:
+        return None
+
+    alias = alias.strip()
+
+    # Detectar si es email
+    if "@" in alias:
+        # Tomar lo que está después del @
+        parte_despues_aroba = alias.split("@")[1]
+
+        # Si hay punto, tomar lo que está antes del primer punto
+        if "." in parte_despues_aroba:
+            dominio = parte_despues_aroba.split(".")[0]
+            return dominio if dominio else None
+        else:
+            # Si no hay punto, retornar todo lo que está después del @
+            return parte_despues_aroba if parte_despues_aroba else None
+
+    return None
 
 
-def generate_usuario_extra(nombre):
-    """Genera usuario extra: alias@generate_cliciagrupo()"""
-    try:
-        usr_nombre = nombre.strip().lower()
-        if len(usr_nombre) > 10:
-            raise f"El nombre de usuario {nombre} excede los 10 caracteres"
+def generate_cliciagrupo(ciadescri, ciacodigo, ciaalias):
+    """
+    Genera el campo cliciagrupo basado en el alias o descripción.
 
-        return usr_nombre
+    - Si ciaalias es un correo electrónico (contiene '@'),
+      toma todo lo que está después del '@'.
+      Ejemplo: "user01@domain.ec.com" -> "domain.ec.com"
 
-    except Exception as error:
-        raise (error)
+    - Si ciaalias no es un correo, toma las iniciales de cada palabra
+      de ciadescri y le concatena el ciacodigo.
+      Ejemplo: ciadescri="empresa de comesticos", ciacodigo="01" -> "edc01"
+
+    Args:
+        ciadescri (str): Descripción de la empresa.
+        ciacodigo (str/int): Código de la empresa.
+        ciaalias (str): Alias o correo electrónico.
+
+    Returns:
+        str: El cliciagrupo generado.
+    """
+    # Sanitizar entrada: eliminar espacios al inicio/final y convertir a minúsculas
+    ciadescri = ciadescri.strip().lower()
+    ciaalias = ciaalias.strip().lower()
+    ciacodigo = str(ciacodigo).strip().lower()
+
+    # Verificar si ciaalias es un correo electrónico
+    if "@" in ciaalias:
+        # Tomar todo lo que está después del '@'
+        return ciaalias.split("@")[1].strip()
+    else:
+        # Tomar las iniciales de cada palabra de la descripción
+        iniciales = "".join(palabra[0] for palabra in ciadescri.split() if palabra)
+        # Concatenar con el código
+        return f"{iniciales}{ciacodigo}"
+
+
+def generate_usuario_extra(ciaalias):
+    """
+    Genera un usuario extra a partir de un alias.
+
+    - Si el alias es un correo electrónico (contiene '@'),
+      toma todo lo que está antes del '@'.
+      Ejemplo: "user01@domain.ec.com" -> "user01"
+
+    - Si el alias no es un correo, toma la palabra completa.
+      Ejemplo: "userlastname" -> "userlastname"
+
+    Args:
+        ciaalias (str): El alias o correo electrónico.
+
+    Returns:
+        str: El usuario extra generado.
+
+    Raises:
+        APIError: Si el usuario encriptado generado excede los 10 caracteres.
+    """
+    # Sanitizar entrada
+    ciaalias = ciaalias.strip().lower()
+
+    # Generar usuario según el tipo de entrada
+    if "@" in ciaalias:
+        user = ciaalias.split("@")[0].strip()
+    else:
+        user = ciaalias
+
+    # Validar longitud máxima (esto es por la tabla siaccusr campo usrcodigo)
+    if len(encriptar(user)) > 10:
+        raise APIError(f"El nombre de usuario '{user}' excede los 10 caracteres encriptados")
+
+    return user
 
 
 @bp.route("/crearCompania", methods=["POST"])
@@ -392,6 +471,10 @@ def crearCompania():
     cialogo = decode_base64_safe(cialogo_base64)
     ciaselloagua_base64 = data.get("ciaselloagua")
     ciaselloagua = decode_base64_safe(ciaselloagua_base64)
+
+    ciaregimenemprendedores = convert_field_type("ciaregimenemprendedores", data.get("ciaregimenemprendedores")) or 0
+    ciaregimenpopular = convert_field_type("ciaregimenpopular", data.get("ciaregimenpopular")) or 0
+    ciaregimengeneral = convert_field_type("ciaregimengeneral", data.get("ciaregimengeneral")) or 0
 
     ciaivaporproducto = convert_field_type("ciaivaporproducto", data.get("ciaivaporproducto"))
     ciafacelectronica = data.get("ciafacelectronica") or ""
@@ -633,6 +716,16 @@ def crearCompania():
                 next_id_result = conn_fsbs.execute(next_id_query).mappings().fetchone()
                 cliciaidenti = next_id_result["next_id"]
 
+                # Generar cliciagrupo
+                fsbs_cliciagrupo = generate_cliciagrupo(ciadescri, ciacodigo, ciaalias)
+
+                # Verificar si el grupo ya existe
+                check_grupo_query = text("SELECT cliciagrupo FROM fsbsmclicia WHERE cliciagrupo = :cliciagrupo")
+                grupo_existente = conn_fsbs.execute(check_grupo_query, {"cliciagrupo": fsbs_cliciagrupo}).mappings().fetchone()
+
+                if grupo_existente:
+                    raise ValidationError(f"El dominio/grupo '{fsbs_cliciagrupo}' ya está registrado")
+
                 # INSERT en fsbsmclicia
                 insert_fsbsmclicia_query = text(
                     """
@@ -648,14 +741,12 @@ def crearCompania():
                 """
                 )
 
-                fsbs_cliciagrupo = generate_cliciagrupo(ciadescri, ciacodigo)
-
                 conn_fsbs.execute(
                     insert_fsbsmclicia_query,
                     {
                         "cliciaidenti": cliciaidenti,
                         "cliciagrupo": fsbs_cliciagrupo,
-                        "cliciarutaBD": f"{config_env('DB_SERVER')},{config_env('DB_PORT')}",  # Tomarlo desde la variable de entorne .venv
+                        "cliciarutaBD": f"{config_env('DB_SERVER')},{config_env('DB_PORT')}",
                         "clicianonBD": clicianonBD,
                         "cliciausuBD": config_env("DB_USER"),
                         "cliciaclaveBD": config_env("DB_PASS"),
@@ -858,6 +949,9 @@ def crearCompania():
                     "ciavalidaemp": ciavalidaemp,
                     "ciabasepuntos": ciabasepuntos,
                     "ciatipocompania": ciatipocompania,
+                    "ciaregimenemprendedores": ciaregimenemprendedores,
+                    "ciaregimenpopular": ciaregimenpopular,
+                    "ciaregimengeneral": ciaregimengeneral,
                 }
 
                 insert_query = text(
@@ -893,7 +987,7 @@ def crearCompania():
                         ciainmobiliaria, ciancdevcxccia, ciadiasretencion, ciadiasemitirretencion,
                         ciapropina, ciacontabilidad, ciaetiquetaadiret, ciavaloradiret,
                         ciasolautclcxp, ciaaproautclcxp, cialogo, ciaselloagua, ciaivaporproducto,
-                        ciafacDeVariosLoc, cialistprecdefweb, ciavalidaemp, ciabasepuntos, ciatipocompania
+                        ciafacDeVariosLoc, cialistprecdefweb, ciavalidaemp, ciabasepuntos, ciatipocompania, ciaregimenemprendedores, ciaregimenpopular, ciaregimengeneral
                     ) VALUES (
                         :ciacodigo, :ciaanioejer, :ciaauxcredito, :ciacontador, :ciadescri, :ciaalias,
                         :ciaruc, :ciadirec, :ciafax, :ciafecisys, :ciafecminacc, :ciafecmsys,
@@ -925,7 +1019,7 @@ def crearCompania():
                         :ciainmobiliaria, :ciancdevcxccia, :ciadiasretencion, :ciadiasemitirretencion,
                         :ciapropina, :ciacontabilidad, :ciaetiquetaadiret, :ciavaloradiret,
                         :ciasolautclcxp, :ciaaproautclcxp, :cialogo, :ciaselloagua, :ciaivaporproducto,
-                        :ciafacDeVariosLoc, :cialistprecdefweb, :ciavalidaemp, :ciabasepuntos, :ciatipocompania
+                        :ciafacDeVariosLoc, :cialistprecdefweb, :ciavalidaemp, :ciabasepuntos, :ciatipocompania, :ciaregimenemprendedores, :ciaregimenpopular, :ciaregimengeneral
                     )
                     """
                 )
@@ -1461,6 +1555,81 @@ def crearCompania():
                     },
                 )
 
+                # 11.5. INSERT en siacsec (copiar secuencias de compañía 01)
+                conn_company.execute(
+                    text(
+                        """
+                        INSERT INTO siacsec (
+                            ciacodigo, locservidor, seccodigo, secnumero,
+                            secfecisys, secfecmsys, sechorisys, sechormsys,
+                            secusuisys, secusumsys, secdescri
+                        )
+                        SELECT
+                            :nuevo_ciacodigo,
+                            locservidor,
+                            seccodigo,
+                            0 as secnumero,
+                            :fecha_actual,
+                            :fecha_actual,
+                            :hora_actual,
+                            :hora_actual,
+                            :usuario_actual,
+                            :usuario_actual,
+                            secdescri
+                        FROM siacsec
+                        WHERE ciacodigo = :ciacodigo_origen
+                            AND locservidor = 'A'
+                        """,
+                    ),
+                    {
+                        "nuevo_ciacodigo": ciacodigo,
+                        "ciacodigo_origen": "01",
+                        "fecha_actual": fecha_actual,
+                        "hora_actual": hora_sys,
+                        "usuario_actual": sUsuario,
+                    },
+                )
+
+                # 11.6. INSERT en cgpdpto (copiar secuencias de compañía 01)
+                conn_company.execute(
+                    text(
+                        """
+                        INSERT INTO cgpdpto (
+                            ciacodigo, dptoanio, dptocodigo, dptodescri, loccodigo,
+                            dptofecisys, dptofecmsys, dptohorisys, dptohormsys,
+                            dptonumsec, dptousuisys, dptousumsys,
+                            doccodigo, locservidor
+                        )
+                        SELECT
+                            :nuevo_ciacodigo,
+                            dptoanio,
+                            dptocodigo,
+                            dptodescri,
+                            loccodigo,
+                            :fecha_actual,
+                            :fecha_actual,
+                            :hora_actual,
+                            :hora_actual,
+                            0 as dptonumsec,
+                            :usuario_actual,
+                            :usuario_actual,
+                            doccodigo,
+                            locservidor
+                        FROM cgpdpto
+                        WHERE ciacodigo = :ciacodigo_origen
+                            AND loccodigo = :loccodigo
+                        """,
+                    ),
+                    {
+                        "nuevo_ciacodigo": ciacodigo,
+                        "ciacodigo_origen": "01",
+                        "loccodigo": "01",
+                        "fecha_actual": fecha_actual,
+                        "hora_actual": hora_sys,
+                        "usuario_actual": sUsuario,
+                    },
+                )
+
                 # 12. INSERT en siactloc
                 # Primer usuario: el que crea la compañía
                 conn_company.execute(
@@ -1751,6 +1920,276 @@ def crearCompania():
                 # Rollback automático en AMBAS
                 trans_company.rollback()
                 trans_fsbs.rollback()
-                raise APIError(e)
+                raise e
 
     return {"data": f"Compania creada exitosamente. Usuarios creados (2): {sUsuario}@{fsbs_cliciagrupo}, {fsbs_new_cliciausu}@{fsbs_cliciagrupo}"}
+
+
+@bp.route("/crearRegimenTributario", methods=["POST"])
+@jwt_required()
+@api_endpoint
+def crearRegimenTributario():
+    claims = get_jwt()
+    clicianonBD = claims["seleccion"]["clicianonBD"]
+    sUsuario = claims["user"]
+
+    data = request.get_json()
+    ciacodigo = data.get("ciacodigo")
+
+    if not ciacodigo:
+        raise ValidationError("ciacodigo es requerido")
+
+    # Obtener siguiente secuencia
+    session_company = get_session(clicianonBD)
+    engine_company = session_company.bind
+
+    fecha_actual = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    hora_sys = datetime.now().replace(year=1900, month=1, day=1, microsecond=0)
+    ipUser = request.headers.get("X-Forwarded-For", request.remote_addr)
+
+    with engine_company.connect() as conn_company:
+        trans_company = conn_company.begin()
+
+        try:
+            # Obtener siguiente secuencia
+            next_seq_query = text(
+                """
+                SELECT ISNULL(MAX(regsecuencia), 0) + 1 AS siguiente
+                FROM siacciaregtributario
+                WHERE ciacodigo = :ciacodigo
+            """
+            )
+            next_seq_result = conn_company.execute(next_seq_query, {"ciacodigo": ciacodigo}).mappings().fetchone()
+            regsecuencia = next_seq_result["siguiente"]
+
+            # Obtener valores del request
+            regruc = data.get("regruc") or ""
+            regcedula = data.get("regcedula") or ""
+            reglicencia = data.get("reglicencia") or ""
+            regresolucion = data.get("regresolucion") or ""
+            regfecinicio = data.get("regfecinicio") or None
+            regfecfin = data.get("regfecfin") or None
+
+            # Flags (0 o -1)
+            regagentretencion = convert_field_type("regagentretencion", data.get("regagentretencion")) or 0
+            regllevarcontabilidad = convert_field_type("regllevarcontabilidad", data.get("regllevarcontabilidad")) or 0
+            regrepresentantelegal = convert_field_type("regrepresentantelegal", data.get("regrepresentantelegal")) or 0
+            regpresidente = convert_field_type("regpresidente", data.get("regpresidente")) or 0
+            regcontador = convert_field_type("regcontador", data.get("regcontador")) or 0
+            regregimenemprendedores = convert_field_type("regregimenemprendedores", data.get("regregimenemprendedores")) or 0
+            regregimenpopular = convert_field_type("regregimenpopular", data.get("regregimenpopular")) or 0
+            regregimengeneral = convert_field_type("regregimengeneral", data.get("regregimengeneral")) or 0
+
+            # Insertar en tabla transaccional
+            insert_query = text(
+                """
+                INSERT INTO siacciaregtributario (
+                    ciacodigo, regsecuencia, regruc, regcedula, reglicencia,
+                    regresolucion, regfecinicio, regfecfin,
+                    regagentretencion, regllevarcontabilidad, regrepresentantelegal,
+                    regpresidente, regcontador, regregimenemprendedores,
+                    regregimenpopular, regregimengeneral,
+                    regfecisys, reghorisys, regusuisys, regestisys,
+                    regfecmsys, reghormsys, regusumsys, regestmsys
+                ) VALUES (
+                    :ciacodigo, :regsecuencia, :regruc, :regcedula, :reglicencia,
+                    :regresolucion, :regfecinicio, :regfecfin,
+                    :regagentretencion, :regllevarcontabilidad, :regrepresentantelegal,
+                    :regpresidente, :regcontador, :regregimenemprendedores,
+                    :regregimenpopular, :regregimengeneral,
+                    :regfecisys, :reghorisys, :regusuisys, :regestisys,
+                    :regfecmsys, :reghormsys, :regusumsys, :regestmsys
+                )
+            """
+            )
+
+            conn_company.execute(
+                insert_query,
+                {
+                    "ciacodigo": ciacodigo,
+                    "regsecuencia": regsecuencia,
+                    "regruc": regruc,
+                    "regcedula": regcedula,
+                    "reglicencia": reglicencia,
+                    "regresolucion": regresolucion,
+                    "regfecinicio": regfecinicio,
+                    "regfecfin": regfecfin,
+                    "regagentretencion": regagentretencion,
+                    "regllevarcontabilidad": regllevarcontabilidad,
+                    "regrepresentantelegal": regrepresentantelegal,
+                    "regpresidente": regpresidente,
+                    "regcontador": regcontador,
+                    "regregimenemprendedores": regregimenemprendedores,
+                    "regregimenpopular": regregimenpopular,
+                    "regregimengeneral": regregimengeneral,
+                    "regfecisys": fecha_actual,
+                    "reghorisys": hora_sys,
+                    "regusuisys": sUsuario,
+                    "regestisys": ipUser,
+                    "regfecmsys": fecha_actual,
+                    "reghormsys": hora_sys,
+                    "regusumsys": sUsuario,
+                    "regestmsys": ipUser,
+                },
+            )
+
+            # Actualizar siaccia con los valores del nuevo registro
+            update_siaccia_query = text(
+                """
+                UPDATE siaccia SET
+                    ciaruc = :regruc,
+                    sriagenteretencion = :regagentretencion,
+                    ciacontabilidad = :regllevarcontabilidad,
+                    ciapresidente = :regpresidente,
+                    ciacontador = :regcontador,
+                    ciaregimenemprendedores = :regregimenemprendedores,
+                    ciaregimenpopular = :regregimenpopular,
+                    ciaregimengeneral = :regregimengeneral,
+                    ciausumsys = :sUsuario,
+                    ciafecmsys = :fecha_actual,
+                    ciahormsys = :hora_sys
+                WHERE ciacodigo = :ciacodigo
+            """
+            )
+
+            conn_company.execute(
+                update_siaccia_query,
+                {
+                    "regruc": regruc,
+                    "regagentretencion": regagentretencion,
+                    "regllevarcontabilidad": regllevarcontabilidad,
+                    "regpresidente": regpresidente,
+                    "regcontador": regcontador,
+                    "regregimenemprendedores": regregimenemprendedores,
+                    "regregimenpopular": regregimenpopular,
+                    "regregimengeneral": regregimengeneral,
+                    "sUsuario": sUsuario,
+                    "fecha_actual": fecha_actual,
+                    "hora_sys": hora_sys,
+                    "ciacodigo": ciacodigo,
+                },
+            )
+
+            trans_company.commit()
+
+        except Exception as e:
+            trans_company.rollback()
+            raise e
+
+    return {"data": f"Registro tributario creado exitosamente con secuencia {regsecuencia}"}
+
+
+@bp.route("/eliminarRegimenTributario", methods=["POST"])
+@jwt_required()
+@api_endpoint
+def eliminarRegimenTributario():
+    claims = get_jwt()
+    clicianonBD = claims["seleccion"]["clicianonBD"]
+    sUsuario = claims["user"]
+
+    data = request.get_json()
+    ciacodigo = data.get("ciacodigo")
+    regsecuencia = data.get("regsecuencia")
+
+    if not ciacodigo:
+        raise ValidationError("ciacodigo es requerido")
+
+    if not regsecuencia:
+        raise ValidationError("regsecuencia es requerido")
+
+    session_company = get_session(clicianonBD)
+    engine_company = session_company.bind
+
+    fecha_actual = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    hora_sys = datetime.now().replace(year=1900, month=1, day=1, microsecond=0)
+
+    with engine_company.connect() as conn_company:
+        trans_company = conn_company.begin()
+
+        try:
+            # Eliminar registro físico
+            delete_query = text(
+                """
+                DELETE FROM siacciaregtributario
+                WHERE ciacodigo = :ciacodigo AND regsecuencia = :regsecuencia
+            """
+            )
+
+            result = conn_company.execute(
+                delete_query,
+                {
+                    "ciacodigo": ciacodigo,
+                    "regsecuencia": regsecuencia,
+                },
+            )
+
+            if result.rowcount == 0:
+                raise ValidationError("No se encontró el registro a eliminar")
+
+            # Renumerar secuencias restantes
+            renumber_query = text(
+                """
+                WITH CTE AS (
+                    SELECT ciacodigo, regsecuencia,
+                           ROW_NUMBER() OVER (PARTITION BY ciacodigo ORDER BY regsecuencia) AS nueva_secuencia
+                    FROM siacciaregtributario
+                    WHERE ciacodigo = :ciacodigo
+                )
+                UPDATE CTE SET regsecuencia = nueva_secuencia
+            """
+            )
+
+            conn_company.execute(renumber_query, {"ciacodigo": ciacodigo})
+
+            trans_company.commit()
+
+        except Exception as e:
+            trans_company.rollback()
+            raise e
+
+    return {"data": f"Registro tributario eliminado exitosamente"}
+
+
+@bp.route("/getHistorialRegimenTributario", methods=["POST"])
+@jwt_required()
+@api_endpoint
+def getHistorialRegimenTributario():
+    claims = get_jwt()
+    clicianonBD = claims["seleccion"]["clicianonBD"]
+
+    data = request.get_json()
+    ciacodigo = data.get("ciacodigo")
+
+    if not ciacodigo:
+        raise ValidationError("ciacodigo es requerido")
+
+    session_company = get_session(clicianonBD)
+    engine_company = session_company.bind
+
+    with engine_company.connect() as conn_company:
+        query = text(
+            """
+            SELECT
+                ciacodigo, regsecuencia, regruc, regcedula, reglicencia,
+                regresolucion,
+                CONVERT(varchar, regfecinicio, 23) as regfecinicio,
+                CONVERT(varchar, regfecfin, 23) as regfecfin,
+                regagentretencion, regllevarcontabilidad, regrepresentantelegal,
+                regpresidente, regcontador, regregimenemprendedores,
+                regregimenpopular, regregimengeneral,
+                CONVERT(varchar, regfecisys, 23) as regfecisys,
+                regusuisys,
+                CONVERT(varchar, regfecmsys, 23) as regfecmsys,
+                regusumsys
+            FROM siacciaregtributario
+            WHERE ciacodigo = :ciacodigo
+            ORDER BY regsecuencia
+        """
+        )
+
+        result = conn_company.execute(query, {"ciacodigo": ciacodigo}).mappings().fetchall()
+
+        # Convertir RowMapping a diccionarios
+        historial_list = [dict(row) for row in result]
+
+        return {"data": historial_list}

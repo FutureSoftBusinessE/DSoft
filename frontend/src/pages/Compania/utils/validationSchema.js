@@ -54,6 +54,9 @@ export const INTEGER_FIELDS = new Set([
   "ciancdevcxccia",
   "CiaNivelOrg",
   "cianumvend",
+  "ciaregimenemprendedores",
+  "ciaregimenpopular",
+  "ciaregimengeneral",
 ])
 
 export const DECIMAL_FIELDS = new Set([

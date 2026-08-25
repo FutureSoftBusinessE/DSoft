@@ -16,6 +16,7 @@ import getIconComponent from "../../utils/getIconComponent"
 import CompaniaTabsForm, { COMPANIA_DEFAULT_VALUES } from "../components/CompaniaTabsForm"
 import { companiaToRawValues } from "../utils/companiaLabelMappings"
 import { validateFormData } from "../utils/validationSchema"
+import HistorialRegimenTributario from "../components/HistorialRegimenTributario"
 
 const theme = createTheme({
   palette: {
@@ -300,6 +301,9 @@ const EditarCompania = () => {
               readOnly={false}
               actions={actionList}
             />
+          </Box>
+          <Box sx={{ maxWidth: "1200px", margin: "0 auto", mt: 3 }}>
+            <HistorialRegimenTributario ciacodigo={ciacodigo} companiaData={formData} />
           </Box>
         </div>
       </ThemeProvider>

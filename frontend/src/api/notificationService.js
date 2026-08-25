@@ -97,7 +97,7 @@ class NotificationService {
         return this.showErrorToast(apiError)
 
       case "modal":
-        return this.showErrorWithRequestId(apiError)
+        return this.showErrorModal(apiError)
 
       case "inline":
         return apiError // Se maneja en el formulario
@@ -233,7 +233,7 @@ class NotificationService {
         : "Error" || "Error"
     // Si no es una API nueva, usar la función normal
     if (!error.requestId || error.requestId === "unknown") {
-      return this.showError(error, options)
+      return this.showErrorModal(error)
     }
 
     // mostrar con request_id destacado

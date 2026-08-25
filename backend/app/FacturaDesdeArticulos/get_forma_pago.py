@@ -26,12 +26,8 @@ def get_formas_pago():
             query = """
                 SELECT c.*
                 FROM cxcbformapag c
-                INNER JOIN fasloc f
-                    ON c.ciacodigo = f.ciacodigo
-                    AND c.factippag = f.factippag
                 WHERE
                     c.ciacodigo = :ciacodigo
-                    AND f.loccodigo = :loccodigo
                     AND c.forstatus = 'A'
             """
 

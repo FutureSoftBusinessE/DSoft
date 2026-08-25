@@ -36,6 +36,7 @@ import Visibility from "@mui/icons-material/Visibility"
 import VisibilityOff from "@mui/icons-material/VisibilityOff"
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn"
 import DeleteIcon from "@mui/icons-material/Delete"
+import CheckCircleIcon from "@mui/icons-material/CheckCircle" // NUEVO: Importación de icono de Check
 import Swal from "sweetalert2"
 import dayjs from "dayjs"
 
@@ -97,20 +98,21 @@ const PerfilUsuarioDF = () => {
     emailtema: "",
     emailsubject: "",
     emailmensaje: "",
+    locpathxml: "", // NUEVO: Agregamos el estado para el certificado activo
   })
 
   // =========================================================
   // ESTADOS EXCLUSIVOS PARA LA PESTAÑA DE FIRMA ELECTRÓNICA
   // =========================================================
   const [p12File, setP12File] = useState(null)
-  const [passwordP12, setPasswordP12] = useState("") // CORREGIDO: Nombre de variable unificado
+  const [passwordP12, setPasswordP12] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [docfecemi, setDocfecemi] = useState(null)
   const [docfecven, setDocfecven] = useState(null)
-  const [isValidated, setIsValidated] = useState(false) // Controla si ya se validó el P12
+  const [isValidated, setIsValidated] = useState(false)
 
   // Cargar la configuración actual (Perfil)
-  const { isLoading: isFetching } = useQuery({
+  const { isLoading: isFetching, refetch: refetchPerfil } = useQuery({
     queryKey: ["getAllPerfilUsuarioDF"],
     queryFn: async () => {
       const response = await api.post("/PerfilUsuarioDF/getAllPerfilUsuarioDF")
@@ -129,6 +131,7 @@ const PerfilUsuarioDF = () => {
         emailtema: data.emailtema || "",
         emailsubject: data.emailsubject || "",
         emailmensaje: data.emailmensaje || "",
+        locpathxml: data.locpathxml || "", // NUEVO: Seteo de la firma activa
       })
       return data
     },
@@ -176,12 +179,15 @@ const PerfilUsuarioDF = () => {
     },
     onSuccess: (res) => {
       Swal.fire("Activada", res.data || "Firma electrónica configurada correctamente.", "success")
+      refetchPerfil() // NUEVO: Refresca el perfil para actualizar visualmente la firma activa en la tabla
     },
   })
 
   const { mutateAsync: deleteFirma, isPending: isDeletingFirma } = useMutation({
     mutationFn: async (uuid) => {
-      await api.delete(`/DocumentosAsociadosComponent/deleteDocumento/${uuid}`)
+      // CORRECCIÓN DEL ERROR DE DESESTRUCTURACIÓN: Agregamos el 'return' y devolvemos res.data
+      const response = await api.delete(`/DocumentosAsociadosComponent/deleteDocumento/${uuid}`)
+      return response.data
     },
     onSuccess: () => {
       Swal.fire("Eliminado", "El certificado ha sido removido con éxito.", "success")
@@ -265,12 +271,11 @@ const PerfilUsuarioDF = () => {
       return showWarning("Solo se permiten archivos con extensión .p12 o .pfx")
     }
     setP12File(file)
-    setIsValidated(false) // Si cambia de archivo, debe volver a validar
+    setIsValidated(false)
     setDocfecemi(null)
     setDocfecven(null)
   }
 
-  // Lógica importada del componente universal para validar y extraer fechas[cite: 19]
   const handleValidarCertificado = async () => {
     if (!p12File || !passwordP12) {
       return Swal.fire("Atención", "Seleccione un archivo y escriba la contraseña", "warning")
@@ -314,7 +319,6 @@ const PerfilUsuarioDF = () => {
     }
   }
 
-  // Guardado final del certificado validado[cite: 19]
   const handleGuardarP12 = async () => {
     if (!p12File) return showWarning("Debe seleccionar un archivo .p12")
     if (!passwordP12) return showWarning("Debe ingresar la contraseña del certificado")
@@ -329,7 +333,7 @@ const PerfilUsuarioDF = () => {
     data.append("docnombre", p12File.name)
     data.append("docindex1", "CERTIFICADO P12")
     data.append("password_p12", passwordP12)
-    data.append("docfecemi", docfecemi.format("YYYY-MM-DD")) // Se inserta exactamente como en la tabla de documentos[cite: 19]
+    data.append("docfecemi", docfecemi.format("YYYY-MM-DD"))
     data.append("docfecven", docfecven.format("YYYY-MM-DD"))
     data.append("file", p12File)
 
@@ -340,7 +344,6 @@ const PerfilUsuarioDF = () => {
     }
   }
 
-  // Cambio de Pestañas
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue)
   }
@@ -790,69 +793,87 @@ const PerfilUsuarioDF = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {listaFirmas.map((doc) => (
-                          <TableRow key={doc.documentouuid} hover>
-                            <TableCell>{doc.docnombre}</TableCell>
-                            <TableCell>
-                              <Typography
-                                variant="body2"
-                                sx={{ textTransform: "uppercase", fontWeight: "bold", fontSize: "0.8rem" }}
-                              >
-                                {doc.docextension}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>{doc.docfecemi || "—"}</TableCell>
-                            <TableCell>{doc.docfecven || "—"}</TableCell>
-                            <TableCell>{doc.docfechorisys}</TableCell>
-                            <TableCell align="center">
-                              {/* Botón para setear la firma activa en cgblocal */}
-                              <Tooltip title="Usar para Firmar PDF (Activar)">
-                                <IconButton
-                                  size="small"
-                                  sx={{ color: "#ed6c02" }} // Naranja distintivo
-                                  onClick={() => {
-                                    Swal.fire({
-                                      title: "¿Establecer como firma activa?",
-                                      text: "Este certificado se utilizará por defecto para firmar sus documentos PDF.",
-                                      icon: "question",
-                                      showCancelButton: true,
-                                      confirmButtonColor: "#196C87",
-                                      confirmButtonText: "Sí, activar",
-                                    }).then(async (r) => {
-                                      if (r.isConfirmed) {
-                                        setActiveFirma(doc.documentouuid)
-                                      }
-                                    })
-                                  }}
-                                >
-                                  <AssignmentTurnedInIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
+                        {listaFirmas.map((doc) => {
+                          // Lógica para determinar si esta fila corresponde al certificado activo
+                          const isActiveSignature = doc.documentouuid === formData.locpathxml
 
-                              {/* Botón Eliminar */}
-                              <Tooltip title="Eliminar">
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => {
-                                    Swal.fire({
-                                      title: "¿Eliminar certificado?",
-                                      text: "Esta acción no se puede deshacer.",
-                                      icon: "warning",
-                                      showCancelButton: true,
-                                      confirmButtonColor: "#d33",
-                                      confirmButtonText: "Sí, eliminar",
-                                    }).then((r) => {
-                                      if (r.isConfirmed) deleteFirma(doc.documentouuid)
-                                    })
-                                  }}
+                          return (
+                            <TableRow key={doc.documentouuid} hover>
+                              <TableCell>{doc.docnombre}</TableCell>
+                              <TableCell>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ textTransform: "uppercase", fontWeight: "bold", fontSize: "0.8rem" }}
                                 >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                                  {doc.docextension}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>{doc.docfecemi || "—"}</TableCell>
+                              <TableCell>{doc.docfecven || "—"}</TableCell>
+                              <TableCell>{doc.docfechorisys}</TableCell>
+                              <TableCell align="center">
+                                {/* LÓGICA DE ICONOS CONDICIONALES BASADA EN LA FIRMA ACTIVA */}
+                                {isActiveSignature ? (
+                                  <Tooltip title="Firma Activa por Defecto">
+                                    <IconButton size="small" color="success" disableRipple sx={{ cursor: "default" }}>
+                                      <CheckCircleIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                ) : (
+                                  <Tooltip title="Usar para Firmar PDF (Activar)">
+                                    <IconButton
+                                      size="small"
+                                      sx={{ color: "#ed6c02" }} // Naranja distintivo
+                                      onClick={() => {
+                                        Swal.fire({
+                                          title: "¿Establecer como firma activa?",
+                                          text: "Este certificado se utilizará por defecto para firmar sus documentos PDF.",
+                                          icon: "question",
+                                          showCancelButton: true,
+                                          confirmButtonColor: "#196C87",
+                                          confirmButtonText: "Sí, activar",
+                                        }).then(async (r) => {
+                                          if (r.isConfirmed) {
+                                            setActiveFirma(doc.documentouuid)
+                                          }
+                                        })
+                                      }}
+                                    >
+                                      <AssignmentTurnedInIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                )}
+
+                                {/* Botón Eliminar (Deshabilitado si es el certificado activo por precaución) */}
+                                <Tooltip
+                                  title={isActiveSignature ? "No se puede eliminar la firma activa" : "Eliminar"}
+                                >
+                                  <span>
+                                    <IconButton
+                                      size="small"
+                                      color="error"
+                                      disabled={isActiveSignature}
+                                      onClick={() => {
+                                        Swal.fire({
+                                          title: "¿Eliminar certificado?",
+                                          text: "Esta acción no se puede deshacer.",
+                                          icon: "warning",
+                                          showCancelButton: true,
+                                          confirmButtonColor: "#d33",
+                                          confirmButtonText: "Sí, eliminar",
+                                        }).then((r) => {
+                                          if (r.isConfirmed) deleteFirma(doc.documentouuid)
+                                        })
+                                      }}
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
                       </TableBody>
                     </Table>
                   </TableContainer>

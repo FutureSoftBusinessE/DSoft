@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import React, { useState, useEffect } from "react"
 import Header from "../../layouts/Header"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
@@ -24,6 +25,12 @@ import {
   TableHead,
   TableRow,
   IconButton,
+  RadioGroup,
+  Radio,
+  FormControlLabel,
+  FormControl,
+  FormLabel,
+  Chip,
 } from "@mui/material"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import BackIcon from "../../components/BackIcon"
@@ -39,6 +46,8 @@ import HighlightOffIcon from "@mui/icons-material/HighlightOff"
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos"
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos"
 import QrCode2Icon from "@mui/icons-material/QrCode2"
+import LayersIcon from "@mui/icons-material/Layers"
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline"
 import fetchwrapper from "../../services/interceptors/fetchwrapper"
 
 const theme = createTheme({
@@ -47,9 +56,9 @@ const theme = createTheme({
 
 const StyledRootStyles = { width: "100%", maxWidth: "1200px", margin: "64px auto 0 auto", padding: "20px" }
 
-// TAMAÑO DE LA FIRMA (en Puntos PDF, coincide con el Backend)
+// AJUSTE: Altura de la firma reducida a 48 Puntos PDF (Aprox -4mm)
 const SIGNATURE_WIDTH = 200
-const SIGNATURE_HEIGHT = 60
+const SIGNATURE_HEIGHT = 48
 
 const FirmarPDFDF = () => {
   const [loading, setLoading] = useState(false)
@@ -63,9 +72,24 @@ const FirmarPDFDF = () => {
   const [p12File, setP12File] = useState(null)
   const [password, setPassword] = useState("")
 
+  // Modo de selección de firma para Gerentes: "CORP" o "MANUAL"
+  const [tipoFirmaGerente, setTipoFirmaGerente] = useState("CORP")
+
+  // Control de páginas y visualizador
   const [currentPage, setCurrentPage] = useState(1)
   const [maxPages, setMaxPages] = useState(1)
-  const [coords, setCoords] = useState({ x: 0, y: 0, page: 0 })
+
+  // Modo de estampado: 'SINGLE' o 'MULTI'
+  const [stampMode, setStampMode] = useState("SINGLE")
+
+  // Estado para estampado de una sola página
+  const [coords, setCoords] = useState({ x: 0, y: 0, page: 0, renderBox: null })
+
+  // Estado para estampado multipágina
+  const [multiCoords, setMultiCoords] = useState({})
+
+  // Cuadro de previsualización temporal dentro del modal antes de aceptar
+  const [tempStamp, setTempStamp] = useState(null)
 
   const { data: config = {}, isLoading: configLoading } = useQuery({
     queryKey: ["configFirmarPDF"],
@@ -85,7 +109,9 @@ const FirmarPDFDF = () => {
 
     setPdfPrincipal(file)
     setCurrentPage(1)
-    setCoords({ x: 0, y: 0, page: 0 })
+    setCoords({ x: 0, y: 0, page: 0, renderBox: null })
+    setMultiCoords({})
+    setTempStamp(null)
 
     const reader = new FileReader()
     reader.readAsBinaryString(file)
@@ -100,14 +126,16 @@ const FirmarPDFDF = () => {
     }
   }
 
-  const handleOpenPreview = (file) => {
-    if (!file) return showWarning("Cargue un archivo PDF primero")
+  const handleOpenPreviewModal = (mode = "SINGLE") => {
+    if (!pdfPrincipal) return showWarning("Cargue un archivo PDF primero")
     if (previewUrl) URL.revokeObjectURL(previewUrl)
-    setPreviewUrl(URL.createObjectURL(file))
+    setPreviewUrl(URL.createObjectURL(pdfPrincipal))
+    setStampMode(mode)
+    setTempStamp(null)
     setOpenPreview(true)
   }
 
-  // --- LÓGICA DE COORDENADAS AJUSTADA A TOP-LEFT ---
+  // --- CÁLCULO DE COORDENADAS TOP-LEFT Y PREVIEW DE SELLO ---
   const handlePdfClick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const clickX = e.clientX - rect.left
@@ -136,26 +164,71 @@ const FirmarPDFDF = () => {
     xInsidePdf = Math.max(0, Math.min(xInsidePdf, pdfRenderWidth))
     yInsidePdf = Math.max(0, Math.min(yInsidePdf, pdfRenderHeight))
 
-    // El eje Y en los PDFs crece hacia arriba (0 está abajo)
     const yFromBottom = pdfRenderHeight - yInsidePdf
 
-    // Convertimos los pixeles clickeados a Puntos PDF (595x842)
     const ptX = Math.round((xInsidePdf / pdfRenderWidth) * 595)
     const ptY = Math.round((yFromBottom / pdfRenderHeight) * 842)
 
-    // El usuario clickeó donde quiere que comience la firma (Esquina Superior Izquierda).
-    // Pyhanko espera las coordenadas de la Esquina Inferior Izquierda.
-    // Por lo tanto, X se mantiene, pero a Y hay que restarle el ALTO de la firma.
+    // PyHanko lee coordenadas desde bottom-left.
+    // Al restar la altura de la firma, nos aseguramos que el CLICK corresponda exactamente
+    // a la ESQUINA SUPERIOR IZQUIERDA de la caja de la firma.
     const finalX = ptX
     const finalY = ptY - SIGNATURE_HEIGHT
 
-    // Validamos que no se salga del margen inferior
     const safeX = Math.max(0, finalX)
     const safeY = Math.max(0, finalY)
 
-    setCoords({ x: safeX, y: safeY, page: currentPage - 1 })
-    setOpenPreview(false)
-    showWarning(`Firma ubicada en Página ${currentPage}. La esquina superior izquierda iniciará donde hizo clic.`)
+    // Escala del cuadro simulado en la pantalla
+    const stampVisualWidth = (SIGNATURE_WIDTH / 595) * pdfRenderWidth
+    const stampVisualHeight = (SIGNATURE_HEIGHT / 842) * pdfRenderHeight
+
+    setTempStamp({
+      page: currentPage,
+      pageIndex: currentPage - 1,
+      ptX: safeX,
+      ptY: safeY,
+      renderBox: {
+        left: offsetX + xInsidePdf,
+        top: offsetY + yInsidePdf,
+        width: stampVisualWidth,
+        height: stampVisualHeight,
+      },
+    })
+  }
+
+  // Confirmar la ubicación seleccionada
+  const handleConfirmLocation = () => {
+    if (!tempStamp) return showWarning("Haga clic sobre el documento para definir la ubicación de la firma.")
+
+    if (stampMode === "SINGLE") {
+      // Guardamos la configuración y el renderBox para mostrarlo si el usuario vuelve a abrir el modal
+      setCoords({ x: tempStamp.ptX, y: tempStamp.ptY, page: tempStamp.pageIndex, renderBox: tempStamp.renderBox })
+      setOpenPreview(false)
+      showWarning(`Firma fijada en Página ${tempStamp.page}.`)
+    } else {
+      // Modo Multipágina: Guardamos la coordenada y su renderBox para mantenerla visible en la página actual
+      setMultiCoords((prev) => ({
+        ...prev,
+        [tempStamp.page]: {
+          x: tempStamp.ptX,
+          y: tempStamp.ptY,
+          page: tempStamp.pageIndex,
+          pageNumber: tempStamp.page,
+          renderBox: tempStamp.renderBox,
+        },
+      }))
+      setTempStamp(null)
+      showWarning(`Firma fijada. Puede continuar navegando y firmando otras páginas.`)
+    }
+  }
+
+  // Eliminar firma de una página específica en modo múltiple
+  const handleRemovePageCoord = (pageNumber) => {
+    setMultiCoords((prev) => {
+      const copy = { ...prev }
+      delete copy[pageNumber]
+      return copy
+    })
   }
 
   useEffect(() => {
@@ -165,17 +238,34 @@ const FirmarPDFDF = () => {
   }, [previewUrl])
 
   const handleFirmarVisual = async () => {
-    if (!pdfPrincipal || !coords.x) return showWarning("Faltan datos: PDF o Ubicación de Firma")
-    if (isGerente && (!p12File || !password))
-      return showWarning("Los Gerentes deben cargar su certificado manual y contraseña")
+    if (!pdfPrincipal) return showWarning("Debe cargar un documento PDF.")
+
+    const multiList = Object.values(multiCoords)
+    const isMultiActive = stampMode === "MULTI" && multiList.length > 0
+
+    if (!isMultiActive && (!coords || coords.x <= 0)) {
+      return showWarning("Debe definir la ubicación de la firma en el documento.")
+    }
+
+    if (isGerente && tipoFirmaGerente === "MANUAL" && (!p12File || !password)) {
+      return showWarning("Debe cargar su archivo .p12 e ingresar la contraseña.")
+    }
+    if (!isGerente && !hasGlobalFirma) {
+      return showWarning("No existe firma corporativa configurada.")
+    }
 
     const formData = new FormData()
     formData.append("documento", pdfPrincipal)
-    formData.append("x", coords.x)
-    formData.append("y", coords.y)
-    formData.append("page", coords.page)
 
-    if (isGerente && p12File && password) {
+    if (isMultiActive) {
+      formData.append("firmas_coords", JSON.stringify(multiList.map((m) => ({ page: m.page, x: m.x, y: m.y }))))
+    } else {
+      formData.append("x", coords.x)
+      formData.append("y", coords.y)
+      formData.append("page", coords.page)
+    }
+
+    if (isGerente && tipoFirmaGerente === "MANUAL" && p12File && password) {
       formData.append("firma", p12File)
       formData.append("password", password)
     }
@@ -254,10 +344,12 @@ const FirmarPDFDF = () => {
   }
 
   const handleValidarP12 = async () => {
-    if (isGerente && (!p12File || !password)) return showWarning("Debe cargar el archivo .p12 e ingresar la clave")
+    if (isGerente && tipoFirmaGerente === "MANUAL" && (!p12File || !password)) {
+      return showWarning("Debe cargar el archivo .p12 e ingresar la clave")
+    }
 
     const formData = new FormData()
-    if (isGerente && p12File && password) {
+    if (isGerente && tipoFirmaGerente === "MANUAL" && p12File && password) {
       formData.append("firma", p12File)
       formData.append("password", password)
     }
@@ -287,6 +379,8 @@ const FirmarPDFDF = () => {
     setLoading(false)
   }
 
+  const totalPaginasFirmadas = Object.keys(multiCoords).length
+
   return (
     <ThemeProvider theme={theme}>
       <Header />
@@ -294,6 +388,7 @@ const FirmarPDFDF = () => {
         <BackIcon />
         <CustomBackdrop isLoading={loading || configLoading} />
 
+        {/* MODAL DE UBICACIÓN INTERACTIVA DE FIRMA */}
         <Dialog open={openPreview} onClose={() => setOpenPreview(false)} maxWidth="md" fullWidth>
           <DialogTitle
             sx={{
@@ -305,19 +400,26 @@ const FirmarPDFDF = () => {
             }}
           >
             <Typography variant="h6">
-              Ubicación de Firma - Página {currentPage} de {maxPages}
+              {stampMode === "MULTI" ? "Estampado Multipágina" : "Ubicación de Firma"} - Página {currentPage} de{" "}
+              {maxPages}
             </Typography>
             <Stack direction="row" spacing={1}>
               <IconButton
                 color="inherit"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                onClick={() => {
+                  setCurrentPage((p) => Math.max(1, p - 1))
+                  setTempStamp(null)
+                }}
                 disabled={currentPage <= 1}
               >
                 <ArrowBackIosIcon fontSize="small" />
               </IconButton>
               <IconButton
                 color="inherit"
-                onClick={() => setCurrentPage((p) => Math.min(maxPages, p + 1))}
+                onClick={() => {
+                  setCurrentPage((p) => Math.min(maxPages, p + 1))
+                  setTempStamp(null)
+                }}
                 disabled={currentPage >= maxPages}
               >
                 <ArrowForwardIosIcon fontSize="small" />
@@ -329,7 +431,7 @@ const FirmarPDFDF = () => {
           >
             <Box
               onClick={handlePdfClick}
-              sx={{ cursor: "crosshair", width: "100%", height: "100%", overflow: "hidden" }}
+              sx={{ cursor: "crosshair", width: "100%", height: "100%", position: "relative", overflow: "hidden" }}
             >
               <iframe
                 key={currentPage}
@@ -339,11 +441,156 @@ const FirmarPDFDF = () => {
                 height="100%"
                 style={{ border: "none", pointerEvents: "none", overflow: "hidden" }}
               />
-              <Box sx={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 10 }} />
+
+              {/* Capa invisible para atrapar clics */}
+              <Box sx={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 5 }} />
+
+              {/* DIBUJADO DE PREVISUALIZACIÓN DEL SELLO (TEMPORAL ANTES DE ACEPTAR) */}
+              {tempStamp && tempStamp.page === currentPage && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    left: tempStamp.renderBox.left,
+                    top: tempStamp.renderBox.top,
+                    width: tempStamp.renderBox.width,
+                    height: tempStamp.renderBox.height,
+                    border: "2px dashed #196C87",
+                    backgroundColor: "rgba(255, 255, 255, 0.92)",
+                    boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+                    borderRadius: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "4px",
+                    zIndex: 10,
+                    pointerEvents: "none",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: "36px",
+                      height: "36px",
+                      border: "1px solid #333",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      mr: 1,
+                    }}
+                  >
+                    <QrCode2Icon sx={{ fontSize: "28px", color: "#196C87" }} />
+                  </Box>
+                  <Box sx={{ overflow: "hidden" }}>
+                    <Typography variant="caption" sx={{ fontSize: "8px", display: "block", color: "#555" }}>
+                      Firmado electrónicamente por:
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontSize: "9px", fontWeight: "bold", color: "#000" }}>
+                      FIRMA ELECTRÓNICA
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+
+              {/* DIBUJADO DE FIRMA FIJADA EN ESTA PÁGINA (MODO MULTI) */}
+              {stampMode === "MULTI" && multiCoords[currentPage] && !tempStamp && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    left: multiCoords[currentPage].renderBox.left,
+                    top: multiCoords[currentPage].renderBox.top,
+                    width: multiCoords[currentPage].renderBox.width,
+                    height: multiCoords[currentPage].renderBox.height,
+                    border: "2px solid #2e7d32",
+                    backgroundColor: "rgba(255, 255, 255, 0.95)",
+                    boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+                    borderRadius: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "4px",
+                    zIndex: 9,
+                    pointerEvents: "none",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: "36px",
+                      height: "36px",
+                      border: "1px solid #2e7d32",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      mr: 1,
+                    }}
+                  >
+                    <QrCode2Icon sx={{ fontSize: "28px", color: "#2e7d32" }} />
+                  </Box>
+                  <Box sx={{ overflow: "hidden" }}>
+                    <Typography variant="caption" sx={{ fontSize: "8px", display: "block", color: "#555" }}>
+                      Firmado electrónicamente por:
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontSize: "9px", fontWeight: "bold", color: "#2e7d32" }}>
+                      FIRMA FIJADA
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+
+              {/* DIBUJADO DE FIRMA FIJADA (MODO SINGLE) */}
+              {stampMode === "SINGLE" && coords.renderBox && coords.page === currentPage - 1 && !tempStamp && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    left: coords.renderBox.left,
+                    top: coords.renderBox.top,
+                    width: coords.renderBox.width,
+                    height: coords.renderBox.height,
+                    border: "2px solid #2e7d32",
+                    backgroundColor: "rgba(255, 255, 255, 0.95)",
+                    boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+                    borderRadius: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "4px",
+                    zIndex: 9,
+                    pointerEvents: "none",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: "36px",
+                      height: "36px",
+                      border: "1px solid #2e7d32",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      mr: 1,
+                    }}
+                  >
+                    <QrCode2Icon sx={{ fontSize: "28px", color: "#2e7d32" }} />
+                  </Box>
+                  <Box sx={{ overflow: "hidden" }}>
+                    <Typography variant="caption" sx={{ fontSize: "8px", display: "block", color: "#555" }}>
+                      Firmado electrónicamente por:
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontSize: "9px", fontWeight: "bold", color: "#2e7d32" }}>
+                      FIRMA FIJADA
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
             </Box>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenPreview(false)}>Cancelar</Button>
+          <DialogActions sx={{ p: 2, justifyContent: "space-between" }}>
+            <Button onClick={() => setOpenPreview(false)} color="inherit">
+              {stampMode === "MULTI" ? "Listo / Cerrar" : "Cancelar"}
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<CheckCircleOutlineIcon />}
+              onClick={handleConfirmLocation}
+              disabled={!tempStamp}
+            >
+              Aceptar y Fijar Ubicación
+            </Button>
           </DialogActions>
         </Dialog>
 
@@ -362,7 +609,7 @@ const FirmarPDFDF = () => {
               </AccordionSummary>
               <AccordionDetails>
                 <Grid container spacing={3}>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12}>
                     <Button
                       variant="outlined"
                       component="label"
@@ -370,29 +617,52 @@ const FirmarPDFDF = () => {
                       startIcon={<CloudUploadIcon />}
                       sx={{ height: "56px", borderStyle: "dashed" }}
                     >
-                      {pdfPrincipal ? pdfPrincipal.name : "Subir PDF"}
+                      {pdfPrincipal ? pdfPrincipal.name : "Subir PDF a Firmar"}
                       <input type="file" hidden accept=".pdf" onChange={handlePdfUpload} />
                     </Button>
                   </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Button
-                      variant="contained"
-                      color="info"
-                      fullWidth
-                      sx={{ height: "56px" }}
-                      disabled={!pdfPrincipal}
-                      onClick={() => handleOpenPreview(pdfPrincipal)}
-                    >
-                      UBICAR FIRMA EN PÁGINA
-                    </Button>
-                  </Grid>
 
-                  {isGerente ? (
+                  {/* OPCIÓN PARA GERENTES: SELECCIÓN DE FIRMA CORPORATIVA O MANUAL */}
+                  {isGerente && (
+                    <Grid item xs={12}>
+                      <MuiPaper variant="outlined" sx={{ p: 2, bgcolor: "#fafafa" }}>
+                        <FormControl component="fieldset">
+                          <FormLabel component="legend" sx={{ fontWeight: "bold", color: "#196C87" }}>
+                            Origen de la Firma Electrónica:
+                          </FormLabel>
+                          <RadioGroup
+                            row
+                            value={tipoFirmaGerente}
+                            onChange={(e) => setTipoFirmaGerente(e.target.value)}
+                          >
+                            <FormControlLabel
+                              value="CORP"
+                              control={<Radio />}
+                              label="Firma Electrónica Corporativa configurada"
+                            />
+                            <FormControlLabel
+                              value="MANUAL"
+                              control={<Radio />}
+                              label="Cargar Firma diferente (.p12 manual)"
+                            />
+                          </RadioGroup>
+                        </FormControl>
+                      </MuiPaper>
+                    </Grid>
+                  )}
+
+                  {/* CARGA MANUAL SI ES GERENTE Y ELIGIÓ MANUAL */}
+                  {isGerente && tipoFirmaGerente === "MANUAL" && (
                     <>
                       <Grid item xs={12} md={6}>
                         <Button variant="outlined" component="label" fullWidth sx={{ height: "56px" }}>
-                          {p12File ? "Firma Cargada ✓" : "Cargar Archivo .p12"}
-                          <input type="file" hidden accept=".p12" onChange={(e) => setP12File(e.target.files[0])} />
+                          {p12File ? p12File.name : "Cargar Archivo .p12"}
+                          <input
+                            type="file"
+                            hidden
+                            accept=".p12,.pfx"
+                            onChange={(e) => setP12File(e.target.files[0])}
+                          />
                         </Button>
                       </Grid>
                       <Grid item xs={12} md={6}>
@@ -405,28 +675,89 @@ const FirmarPDFDF = () => {
                         />
                       </Grid>
                     </>
-                  ) : (
+                  )}
+
+                  {/* MENSAJE PARA USUARIO NORMAL O GERENTE EN MODO CORPORATIVO */}
+                  {(!isGerente || (isGerente && tipoFirmaGerente === "CORP")) && (
                     <Grid item xs={12}>
                       <Alert severity={hasGlobalFirma ? "success" : "warning"}>
                         {hasGlobalFirma
                           ? "El sistema utilizará la Firma Electrónica Corporativa configurada."
-                          : "No existe una Firma Corporativa configurada. Contacte al administrador del sistema."}
+                          : "No existe una Firma Corporativa configurada en esta localidad. Contacte al administrador."}
                       </Alert>
                     </Grid>
                   )}
 
+                  {/* BOTONES DE DEFINICIÓN DE COORDENADAS */}
+                  <Grid item xs={12} md={6}>
+                    <Button
+                      variant="contained"
+                      color="info"
+                      fullWidth
+                      sx={{ height: "56px" }}
+                      disabled={!pdfPrincipal}
+                      onClick={() => handleOpenPreviewModal("SINGLE")}
+                    >
+                      UBICAR FIRMA EN UNA PÁGINA
+                    </Button>
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      fullWidth
+                      startIcon={<LayersIcon />}
+                      sx={{ height: "56px" }}
+                      disabled={!pdfPrincipal}
+                      onClick={() => handleOpenPreviewModal("MULTI")}
+                    >
+                      UBICAR FIRMAS EN MÚLTIPLES PÁGINAS
+                    </Button>
+                  </Grid>
+
+                  {/* RESUMEN DE UBICACIÓN */}
                   <Grid item xs={12}>
-                    {coords.x > 0 && (
-                      <Alert severity="info" sx={{ mb: 2 }}>
-                        Listo para estampar firma en <b>Página {coords.page + 1}</b>
+                    {stampMode === "SINGLE" && coords.x > 0 && (
+                      <Alert severity="info">
+                        Firma individual configurada para estamparse en <b>Página {coords.page + 1}</b>.
                       </Alert>
                     )}
+
+                    {stampMode === "MULTI" && totalPaginasFirmadas > 0 && (
+                      <MuiPaper variant="outlined" sx={{ p: 2, bgcolor: "#f1f8e9" }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1, color: "#2e7d32" }}>
+                          Páginas seleccionadas para firmar ({totalPaginasFirmadas}):
+                        </Typography>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                          {Object.values(multiCoords).map((m) => (
+                            <Chip
+                              key={m.pageNumber}
+                              label={`Página ${m.pageNumber}`}
+                              color="success"
+                              onDelete={() => handleRemovePageCoord(m.pageNumber)}
+                            />
+                          ))}
+                        </Stack>
+                      </MuiPaper>
+                    )}
+                  </Grid>
+
+                  {/* BOTÓN FINAL DE GENERACIÓN */}
+                  <Grid item xs={12}>
                     <Button
                       variant="contained"
                       fullWidth
                       size="large"
                       onClick={handleFirmarVisual}
-                      disabled={!coords.x || (!isGerente && !hasGlobalFirma) || (isGerente && (!password || !p12File))}
+                      disabled={
+                        !pdfPrincipal ||
+                        (stampMode === "SINGLE" && coords.x <= 0) ||
+                        (stampMode === "MULTI" && totalPaginasFirmadas === 0) ||
+                        (!isGerente && !hasGlobalFirma) ||
+                        (isGerente && tipoFirmaGerente === "MANUAL" && (!password || !p12File))
+                      }
+                      sx={{ height: "56px", fontWeight: "bold" }}
                     >
                       GENERAR DOCUMENTO FIRMADO
                     </Button>
@@ -445,12 +776,17 @@ const FirmarPDFDF = () => {
               </AccordionSummary>
               <AccordionDetails>
                 <Grid container spacing={2}>
-                  {isGerente ? (
+                  {isGerente && tipoFirmaGerente === "MANUAL" ? (
                     <>
                       <Grid item xs={12} md={5}>
                         <Button variant="outlined" component="label" fullWidth sx={{ height: "56px" }}>
                           {p12File ? p12File.name : "Seleccionar .p12"}
-                          <input type="file" hidden accept=".p12" onChange={(e) => setP12File(e.target.files[0])} />
+                          <input
+                            type="file"
+                            hidden
+                            accept=".p12,.pfx"
+                            onChange={(e) => setP12File(e.target.files[0])}
+                          />
                         </Button>
                       </Grid>
                       <Grid item xs={12} md={4}>
@@ -482,7 +818,10 @@ const FirmarPDFDF = () => {
                       fullWidth
                       sx={{ height: "56px" }}
                       onClick={handleValidarP12}
-                      disabled={(!isGerente && !hasGlobalFirma) || (isGerente && (!p12File || !password))}
+                      disabled={
+                        (!isGerente && !hasGlobalFirma) ||
+                        (isGerente && tipoFirmaGerente === "MANUAL" && (!p12File || !password))
+                      }
                     >
                       VERIFICAR
                     </Button>

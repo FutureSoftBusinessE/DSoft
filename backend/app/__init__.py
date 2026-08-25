@@ -387,9 +387,18 @@ def create_app(config_class=Config):
     from app.CatalogodeProductos import bp as CatalogodeProductos_bp
 
     app.register_blueprint(CatalogodeProductos_bp, url_prefix="/CatalogodeProductos")
+
     from app.ActualizaClaveOlvidada import bp as ActualizaClaveOlvidada_bp
 
     app.register_blueprint(ActualizaClaveOlvidada_bp, url_prefix="/ActualizaClaveOlvidada")
+
+    from app.TransCliAsesor import bp as TransCliAsesor_bp
+
+    app.register_blueprint(TransCliAsesor_bp, url_prefix="/TransCliAsesor")
+
+    from app.TransEvenAsesor import bp as TransEvenAsesor_bp
+
+    app.register_blueprint(TransEvenAsesor_bp, url_prefix="/TransEvenAsesor")
 
     # ************************************************************
     #  RUTAS BASE Y HERRAMIENTAS DE DESARROLLO (SOLO LOCAL)

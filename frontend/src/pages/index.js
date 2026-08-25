@@ -308,6 +308,12 @@ import CrearCatalogodeProductos from "./CatalogodeProductos/Crear"
 import EditarCatalogodeProductos from "./CatalogodeProductos/Editar"
 import BuscarCatalogodeProductos from "./CatalogodeProductos/Buscar"
 
+// TransCliAsesor
+import TransCliAsesor from "./TransCliAsesor"
+
+// TransEvenAsesor
+import TransEvenAsesor from "./TransEvenAsesor"
+
 export {
   Login,
   LoginInner,
@@ -488,4 +494,6 @@ export {
   CrearCatalogodeProductos,
   EditarCatalogodeProductos,
   BuscarCatalogodeProductos,
+  TransCliAsesor,
+  TransEvenAsesor,
 }

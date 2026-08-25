@@ -30,59 +30,81 @@ def error_response(msg, status=400):
 
 
 def generar_sello_grafico(nombres, output_path):
-    # 1. Generar el código QR
-    qr_data = f"Firmado por: {nombres}\nFecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\nValidado por DSOFT"
+    # 1. Dimensiones base (Escala de alta resolución 500x120 -> Equivale perfecto a los 200x48 pt del PDF)
+    img_w = 500
+    img_h = 120
+    base_img = Image.new("RGB", (img_w, img_h), "white")
+    draw = ImageDraw.Draw(base_img)
 
-    # Reducimos el box_size a 3 y aseguramos un margen blanco (border=2)
-    qr = qrcode.QRCode(box_size=3, border=2)
+    # 2. Generar el código QR (border=0 elimina el margen blanco que impedía el ajuste)
+    qr_data = f"Firmado electrónicamente por:\n{nombres}\nFecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    qr = qrcode.QRCode(version=1, box_size=10, border=0)
     qr.add_data(qr_data)
     qr.make(fit=True)
     qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
-    qr_w, qr_h = qr_img.size
 
-    # 2. Crear lienzo (400x120 pixeles para mantener una relación 200x60 en PDF)
-    img_w = 400
-    img_h = 120
-    base_img = Image.new("RGB", (img_w, img_h), "white")
+    # Redimensionar el QR para que ocupe exactamente todo el alto del lienzo
+    qr_img = qr_img.resize((img_h, img_h), Image.LANCZOS)
 
-    # 3. Pegar el QR a la izquierda (centrado verticalmente)
-    qr_y = (img_h - qr_h) // 2
-    base_img.paste(qr_img, (5, qr_y))
+    # Pegar el QR en la esquina superior izquierda
+    base_img.paste(qr_img, (0, 0))
 
-    # 4. Preparar las fuentes (Con fallback si no existen las fuentes del sistema)
-    draw = ImageDraw.Draw(base_img)
+    # 3. Dibujar el recuadro negro exterior característico de FirmaEC
+    # draw.rectangle([0, 0, img_w - 1, img_h - 1], outline="black", width=2)
+
+    # 4. Fuentes (Buscamos la típica tipografía Courier/Monoespaciada de la firma del estado)
     try:
         if os.name == "nt":  # Windows
-            font_small = ImageFont.truetype("arial.ttf", 11)
-            font_large = ImageFont.truetype("arialbd.ttf", 16)
+            font_small = ImageFont.truetype("cour.ttf", 12)
+            font_large = ImageFont.truetype("courbd.ttf", 18)
         else:  # Linux/Mac
-            font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 11)
-            font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
+            font_small = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf", 12)
+            font_large = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf", 18)
     except Exception:
+        # Fallback de seguridad
         font_small = ImageFont.load_default()
         font_large = ImageFont.load_default()
 
-    # 5. Dibujar los textos
-    text_x = qr_w + 10
+    # 5. Posicionamiento X (Alineado a la derecha del QR con un poco de padding)
+    text_x = img_h + 15
 
-    # Se dibuja la etiqueta de "Firmado electrónicamente por:" en color negro
-    draw.text((text_x, 35), "Firmado electrónicamente por:", fill=(0, 0, 0), font=font_small)
+    # 6. Textos descriptivos pequeños
+    # draw.text((text_x, 15), "Validar únicamente en FirmaEC.", fill=(80, 80, 80), font=font_small)
+    draw.text((text_x, 32), "Firmado electrónicamente por:", fill=(80, 80, 80), font=font_small)
 
-    # Lógica para partir el nombre en dos líneas si es muy largo (ej. 4 nombres)
+    # 7. Procesar el Nombre Completo
     nombres_upper = str(nombres).upper().strip()
     parts = nombres_upper.split()
+
+    # Separación inteligente para evitar que se desborde el texto
     if len(parts) >= 4:
-        name_str = f"{parts[0]} {parts[1]}\n{parts[2]} {parts[3]}"
+        line1 = f"{parts[0]} {parts[1]}"
+        line2 = " ".join(parts[2:])
     elif len(parts) == 3:
-        name_str = f"{parts[0]} {parts[1]}\n{parts[2]}"
+        line1 = f"{parts[0]} {parts[1]}"
+        line2 = parts[2]
     else:
-        name_str = nombres_upper
+        line1 = nombres_upper
+        line2 = ""
 
-    # Dibujar el nombre en color NEGRO (0, 0, 0)
-    draw.text((text_x, 60), name_str, fill=(0, 0, 0), font=font_large)
+    # Efecto Sombra (La firma EC tiene un característico delineado cyan/azul bajo el nombre negro)
+    # shadow_color = (0, 0, 0)  # Azul claro
+    text_color = (0, 0, 0)  # Negro
 
-    # 6. Guardar la imagen final
-    base_img.save(output_path, format="JPEG", quality=95)
+    y_line1 = 55
+    y_line2 = 80
+
+    # Dibujar Línea 1 (Primero la sombra con desplazamiento, luego el texto)
+    # draw.text((text_x + 2, y_line1 + 2), line1, fill=shadow_color, font=font_large)
+    draw.text((text_x, y_line1), line1, fill=text_color, font=font_large)
+
+    # Dibujar Línea 2 (Primero la sombra con desplazamiento, luego el texto)
+    if line2:
+        # draw.text((text_x + 2, y_line2 + 2), line2, fill=shadow_color, font=font_large)
+        draw.text((text_x, y_line2), line2, fill=text_color, font=font_large)
+
+    # 8. Guardar la imagen final
+    base_img.save(output_path, format="JPEG", quality=100)
 
 
 @bp.route("/firmarDocumentoVisualDF", methods=["POST"])
@@ -97,12 +119,24 @@ def firmarDocumentoVisualDF():
     p12_file = request.files.get("firma")
     password = request.form.get("password")
 
-    try:
-        page = int(request.form.get("page", 0))
-        x = int(request.form.get("x", 100))
-        y = int(request.form.get("y", 100))
-    except Exception as e:
-        raise APIError(str(e))
+    # Soporte multipágina y compatibilidad con coordenada individual
+    firmas_coords_raw = request.form.get("firmas_coords")
+    coords_list = []
+
+    if firmas_coords_raw:
+        try:
+            coords_list = json.loads(firmas_coords_raw)
+        except Exception:
+            coords_list = []
+
+    if not coords_list:
+        try:
+            page = int(request.form.get("page", 0))
+            x = int(request.form.get("x", 100))
+            y = int(request.form.get("y", 100))
+            coords_list = [{"page": page, "x": x, "y": y}]
+        except Exception as e:
+            raise APIError(str(e))
 
     if not pdf_file:
         return error_response("Falta el Documento PDF.")
@@ -156,7 +190,11 @@ def firmarDocumentoVisualDF():
         except Exception:
             nombres = "Firma Electrónica Autorizada"
 
-        pem_key = private_key.private_bytes(encoding=serialization.Encoding.PEM, format=serialization.PrivateFormat.PKCS8, encryption_algorithm=serialization.NoEncryption())
+        pem_key = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
         pem_cert = certificate.public_bytes(serialization.Encoding.PEM)
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as tmp_key:
@@ -169,7 +207,7 @@ def firmarDocumentoVisualDF():
 
         signer = signers.SimpleSigner.load(tmp_key_path, tmp_cert_path)
 
-        # GENERACIÓN DEL SELLO VISUAL (Pillow)
+        # Generación del sello visual con la nueva función idéntica a FirmaEC
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpeg") as tmp_img:
             generar_sello_grafico(nombres, tmp_img.name)
             tmp_img_path = tmp_img.name
@@ -179,24 +217,27 @@ def firmarDocumentoVisualDF():
             tmp_pdf.write(pdf_file.read())
             tmp_pdf_path = tmp_pdf.name
 
-        with open(tmp_pdf_path, "r+b") as doc:
-            w = IncrementalPdfFileWriter(doc, strict=False)
-            sig_field_name = f"Firma_DSOFT_{int(datetime.now().timestamp())}"
+        stamp_style = StaticStampStyle(background=PdfImage(tmp_img_path), border_width=0)
 
-            # CAJA DE FIRMA: Se ajusta al tamaño (200x60) exacto de la relación visual generada
-            box = (x, y, x + 200, y + 60)
+        for idx, item in enumerate(coords_list):
+            p_page = int(item.get("page", 0))
+            p_x = int(item.get("x", 100))
+            p_y = int(item.get("y", 100))
 
-            try:
-                fields.append_signature_field(w, fields.SigFieldSpec(sig_field_name=sig_field_name, on_page=page, box=box))
-            except Exception:
-                fields.append_signature_field(w, fields.SigFieldSpec(sig_field_name=sig_field_name, on_page=0, box=box))
+            with open(tmp_pdf_path, "r+b") as doc:
+                w = IncrementalPdfFileWriter(doc, strict=False)
+                sig_field_name = f"Firma_DSOFT_{int(datetime.now().timestamp())}_{idx}"
+                # Caja ajustada a los 48 Puntos requeridos
+                box = (p_x, p_y, p_x + 200, p_y + 48)
 
-            # SOLUCIÓN DEL BORDE: Agregamos border_width=0 a StaticStampStyle
-            stamp_style = StaticStampStyle(background=PdfImage(tmp_img_path), border_width=0)
+                try:
+                    fields.append_signature_field(w, fields.SigFieldSpec(sig_field_name=sig_field_name, on_page=p_page, box=box))
+                except Exception:
+                    fields.append_signature_field(w, fields.SigFieldSpec(sig_field_name=sig_field_name, on_page=0, box=box))
 
-            meta = signers.PdfSignatureMetadata(field_name=sig_field_name)
-            pdf_signer = signers.PdfSigner(signature_meta=meta, signer=signer, stamp_style=stamp_style)
-            pdf_signer.sign_pdf(w, in_place=True)
+                meta = signers.PdfSignatureMetadata(field_name=sig_field_name)
+                pdf_signer = signers.PdfSigner(signature_meta=meta, signer=signer, stamp_style=stamp_style)
+                pdf_signer.sign_pdf(w, in_place=True)
 
         with open(tmp_pdf_path, "rb") as final_doc:
             final_bytes = final_doc.read()
@@ -204,7 +245,12 @@ def firmarDocumentoVisualDF():
         out_stream = io.BytesIO(final_bytes)
         out_stream.seek(0)
         safe_filename = getattr(pdf_file, "filename", "Documento_DSOFT.pdf")
-        return send_file(out_stream, mimetype="application/pdf", as_attachment=True, download_name=f"FIRMADO_EC_{safe_filename}")
+        return send_file(
+            out_stream,
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=f"FIRMADO_EC_{safe_filename}",
+        )
 
     except Exception as e:
         raise APIError(str(e))

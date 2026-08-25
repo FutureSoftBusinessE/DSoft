@@ -219,6 +219,12 @@ import {
   BuscarCatalogodeProductos,
 } from "../pages"
 
+// TransCliAsesor
+import { TransCliAsesor } from "../pages"
+
+// TransEvenAsesor
+import { TransEvenAsesor } from "../pages"
+
 const protectedRoutes = [
   { path: "Submenu/:label/:id", element: <SubMenu /> },
   { path: "dashboard/AccesoACompañiasYModulos", element: <AccesoACompañiasYModulos /> },
@@ -395,6 +401,8 @@ const protectedRoutes = [
   { path: "dashboard/CatalogodeProductos/crear", element: <CrearCatalogodeProductos /> },
   { path: "dashboard/CatalogodeProductos/editar", element: <EditarCatalogodeProductos /> },
   { path: "dashboard/CatalogodeProductos/buscar", element: <BuscarCatalogodeProductos /> },
+  { path: "dashboard/TransCliAsesor", element: <TransCliAsesor /> },
+  { path: "dashboard/TransEvenAsesor", element: <TransEvenAsesor /> },
 ]
 
 export default protectedRoutes

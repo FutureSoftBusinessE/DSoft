@@ -48,10 +48,11 @@ def getAllPerfilUsuarioDF():
                 data["cialogo_base64"] = f"data:image/jpeg;base64,{base64.b64encode(logo).decode('utf-8')}" if logo else None
                 data["ciaselloagua_base64"] = f"data:image/jpeg;base64,{base64.b64encode(sello).decode('utf-8')}" if sello else None
 
-            # 2. Obtener parámetros de email (Tabla: cgblocal)
+            # 2. Obtener parámetros de email y Firma Activa (Tabla: cgblocal)
+            # AJUSTE: Agregamos locpathxml a la consulta
             query_loc = text(
                 """
-                SELECT emailsmtp, emailmascara, emailsalida, emailtema, emailmensaje, emailsubject
+                SELECT emailsmtp, emailmascara, emailsalida, emailtema, emailmensaje, emailsubject, locpathxml
                 FROM cgblocal
                 WHERE ciacodigo = :ciacodigo AND loccodigo = :loccodigo
             """
@@ -66,6 +67,7 @@ def getAllPerfilUsuarioDF():
                 data["emailtema"] = res_loc.get("emailtema", "") or ""
                 data["emailmensaje"] = res_loc.get("emailmensaje", "") or ""
                 data["emailsubject"] = res_loc.get("emailsubject", "") or ""
+                data["locpathxml"] = res_loc.get("locpathxml", "") or ""
 
         # Retorno directo SIN jsonify, tal cual como en getAllSubTiposPPE.py
         return {"success": True, "data": data}, 200

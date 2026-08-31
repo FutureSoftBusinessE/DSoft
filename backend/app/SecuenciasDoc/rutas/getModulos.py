@@ -25,11 +25,11 @@ def getModulos():
         # Extraemos los módulos distintos directamente de siacdoc
         query = text(
             """
-            SELECT DISTINCT
+            SELECT
                 modcodigo,
-                modcodigo AS moddescri
-            FROM siacdoc
-            WHERE docstatus = 'A'
+                moddescri
+            FROM siacmod
+            WHERE modstatus = 'A'
             ORDER BY modcodigo ASC
             """
         )

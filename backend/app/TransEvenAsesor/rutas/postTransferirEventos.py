@@ -3,7 +3,6 @@ from flask_jwt_extended import get_jwt, jwt_required
 from sqlalchemy import text
 from datetime import datetime
 
-# Asumiendo que el Blueprint fue creado en __init__.py
 from app.TransEvenAsesor import bp
 from app.extensions import db
 from app.db import get_session
@@ -33,6 +32,7 @@ def transferirEventos():
     data = request.get_json()
     usrcodigo_origen = data.get("usrcodigo_origen")
     usrcodigo_destino = data.get("usrcodigo_destino")
+    eventos_seleccionados = data.get("eventos_seleccionados", [])
 
     # 4. Validaciones de negocio
     if not usrcodigo_origen or str(usrcodigo_origen).strip() == "":
@@ -41,10 +41,29 @@ def transferirEventos():
         raise ValidationError("Debe seleccionar un Asesor de Destino.")
     if str(usrcodigo_origen).strip() == str(usrcodigo_destino).strip():
         raise ValidationError("El Asesor de origen y destino no pueden ser el mismo.")
+    if not eventos_seleccionados or not isinstance(eventos_seleccionados, list) or len(eventos_seleccionados) == 0:
+        raise ValidationError("Debe especificar al menos un evento para transferir.")
 
-    # Formateo en texto plano (como lo exige la tabla gdocmeventos)
     usrcodigo_origen_plano = str(usrcodigo_origen).strip()
     usrcodigo_destino_plano = str(usrcodigo_destino).strip()
+
+    # 5. Preparación dinámica de la cláusula IN para los eventos seleccionados
+    placeholders_eventos = []
+    params = {
+        "cia": sCodCia,
+        "usr_origen": usrcodigo_origen_plano,
+        "fecha": fecha_pura,
+        "hora": hora_pura,
+        "admin_usr": str(sUsuarioAdmin)[:10],
+        "estacion": str(sNomEst)[:50],
+    }
+
+    for idx, evento in enumerate(eventos_seleccionados):
+        key = f"evt_{idx}"
+        placeholders_eventos.append(f":{key}")
+        params[key] = str(evento)
+
+    in_clause_eventos = ", ".join(placeholders_eventos)
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
@@ -52,7 +71,6 @@ def transferirEventos():
     with engine.connect() as connection:
         with connection.begin():
             # --- A. OBTENER NOMBRE DEL ASESOR DESTINO ---
-            # Consultamos la tabla siaccusr usando el código encriptado
             usr_destino_enc = encriptar(usrcodigo_destino_plano)
             sql_usr = text(
                 """
@@ -66,14 +84,16 @@ def transferirEventos():
             if not res_usr:
                 raise ValidationError("El Asesor de Destino no existe en el sistema.")
 
-            # Desencriptamos el nombre para guardarlo en texto plano
             usrnombre_destino_plano = desencriptar(res_usr["usrnombre"]) if res_usr["usrnombre"] else ""
+            params["usr_destino"] = usrcodigo_destino_plano
+            params["nom_destino"] = str(usrnombre_destino_plano)[:100]
 
             # --- B. INSERCIÓN DEL HISTORIAL (gdocteventos) ---
-            comentario_historial = f"Reasignación administrativa masiva: Transferido desde el asesor {usrcodigo_origen_plano} hacia {usrcodigo_destino_plano}"
+            comentario_historial = f"Reasignación administrativa masiva selectiva: Transferido desde el asesor {usrcodigo_origen_plano} hacia {usrcodigo_destino_plano}"
+            params["comentario"] = comentario_historial
 
             sql_insert_historial = text(
-                """
+                f"""
                 INSERT INTO gdocteventos (
                     ciacodigo, loccodigo, eventocodigo, eventosecuen,
                     comentario, statusAnterior, statusNuevo, porcentajeavance,
@@ -84,7 +104,6 @@ def transferirEventos():
                 )
                 SELECT
                     ciacodigo, loccodigo, eventocodigo,
-                    -- Calculamos la siguiente secuencia disponible para este evento en el historial
                     COALESCE((
                         SELECT MAX(eventosecuen)
                         FROM gdocteventos sub
@@ -100,32 +119,20 @@ def transferirEventos():
                 FROM gdocmeventos
                 WHERE ciacodigo = :cia
                   AND usrcodigo = :usr_origen
+                  AND eventocodigo IN ({in_clause_eventos})
                   AND eventostatus IN ('PENDIENTE', 'EN_PROCESO')
                 """
             )
 
-            res_historial = connection.execute(
-                sql_insert_historial,
-                {
-                    "cia": sCodCia,
-                    "usr_origen": usrcodigo_origen_plano,
-                    "fecha": fecha_pura,
-                    "hora": hora_pura,
-                    "comentario": comentario_historial,
-                    "admin_usr": str(sUsuarioAdmin)[:10],
-                    "estacion": str(sNomEst)[:50],
-                },
-            )
-
+            res_historial = connection.execute(sql_insert_historial, params)
             eventos_transferidos = res_historial.rowcount
 
             if eventos_transferidos == 0:
-                # Si no hubo filas afectadas, el origen no tenía eventos activos.
-                return {"data": "El usuario origen no tenía eventos activos para transferir."}
+                return {"data": "Los eventos seleccionados no se encontraron activos en el origen."}
 
-            # --- C. ACTUALIZACIÓN MASIVA DE LOS EVENTOS (gdocmeventos) ---
+            # --- C. ACTUALIZACIÓN MASIVA DE LOS EVENTOS SELECCIONADOS (gdocmeventos) ---
             sql_update_eventos = text(
-                """
+                f"""
                 UPDATE gdocmeventos
                 SET usrcodigo = :usr_destino,
                     usrnombre = :nom_destino,
@@ -135,22 +142,11 @@ def transferirEventos():
                     eventoestmsys = :estacion
                 WHERE ciacodigo = :cia
                   AND usrcodigo = :usr_origen
+                  AND eventocodigo IN ({in_clause_eventos})
                   AND eventostatus IN ('PENDIENTE', 'EN_PROCESO')
                 """
             )
 
-            connection.execute(
-                sql_update_eventos,
-                {
-                    "cia": sCodCia,
-                    "usr_origen": usrcodigo_origen_plano,
-                    "usr_destino": usrcodigo_destino_plano,
-                    "nom_destino": str(usrnombre_destino_plano)[:100],
-                    "fecha": fecha_pura,
-                    "hora": hora_pura,
-                    "admin_usr": str(sUsuarioAdmin)[:10],
-                    "estacion": str(sNomEst)[:50],
-                },
-            )
+            connection.execute(sql_update_eventos, params)
 
-    return {"data": f"Transferencia exitosa. Se reasignaron {eventos_transferidos} eventos activos al asesor {usrcodigo_destino_plano} y se registró el historial."}
+    return {"data": f"Transferencia exitosa. Se reasignaron {eventos_transferidos} eventos activos al asesor {usrcodigo_destino_plano}."}

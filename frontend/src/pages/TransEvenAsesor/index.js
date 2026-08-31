@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import React, { useContext, useState } from "react"
+import React, { useContext, useState, useEffect } from "react"
 import Header from "../../layouts/Header"
 import BackIcon from "../../components/BackIcon"
 import {
@@ -14,6 +14,8 @@ import {
   Divider,
   Alert,
   Chip,
+  Button,
+  Checkbox,
 } from "@mui/material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import CustomBackdrop from "../../components/CustomBackdrop"
@@ -22,16 +24,18 @@ import normalFormatDate from "../utils/date/DDMMYYYFormatDate"
 import { useMutation, useQuery, api, showWarning, showSuccess } from "../../api"
 import { GlobalContext } from "../../contexts/GlobalContext"
 import getIconComponent from "../utils/getIconComponent"
+import { useNavigate } from "react-router-dom"
 
 // Íconos estándar
 import Save from "@mui/icons-material/Save"
 import EventNoteIcon from "@mui/icons-material/EventNote"
+import SelectAllIcon from "@mui/icons-material/SelectAll"
+import DeselectIcon from "@mui/icons-material/Deselect"
 
 const theme = createTheme({
   palette: { primary: { main: "#196C87" }, secondary: { main: "#2E7D32" }, warning: { main: "#ed6c02" } },
 })
 
-// CORRECCIÓN: StyledRoot ahora es un objeto plano de estilos, no un componente styled()
 const StyledRoot = {
   width: "100%",
   maxWidth: "1400px",
@@ -42,7 +46,39 @@ const StyledRoot = {
   boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
 }
 
-// Helper seguro para extraer solo la hora de un campo datetime de SQL Server (1900-01-01 HH:mm:ss)
+// =====================================================================
+// BUS DE EVENTOS Y SMART CHECKBOX (Para evitar memoización estricta de la tabla)
+// =====================================================================
+const selectionBus = {
+  listeners: new Set(),
+  selected: [],
+  set(newSelected) {
+    this.selected = newSelected
+    this.listeners.forEach((listener) => listener(this.selected))
+  },
+  subscribe(listener) {
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
+  },
+}
+
+const SmartCheckbox = ({ eventocodigo, onToggle }) => {
+  const [checked, setChecked] = useState(() => selectionBus.selected.includes(eventocodigo))
+
+  useEffect(() => {
+    // Suscripción reactiva independiente de la tabla
+    const unsubscribe = selectionBus.subscribe((currentSelected) => {
+      setChecked(currentSelected.includes(eventocodigo))
+    })
+    // Forzar lectura inicial por si el bus cambió antes del montaje
+    setChecked(selectionBus.selected.includes(eventocodigo))
+    return unsubscribe
+  }, [eventocodigo])
+
+  return <Checkbox checked={checked} onChange={() => onToggle(eventocodigo)} color="primary" sx={{ padding: 0 }} />
+}
+
+// Helper seguro para extraer solo la hora de un campo datetime de SQL Server
 const formatTime = (timeString) => {
   if (!timeString) return ""
   try {
@@ -56,19 +92,23 @@ const formatTime = (timeString) => {
 
 const TransEvenAsesorIndex = () => {
   const { selectedMenuInfo } = useContext(GlobalContext)
+  const navigate = useNavigate()
 
   // Estados de Selección
   const [selectedUserOrigen, setSelectedUserOrigen] = useState(null)
   const [selectedUserDestino, setSelectedUserDestino] = useState(null)
 
-  // Llave para forzar el refresco de la tabla de eventos tras una transferencia exitosa
+  // Estado principal de selecciones de los checkboxes
+  const [selectedEvents, setSelectedEvents] = useState([])
+
+  // Llave para forzar el refresco de la tabla de eventos
   const [refreshTableKey, setRefreshTableKey] = useState(1)
 
   // =====================================================================
   // QUERIES
   // =====================================================================
 
-  // Query: Obtener Usuarios Activos (Reutilizamos la ruta del módulo de Clientes)
+  // Query: Obtener Usuarios Activos
   const { data: rawUsuarios, isLoading: isLoadUsuarios } = useQuery({
     queryKey: ["getUsuariosActivosTransEventos"],
     queryFn: async () => {
@@ -83,13 +123,61 @@ const TransEvenAsesorIndex = () => {
     refetchOnWindowFocus: false,
   })
 
-  // Validación y filtrado exclusivo para usuarios "A" (Activos)
   const usuariosValidados = Array.isArray(rawUsuarios)
     ? rawUsuarios
     : Array.isArray(rawUsuarios?.data)
       ? rawUsuarios.data
       : []
   const listaUsuarios = usuariosValidados.filter((user) => user.usrstatus === "A")
+
+  // Query Background: Obtener TODOS los eventos del origen para el contador y el "Seleccionar Todos"
+  const { data: rawEventosOrigen, isLoading: isLoadEventos } = useQuery({
+    queryKey: ["getEventosActivosOrigenAll", selectedUserOrigen?.usrcodigo],
+    queryFn: async () => {
+      if (!selectedUserOrigen) return []
+      const res = await api.post("/TransEvenAsesor/getEventosOrigen", {
+        page: 1,
+        perPage: 99999, // Un número alto para traer el universo completo de IDs
+        externalFilters: { usrcodigo_origen: selectedUserOrigen.usrcodigo },
+      })
+      const eventos = res?.data?.data?.data || res?.data?.data || res?.data || []
+      return Array.isArray(eventos) ? eventos : []
+    },
+    enabled: !!selectedUserOrigen,
+  })
+
+  const listaEventosOrigen = Array.isArray(rawEventosOrigen) ? rawEventosOrigen : []
+
+  // Auto-seleccionar todos los eventos por defecto al cargar el origen
+  useEffect(() => {
+    if (listaEventosOrigen.length > 0) {
+      setSelectedEvents(listaEventosOrigen.map((e) => e.eventocodigo))
+    } else {
+      setSelectedEvents([])
+    }
+  }, [rawEventosOrigen])
+
+  // Sincronizar el estado de React con el Bus de Eventos para que los SmartCheckboxes reaccionen
+  useEffect(() => {
+    selectionBus.set(selectedEvents)
+  }, [selectedEvents])
+
+  // =====================================================================
+  // CONTROLADORES DE SELECCIÓN DE EVENTOS
+  // =====================================================================
+  const handleToggleEvent = (eventocodigo) => {
+    setSelectedEvents((prev) =>
+      prev.includes(eventocodigo) ? prev.filter((id) => id !== eventocodigo) : [...prev, eventocodigo],
+    )
+  }
+
+  const handleSelectAll = () => {
+    setSelectedEvents(listaEventosOrigen.map((e) => e.eventocodigo))
+  }
+
+  const handleDeselectAll = () => {
+    setSelectedEvents([])
+  }
 
   // =====================================================================
   // MUTACIÓN TRANSACCIONAL
@@ -101,37 +189,39 @@ const TransEvenAsesorIndex = () => {
       return response.data
     },
     showError: "modal",
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       const mensaje = res?.data || res?.message || "Transferencia de eventos exitosa."
-      showSuccess(mensaje)
+      await showSuccess(mensaje)
 
-      // Limpiamos los estados
-      setSelectedUserOrigen(null)
-      setSelectedUserDestino(null)
-
-      // Cambiamos la llave de la tabla para que se renderice limpia
-      setRefreshTableKey((prev) => prev + 1)
+      // Refrescamos la vista para limpiar caché y estados
+      navigate(0)
     },
   })
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault()
 
-    // Validaciones del frontend
     if (!selectedUserOrigen) return showWarning("Debe seleccionar un Asesor de Origen.")
     if (!selectedUserDestino) return showWarning("Debe seleccionar un Asesor de Destino.")
     if (selectedUserOrigen.usrcodigo === selectedUserDestino.usrcodigo) {
       return showWarning("El Asesor de origen y destino no pueden ser el mismo.")
     }
+    if (listaEventosOrigen.length === 0) {
+      return showWarning("El Asesor de origen no tiene eventos activos para transferir.")
+    }
+    if (selectedEvents.length === 0) {
+      return showWarning("Debe seleccionar al menos un evento para transferir.")
+    }
 
     const payload = {
       usrcodigo_origen: selectedUserOrigen.usrcodigo,
       usrcodigo_destino: selectedUserDestino.usrcodigo,
+      eventos_seleccionados: selectedEvents,
     }
 
     if (
       window.confirm(
-        `¿Está seguro que desea transferir los eventos activos de ${selectedUserOrigen.usrcodigo} hacia ${selectedUserDestino.usrcodigo}?\n\nEsta acción registrará auditoría en el historial de tareas.`,
+        `¿Está seguro que desea transferir ${selectedEvents.length} evento(s) activo(s) de ${selectedUserOrigen.usrcodigo} hacia ${selectedUserDestino.usrcodigo}?\n\nEsta acción registrará auditoría en el historial de tareas.`,
       )
     ) {
       await TransferirEventos(payload)
@@ -166,7 +256,7 @@ const TransEvenAsesorIndex = () => {
             <Tooltip title={action.label} key={action.key}>
               <IconButton
                 onClick={handleSubmit}
-                disabled={isLoadingGlobal || !selectedUserOrigen || !selectedUserDestino}
+                disabled={isLoadingGlobal || !selectedUserOrigen || !selectedUserDestino || selectedEvents.length === 0}
                 sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, mr: 1, background: "white" }}
               >
                 {action.icon}
@@ -249,15 +339,39 @@ const TransEvenAsesorIndex = () => {
 
           {/* VISOR DE AUDITORÍA (GRILLA DE EVENTOS ACTIVOS) */}
           <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
-            <Typography variant="h6" color="secondary" gutterBottom sx={{ display: "flex", alignItems: "center" }}>
-              <EventNoteIcon sx={{ mr: 1 }} />
-              Eventos Activos a Transferir
-            </Typography>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+              <Typography variant="h6" color="secondary" sx={{ display: "flex", alignItems: "center" }}>
+                <EventNoteIcon sx={{ mr: 1 }} />
+                Eventos Activos a Transferir
+              </Typography>
+              {listaEventosOrigen.length > 0 && (
+                <Box>
+                  <Button
+                    size="small"
+                    startIcon={<SelectAllIcon />}
+                    onClick={handleSelectAll}
+                    sx={{ mr: 1 }}
+                    variant="outlined"
+                  >
+                    Todos
+                  </Button>
+                  <Button
+                    size="small"
+                    startIcon={<DeselectIcon />}
+                    onClick={handleDeselectAll}
+                    variant="outlined"
+                    color="error"
+                  >
+                    Ninguno
+                  </Button>
+                </Box>
+              )}
+            </Box>
 
             {selectedUserOrigen ? (
               <Alert severity="info" sx={{ mb: 2 }}>
-                La siguiente tabla muestra exclusivamente las tareas en estado <b>PENDIENTE</b> o <b>EN_PROCESO</b>{" "}
-                vinculadas a <b>{selectedUserOrigen.usrcodigo}</b>.
+                Se reasignarán <b>{selectedEvents.length}</b> de <b>{listaEventosOrigen.length}</b> eventos vinculados a{" "}
+                <b>{selectedUserOrigen.usrcodigo}</b> al asesor destino.
               </Alert>
             ) : (
               <Alert severity="warning" sx={{ mb: 2 }}>
@@ -267,7 +381,6 @@ const TransEvenAsesorIndex = () => {
 
             <CustomConditionalActionsTableServer
               key={refreshTableKey}
-              // Lógica de cortocircuito: Si no hay usuario origen, enviamos endpoint vacío para no ejecutar petición
               endpoint={selectedUserOrigen ? "/TransEvenAsesor/getEventosOrigen" : ""}
               endpointJson={{
                 externalFilters: {
@@ -278,6 +391,15 @@ const TransEvenAsesorIndex = () => {
               queryKeyModal="TransEvenData"
               perPage={10}
               columnsTable={[
+                // Uso del SmartCheckbox que ignora la memoización de la tabla
+                {
+                  id: "seleccion",
+                  header: "Sel.",
+                  size: 50,
+                  Cell: ({ row }) => (
+                    <SmartCheckbox eventocodigo={row.original.eventocodigo} onToggle={handleToggleEvent} />
+                  ),
+                },
                 {
                   accessorKey: "eventocodigo",
                   header: "Cód. Evento",

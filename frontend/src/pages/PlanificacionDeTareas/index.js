@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import {
   Box,
   Dialog,
@@ -20,6 +20,7 @@ import {
 import Header from "../../layouts/Header"
 import BackIcon from "../../components/BackIcon"
 import { Groups } from "@mui/icons-material"
+import PrintIcon from "@mui/icons-material/Print"
 import { styled, createTheme, ThemeProvider } from "@mui/material/styles"
 import FullCalendar from "@fullcalendar/react"
 import esLocale from "@fullcalendar/core/locales/es"
@@ -55,7 +56,7 @@ const theme = createTheme({
   },
 })
 
-// Renderizado optimizado de eventos
+// Renderizado optimizado de eventos (Can Grow / Sin recortes de texto)
 const renderEventContent = (eventInfo) => {
   const event = eventInfo.event
   const startTime = event.start ? dayjs(event.start).format("HH:mm") : ""
@@ -66,10 +67,9 @@ const renderEventContent = (eventInfo) => {
       style={{
         padding: "2px 4px",
         fontSize: "0.7rem",
-        lineHeight: "1.1",
-        overflow: "hidden",
+        lineHeight: "1.2",
         width: "100%",
-        height: "100%",
+        height: "auto",
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-start",
@@ -91,10 +91,8 @@ const renderEventContent = (eventInfo) => {
         style={{
           wordWrap: "break-word",
           wordBreak: "break-word",
-          overflow: "hidden",
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical",
+          whiteSpace: "normal",
+          overflow: "visible",
           flex: 1,
         }}
       >
@@ -168,6 +166,7 @@ function useGetEventos(filtros) {
 // Componente Principal
 const CrearPlanificacionTareas = () => {
   const navigate = useNavigate()
+  const calendarRef = useRef(null)
   const [eventos, setEventos] = useState([])
   const [showPlanificacionModal, setShowPlanificacionModal] = useState(false)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
@@ -247,6 +246,11 @@ const CrearPlanificacionTareas = () => {
   // Refetch cuando se aplican filtros nuevos
   useEffect(() => {
     refetchEventos()
+
+    if (calendarRef.current && filtros.fechaInicio) {
+      const calendarApi = calendarRef.current.getApi()
+      calendarApi.gotoDate(filtros.fechaInicio)
+    }
   }, [filtros])
 
   // Actualizar eventos cuando lleguen de la API
@@ -278,18 +282,10 @@ const CrearPlanificacionTareas = () => {
 
   const handleGuardarPlanificacion = async (nuevosEventos) => {
     try {
-      // Aquí iría la llamada real a tu API
       console.log("Guardando eventos:", nuevosEventos)
-
-      // Simular delay de guardado
       await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Agregar los nuevos eventos al estado actual
       setEventos((prev) => [...prev, ...nuevosEventos])
-
       await showSuccess("Paquete planificado exitosamente")
-
-      // Refrescar eventos desde la API
       refetchEventos()
     } catch (error) {
       console.error("Error al guardar planificación:", error)
@@ -299,19 +295,14 @@ const CrearPlanificacionTareas = () => {
   }
 
   const handleDeleteTarea = async (tareas = []) => {
-    // Corregir la condición para verificar si el array está vacío
     if (!tareas || tareas.length === 0) return
 
     try {
       const result = await showConfirmation("¡No podrás revertir esta acción!")
-
-      // Si no se confirma la acción, salimos de la función
       if (!result.isConfirmed) return
 
-      // Indicamos que está cargando
       setIsLoadingDeletingEventos(true)
 
-      // Simulación - reemplazar con llamada real a la API para guardar la planificación
       const options = {
         method: "POST",
         body: JSON.stringify({ eventos: tareas }),
@@ -321,23 +312,17 @@ const CrearPlanificacionTareas = () => {
         },
       }
 
-      // Llamada a la API para guardar la planificación
       await fetchwrapper("/PlanificacionTareas/deleteEventosPlanificados", options)
 
-      console.log("Eliminando tareas:", tareas)
-
-      // Eliminar evento del estado
       setShowDetailsModal(false)
       setSelectedEvent(null)
 
-      // Mostrar mensaje de éxito
       await showSuccess("Los eventos han sido eliminados.")
       navigate(0)
     } catch (error) {
       console.error("Error al eliminar el evento:", error)
       await showServerError(error, "Error al eliminar el evento")
     } finally {
-      // Indicamos que ya no se está cargando
       setIsLoadingDeletingEventos(false)
     }
   }
@@ -373,7 +358,6 @@ const CrearPlanificacionTareas = () => {
   // Aplicar filtros (pasar de temp a aplicados)
   const handleAplicarFiltros = () => {
     setFiltros(filtrosTemp)
-    // El useEffect detectará el cambio en 'filtros' y hará refetch
   }
 
   // Limpiar filtros
@@ -387,7 +371,54 @@ const CrearPlanificacionTareas = () => {
 
     setFiltrosTemp(filtrosDefault)
     setFiltros(filtrosDefault)
-    // El useEffect detectará el cambio y hará refetch
+  }
+
+  // Función para imprimir o exportar a PDF exclusivamente el calendario
+  const handlePrintCalendar = () => {
+    const calendarEl = document.querySelector(".fc")
+    if (!calendarEl) {
+      return showError("No se encontró el contenedor del calendario para imprimir.")
+    }
+
+    const usuariosSeleccionadosNombres = usuariosFake
+      .filter((u) => filtros.usuarios.includes(u.usrcodigo))
+      .map((u) => u.usrnombre)
+      .join(", ")
+
+    const tituloImpresion = usuariosSeleccionadosNombres
+      ? `Planificación de Tareas (${dayjs(filtros.fechaInicio).format("DD/MM/YYYY")} al ${dayjs(filtros.fechaFin).format("DD/MM/YYYY")})<br/><span style="font-size: 16px; color: #555;">de ${usuariosSeleccionadosNombres}</span>`
+      : `Planificación de Tareas (${dayjs(filtros.fechaInicio).format("DD/MM/YYYY")} al ${dayjs(filtros.fechaFin).format("DD/MM/YYYY")})`
+
+    const printWindow = window.open("", "_blank")
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Planificación de Tareas - Calendario</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h2 { text-align: center; color: #196C87; margin-bottom: 20px; line-height: 1.4; }
+            .fc { max-width: 100%; margin: 0 auto; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            @media print {
+              .fc-button-group, .fc-toolbar-chunk button { display: none !important; }
+            }
+          </style>
+          <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+        </head>
+        <body>
+          <h2>${tituloImpresion}</h2>
+          <div>${calendarEl.innerHTML}</div>
+          <script>
+            window.onload = function() {
+              window.print();
+              window.close();
+            }
+          </script>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
   }
 
   // Calcular estadísticas
@@ -439,7 +470,18 @@ const CrearPlanificacionTareas = () => {
                   <div className="card-body p-3">
                     {/* Filtros */}
                     <div className="border-bottom pb-4 mb-4">
-                      <h5 className="mb-3">Filtros</h5>
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                        <h5 className="mb-0">Filtros</h5>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<PrintIcon />}
+                          onClick={handlePrintCalendar}
+                          title="Imprimir o Guardar Calendario como PDF"
+                        >
+                          Imprimir / PDF
+                        </Button>
+                      </Box>
 
                       {/* Filtro de fechas */}
                       <TextField
@@ -649,8 +691,10 @@ const CrearPlanificacionTareas = () => {
                     )}
                     {!isLoading && (
                       <FullCalendar
+                        ref={calendarRef}
                         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                         initialView="dayGridMonth"
+                        initialDate={filtros.fechaInicio}
                         locale={esLocale}
                         firstDay={0}
                         events={eventos}
@@ -664,11 +708,10 @@ const CrearPlanificacionTareas = () => {
                         selectable={true}
                         height="auto"
                         eventDisplay="block"
-                        // CONFIGURACIÓN PARA MOSTRAR TODOS LOS EVENTOS SIN OCULTAR:
-                        dayMaxEvents={false} // DESACTIVADO - no limita eventos por día
-                        dayMaxEventRows={false} // DESACTIVADO - no limita filas de eventos
-                        moreLinkClick={false} // DESACTIVADO - no muestra enlaces "más"
-                        eventMaxStack={999} // Número muy alto
+                        dayMaxEvents={false}
+                        dayMaxEventRows={false}
+                        moreLinkClick={false}
+                        eventMaxStack={999}
                         eventOrder="start,title"
                         eventTimeFormat={{
                           hour: "2-digit",
@@ -676,12 +719,11 @@ const CrearPlanificacionTareas = () => {
                           hour12: false,
                         }}
                         eventContent={renderEventContent}
-                        // CONFIGURACIÓN DE VISTAS SIN LÍMITES:
                         views={{
                           dayGridMonth: {
-                            dayMaxEventRows: false, // SIN LÍMITE
-                            dayMaxEvents: false, // SIN LÍMITE
-                            dayCellMaxEvents: 999, // Número muy alto
+                            dayMaxEventRows: false,
+                            dayMaxEvents: false,
+                            dayCellMaxEvents: 999,
                             dayCellContent: (cellInfo) => {
                               const dateStr = dayjs(cellInfo.date).format("YYYY-MM-DD")
                               const eventosDelDia = eventos.filter(
@@ -690,35 +732,35 @@ const CrearPlanificacionTareas = () => {
 
                               return {
                                 html: `
-            <div style="display: flex; flex-direction: column;">
-              <div>${cellInfo.dayNumberText}</div>
-              ${
-                eventosDelDia.length > 0
-                  ? `
-                <div style="font-size: 0.7rem; color: #666; margin-top: 2px;">
-                  ${eventosDelDia.length} evento${eventosDelDia.length !== 1 ? "s" : ""}
-                </div>
-              `
-                  : ""
-              }
-            </div>
-          `,
+                                  <div style="display: flex; flex-direction: column;">
+                                    <div>${cellInfo.dayNumberText}</div>
+                                    ${
+                                      eventosDelDia.length > 0
+                                        ? `
+                                      <div style="font-size: 0.7rem; color: #666; margin-top: 2px;">
+                                        ${eventosDelDia.length} evento${eventosDelDia.length !== 1 ? "s" : ""}
+                                      </div>
+                                    `
+                                        : ""
+                                    }
+                                  </div>
+                                `,
                               }
                             },
                           },
                           timeGridWeek: {
-                            dayMaxEvents: false, // SIN LÍMITE
+                            dayMaxEvents: false,
                             allDaySlot: false,
                             slotMinTime: "00:00:00",
                             slotMaxTime: "24:00:00",
-                            expandRows: true, // IMPORTANTE: expande las filas según necesidad
+                            expandRows: true,
                           },
                           timeGridDay: {
-                            dayMaxEvents: false, // SIN LÍMITE
+                            dayMaxEvents: false,
                             allDaySlot: false,
                             slotMinTime: "00:00:00",
                             slotMaxTime: "24:00:00",
-                            expandRows: true, // IMPORTANTE: expande las filas según necesidad
+                            expandRows: true,
                           },
                         }}
                         eventDidMount={handleEventDidMount}
@@ -727,19 +769,12 @@ const CrearPlanificacionTareas = () => {
                         eventLongPressDelay={100}
                         longPressDelay={100}
                         loading={isLoading}
-                        // ESTILOS PARA MEJOR VISUALIZACIÓN:
-                        eventBackgroundColor="transparent" // Usa colores personalizados
+                        eventBackgroundColor="transparent"
                         eventBorderColor="transparent"
-                        // CONFIGURACIÓN DE ALTURA DINÁMICA:
                         contentHeight="auto"
-                        aspectRatio={1.35} // Proporción para mejor visualización
-                        // DESACTIVAR COMPORTAMIENTOS DE SCROLL QUE PUEDEN OCULTAR:
+                        aspectRatio={1.35}
                         scrollTimeReset={false}
                         scrollTime={false}
-                        // HABILITAR SCROLL VERTICAL SI ES NECESARIO:
-                        // dayMaxEvents: {'auto'}  // Alternativa: 'auto' para scroll
-
-                        // CONFIGURACIÓN DE CELDAS MÁS GRANDES:
                         fixedWeekCount={false}
                         showNonCurrentDates={true}
                         navLinks={true}

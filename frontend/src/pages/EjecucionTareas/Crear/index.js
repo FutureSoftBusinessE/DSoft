@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import {
   Box,
   Dialog,
@@ -20,6 +20,7 @@ import {
 import Header from "../../../layouts/Header"
 import BackIcon from "../../../components/BackIcon"
 import { Groups } from "@mui/icons-material"
+import PrintIcon from "@mui/icons-material/Print"
 import { styled, createTheme, ThemeProvider } from "@mui/material/styles"
 import FullCalendar from "@fullcalendar/react"
 import esLocale from "@fullcalendar/core/locales/es"
@@ -72,7 +73,7 @@ const theme = createTheme({
   },
 })
 
-// Renderizado optimizado de eventos
+// Renderizado optimizado de eventos (Can Grow / Sin recortes de texto)
 const renderEventContent = (eventInfo) => {
   const event = eventInfo.event
   const startTime = event.start ? dayjs(event.start).format("HH:mm") : ""
@@ -83,10 +84,9 @@ const renderEventContent = (eventInfo) => {
       style={{
         padding: "2px 4px",
         fontSize: "0.7rem",
-        lineHeight: "1.1",
-        overflow: "hidden",
+        lineHeight: "1.2",
         width: "100%",
-        height: "100%",
+        height: "auto",
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-start",
@@ -108,10 +108,8 @@ const renderEventContent = (eventInfo) => {
         style={{
           wordWrap: "break-word",
           wordBreak: "break-word",
-          overflow: "hidden",
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical",
+          whiteSpace: "normal", // Permite que crezca y baje de línea (Can Grow)
+          overflow: "visible",
           flex: 1,
         }}
       >
@@ -185,6 +183,7 @@ function useGetEventos(filtros) {
 // Componente Principal
 const CrearEjecucionTareas = () => {
   const navigate = useNavigate()
+  const calendarRef = useRef(null) // Referencia para controlar el calendario
   const [eventos, setEventos] = useState([])
   const [showEjecucionModal, setShowEjecucionModal] = useState(false)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
@@ -260,9 +259,15 @@ const CrearEjecucionTareas = () => {
     })
   }
 
-  // Refetch cuando se aplican filtros nuevos
+  // Refetch cuando se aplican filtros nuevos y sincronización de fecha
   useEffect(() => {
     refetchEventos()
+
+    // Salto automático del calendario a la fecha configurada en el filtro de inicio
+    if (calendarRef.current && filtros.fechaInicio) {
+      const calendarApi = calendarRef.current.getApi()
+      calendarApi.gotoDate(filtros.fechaInicio)
+    }
   }, [filtros])
 
   // Actualizar eventos cuando lleguen de la API
@@ -400,7 +405,6 @@ const CrearEjecucionTareas = () => {
   // Aplicar filtros (pasar de temp a aplicados)
   const handleAplicarFiltros = () => {
     setFiltros(filtrosTemp)
-    // El useEffect detectará el cambio en 'filtros' y hará refetch
   }
 
   // Limpiar filtros
@@ -414,7 +418,54 @@ const CrearEjecucionTareas = () => {
 
     setFiltrosTemp(filtrosDefault)
     setFiltros(filtrosDefault)
-    // El useEffect detectará el cambio y hará refetch
+  }
+
+  // Función para imprimir o exportar a PDF exclusivamente el calendario
+  const handlePrintCalendar = () => {
+    const calendarEl = document.querySelector(".fc")
+    if (!calendarEl) {
+      return showError("No se encontró el contenedor del calendario para imprimir.")
+    }
+
+    const usuariosSeleccionadosNombres = usuariosFake
+      .filter((u) => filtros.usuarios.includes(u.usrcodigo))
+      .map((u) => u.usrnombre)
+      .join(", ")
+
+    const tituloImpresion = usuariosSeleccionadosNombres
+      ? `Ejecución de Tareas (${dayjs(filtros.fechaInicio).format("DD/MM/YYYY")} al ${dayjs(filtros.fechaFin).format("DD/MM/YYYY")})<br/><span style="font-size: 16px; color: #555;">de ${usuariosSeleccionadosNombres}</span>`
+      : `Ejecución de Tareas (${dayjs(filtros.fechaInicio).format("DD/MM/YYYY")} al ${dayjs(filtros.fechaFin).format("DD/MM/YYYY")})`
+
+    const printWindow = window.open("", "_blank")
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Ejecución de Tareas - Calendario</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h2 { text-align: center; color: #196C87; margin-bottom: 20px; line-height: 1.4; }
+            .fc { max-width: 100%; margin: 0 auto; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            @media print {
+              .fc-button-group, .fc-toolbar-chunk button { display: none !important; }
+            }
+          </style>
+          <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+        </head>
+        <body>
+          <h2>${tituloImpresion}</h2>
+          <div>${calendarEl.innerHTML}</div>
+          <script>
+            window.onload = function() {
+              window.print();
+              window.close();
+            }
+          </script>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
   }
 
   // Calcular estadísticas
@@ -459,7 +510,18 @@ const CrearEjecucionTareas = () => {
                   <div className="card-body p-3">
                     {/* Filtros */}
                     <div className="border-bottom pb-4 mb-4">
-                      <h5 className="mb-3">Filtros</h5>
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                        <h5 className="mb-0">Filtros</h5>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<PrintIcon />}
+                          onClick={handlePrintCalendar}
+                          title="Imprimir o Guardar Calendario como PDF"
+                        >
+                          Imprimir / PDF
+                        </Button>
+                      </Box>
 
                       {/* Filtro de fechas */}
                       <TextField
@@ -669,8 +731,10 @@ const CrearEjecucionTareas = () => {
                     )}
                     {!isLoading && (
                       <FullCalendar
+                        ref={calendarRef}
                         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                         initialView="dayGridMonth"
+                        initialDate={filtros.fechaInicio}
                         locale={esLocale}
                         firstDay={0}
                         events={eventos}

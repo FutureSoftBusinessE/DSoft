@@ -40,7 +40,7 @@ def getAllInfoModalAccesos():
                 modcodigo,
                 moddescri
             FROM siacmod
-            WHERE modstatus = 'A'
+            WHERE modstatus = 'A' AND modcodigo = 'WEB'
             """
             result_modulos_query = connection.execute(text(modulos_query)).mappings().fetchall()
 

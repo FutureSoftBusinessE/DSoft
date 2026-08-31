@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import React, { useContext, useState } from "react"
+import React, { useContext, useState, useEffect } from "react"
 import Header from "../../layouts/Header"
 import BackIcon from "../../components/BackIcon"
 import {
@@ -17,6 +17,8 @@ import {
   ListItemIcon,
   Divider,
   Alert,
+  Checkbox,
+  Button,
 } from "@mui/material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import CustomBackdrop from "../../components/CustomBackdrop"
@@ -26,6 +28,9 @@ import getIconComponent from "../utils/getIconComponent"
 import Save from "@mui/icons-material/Save"
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd"
 import PersonIcon from "@mui/icons-material/Person"
+import SelectAllIcon from "@mui/icons-material/SelectAll"
+import DeselectIcon from "@mui/icons-material/Deselect"
+import { useNavigate } from "react-router-dom"
 
 const theme = createTheme({
   palette: { primary: { main: "#196C87" }, secondary: { main: "#2E7D32" } },
@@ -43,10 +48,12 @@ const StyledRoot = {
 
 const TransCliAsesorIndex = () => {
   const { selectedMenuInfo } = useContext(GlobalContext)
+  const navigate = useNavigate()
 
   // Estados de Selección
   const [selectedUserOrigen, setSelectedUserOrigen] = useState(null)
   const [selectedUserDestino, setSelectedUserDestino] = useState(null)
+  const [selectedClients, setSelectedClients] = useState([]) // Almacena los clicodigo seleccionados
 
   // =====================================================================
   // QUERIES (Reutilizando los endpoints del módulo de Asignaciones)
@@ -94,6 +101,32 @@ const TransCliAsesorIndex = () => {
 
   const listaClientesOrigen = Array.isArray(rawClientesOrigen) ? rawClientesOrigen : []
 
+  // Efecto para auto-seleccionar todos los clientes cuando se carga la cartera del origen
+  useEffect(() => {
+    if (listaClientesOrigen.length > 0) {
+      setSelectedClients(listaClientesOrigen.map((c) => c.clicodigo))
+    } else {
+      setSelectedClients([])
+    }
+  }, [rawClientesOrigen])
+
+  // =====================================================================
+  // CONTROLADORES DE SELECCIÓN DE CLIENTES
+  // =====================================================================
+  const handleToggleClient = (clicodigo) => {
+    setSelectedClients((prev) =>
+      prev.includes(clicodigo) ? prev.filter((id) => id !== clicodigo) : [...prev, clicodigo],
+    )
+  }
+
+  const handleSelectAll = () => {
+    setSelectedClients(listaClientesOrigen.map((c) => c.clicodigo))
+  }
+
+  const handleDeselectAll = () => {
+    setSelectedClients([])
+  }
+
   // =====================================================================
   // MUTACIÓN TRANSACCIONAL
   // =====================================================================
@@ -104,15 +137,14 @@ const TransCliAsesorIndex = () => {
       return response.data
     },
     showError: "modal",
-    onSuccess: (res) => {
-      // Usamos showSuccess para mostrar el mensaje de "N clientes transferidos"
+    onSuccess: async (res) => {
       const mensaje = res?.data || res?.message || "Transferencia exitosa."
-      showSuccess(mensaje)
 
-      // Limpiamos la pantalla y refrescamos la consulta del origen para que muestre 0
-      setSelectedUserOrigen(null)
-      setSelectedUserDestino(null)
-      refetchOrigen()
+      // Esperamos a que el usuario cierre la alerta de éxito
+      await showSuccess(mensaje)
+
+      // Recargamos la página para limpiar la caché de React Query y la vista
+      navigate(0)
     },
   })
 
@@ -128,15 +160,19 @@ const TransCliAsesorIndex = () => {
     if (listaClientesOrigen.length === 0) {
       return showWarning("El Asesor de origen no tiene clientes asignados para transferir.")
     }
+    if (selectedClients.length === 0) {
+      return showWarning("Debe seleccionar al menos un cliente para transferir.")
+    }
 
     const payload = {
       usrcodigo_origen: selectedUserOrigen.usrcodigo,
       usrcodigo_destino: selectedUserDestino.usrcodigo,
+      clientes_seleccionados: selectedClients,
     }
 
     if (
       window.confirm(
-        `¿Está seguro que desea transferir la cartera completa de ${selectedUserOrigen.usrcodigo} hacia ${selectedUserDestino.usrcodigo}?`,
+        `¿Está seguro que desea transferir ${selectedClients.length} cliente(s) de ${selectedUserOrigen.usrcodigo} hacia ${selectedUserDestino.usrcodigo}?`,
       )
     ) {
       await TransferirCartera(payload)
@@ -173,7 +209,7 @@ const TransCliAsesorIndex = () => {
             <Tooltip title={action.label} key={action.key}>
               <IconButton
                 onClick={handleSubmit}
-                disabled={isLoadingGlobal}
+                disabled={isLoadingGlobal || selectedClients.length === 0}
                 sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, mr: 1, background: "white" }}
               >
                 {action.icon}
@@ -209,7 +245,6 @@ const TransCliAsesorIndex = () => {
                   isOptionEqualToValue={(option, value) => option.usrcodigo === value?.usrcodigo}
                   onChange={(e, newValue) => {
                     setSelectedUserOrigen(newValue)
-                    // Si el usuario origen es igual al destino, limpiamos el destino por seguridad
                     if (newValue && selectedUserDestino && newValue.usrcodigo === selectedUserDestino.usrcodigo) {
                       setSelectedUserDestino(null)
                     }
@@ -237,7 +272,6 @@ const TransCliAsesorIndex = () => {
                   isOptionEqualToValue={(option, value) => option.usrcodigo === value?.usrcodigo}
                   onChange={(e, newValue) => {
                     setSelectedUserDestino(newValue)
-                    // Validamos que no elija el mismo usuario
                     if (newValue && selectedUserOrigen && newValue.usrcodigo === selectedUserOrigen.usrcodigo) {
                       showWarning("El origen y el destino no pueden ser el mismo.")
                       setSelectedUserDestino(null)
@@ -259,14 +293,38 @@ const TransCliAsesorIndex = () => {
           {/* VISOR DE AUDITORÍA (LISTA DE CLIENTES DEL ORIGEN) */}
           {selectedUserOrigen && (
             <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
-              <Typography variant="h6" color="secondary" gutterBottom sx={{ display: "flex", alignItems: "center" }}>
-                <AssignmentIndIcon sx={{ mr: 1 }} />
-                Cartera a Transferir
-              </Typography>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                <Typography variant="h6" color="secondary" sx={{ display: "flex", alignItems: "center" }}>
+                  <AssignmentIndIcon sx={{ mr: 1 }} />
+                  Cartera a Transferir
+                </Typography>
+                {listaClientesOrigen.length > 0 && (
+                  <Box>
+                    <Button
+                      size="small"
+                      startIcon={<SelectAllIcon />}
+                      onClick={handleSelectAll}
+                      sx={{ mr: 1 }}
+                      variant="outlined"
+                    >
+                      Todos
+                    </Button>
+                    <Button
+                      size="small"
+                      startIcon={<DeselectIcon />}
+                      onClick={handleDeselectAll}
+                      variant="outlined"
+                      color="error"
+                    >
+                      Ninguno
+                    </Button>
+                  </Box>
+                )}
+              </Box>
 
               <Alert severity="info" sx={{ mb: 2 }}>
-                Se transferirán <b>{listaClientesOrigen.length}</b> clientes junto con sus permisos de documentos al
-                usuario destino.
+                Se transferirán <b>{selectedClients.length}</b> de <b>{listaClientesOrigen.length}</b> clientes junto
+                con sus permisos de documentos al usuario destino.
               </Alert>
 
               <List
@@ -281,21 +339,37 @@ const TransCliAsesorIndex = () => {
                   bgcolor: "#fafafa",
                 }}
               >
-                {listaClientesOrigen.map((client) => (
-                  <ListItem key={client.clicodigo} divider>
-                    <ListItemIcon>
-                      <PersonIcon color="primary" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={`${client.cliruc} - ${client.clinombre}`}
-                      secondary={
-                        client.hereda_documentos
-                          ? `Código: ${client.clicodigo} | 🔐 Hereda permisos`
-                          : `Código: ${client.clicodigo} | 📄 Permisos granulares`
-                      }
-                    />
-                  </ListItem>
-                ))}
+                {listaClientesOrigen.map((client) => {
+                  const isSelected = selectedClients.includes(client.clicodigo)
+                  return (
+                    <ListItem
+                      key={client.clicodigo}
+                      divider
+                      button
+                      onClick={() => handleToggleClient(client.clicodigo)}
+                      sx={{
+                        backgroundColor: isSelected ? "rgba(25, 108, 135, 0.04)" : "transparent",
+                        "&:hover": { backgroundColor: "rgba(25, 108, 135, 0.08)" },
+                      }}
+                    >
+                      <ListItemIcon>
+                        <Checkbox edge="start" checked={isSelected} tabIndex={-1} disableRipple color="primary" />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={
+                          <Typography variant="body2" fontWeight={isSelected ? "bold" : "regular"}>
+                            {client.cliruc} - {client.clinombre}
+                          </Typography>
+                        }
+                        secondary={
+                          client.hereda_documentos
+                            ? `Código: ${client.clicodigo} | 🔐 Hereda permisos`
+                            : `Código: ${client.clicodigo} | 📄 Permisos granulares`
+                        }
+                      />
+                    </ListItem>
+                  )
+                })}
 
                 {listaClientesOrigen.length === 0 && !isLoadAsignados && (
                   <Typography

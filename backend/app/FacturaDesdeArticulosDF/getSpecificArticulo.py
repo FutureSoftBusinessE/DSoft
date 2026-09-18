@@ -13,7 +13,7 @@ import base64
 
 @bp.route("/getSpecificArticulo/<string:codigo_articulo>", methods=["GET"])
 @jwt_required()
-def getSpecificArticulo(codigo_articulo):
+def getSpecificArticulo(codigo_articulo="a"):
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
     ciacodigo = claims["seleccion"]["cliciaciacodigo"]

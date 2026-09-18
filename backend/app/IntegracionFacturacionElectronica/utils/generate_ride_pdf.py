@@ -205,14 +205,42 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
         elements.append(Spacer(1, 3*mm))
 
         # ========== 4. SECCIÓN INFERIOR ==========
-        total_iva = 0
-        total_sin_impuestos = float(info_factura.get("total_sin_impuestos", 0))
         total_descuento = float(info_factura.get("total_descuento", 0))
         importe_total = float(info_factura.get("importe_total", 0))
         propina = float(info_factura.get("propina", 0))
 
+        subtotal_0 = 0.0
+        subtotal_5 = 0.0
+        subtotal_15 = 0.0
+        subtotal_no_objeto = 0.0
+        subtotal_exento = 0.0
+
+        iva_0 = 0.0
+        iva_5 = 0.0
+        iva_15 = 0.0
+        iva_no_objeto = 0.0
+        iva_exento = 0.0
+
         for imp in totales_impuestos:
-            total_iva += float(imp.get("valor", 0))
+            cod_pct = str(imp.get("codigo_porcentaje", ""))
+            base = float(imp.get("base_imponible", 0))
+            valor = float(imp.get("valor", 0))
+
+            if cod_pct == "0":
+                subtotal_0 += base
+                iva_0 += valor
+            elif cod_pct == "5":
+                subtotal_5 += base
+                iva_5 += valor
+            elif cod_pct == "4":
+                subtotal_15 += base
+                iva_15 += valor
+            elif cod_pct == "6":
+                subtotal_no_objeto += base
+                iva_no_objeto += valor
+            elif cod_pct == "7":
+                subtotal_exento += base
+                iva_exento += valor
 
         # 4.1 Información Adicional
         info_data = [[Paragraph("Información Adicional", style_table_header), ""]]
@@ -267,15 +295,16 @@ def generate_ride_pdf(factura_data: dict, auth_data: dict, clave_acceso: str, ou
 
         # 4.3 Totales
         totales_data = [
-            [Paragraph("SUBTOTAL 5%", style_small), Paragraph("0.00", style_table_cell_right)],
-            [Paragraph("SUBTOTAL 15%", style_small), Paragraph(f"{total_sin_impuestos:.2f}", style_table_cell_right)],
-            [Paragraph("SUBTOTAL 0%", style_small), Paragraph("0.00", style_table_cell_right)],
-            [Paragraph("SUBTOTAL No objeto de IVA", style_small), Paragraph("0.00", style_table_cell_right)],
-            [Paragraph("SUBTOTAL SIN IMPUESTOS", style_small), Paragraph(f"{total_sin_impuestos:.2f}", style_table_cell_right)],
+            [Paragraph("SUBTOTAL 5%", style_small), Paragraph(f"{subtotal_5:.2f}", style_table_cell_right)],
+            [Paragraph("SUBTOTAL 15%", style_small), Paragraph(f"{subtotal_15:.2f}", style_table_cell_right)],
+            [Paragraph("SUBTOTAL 0%", style_small), Paragraph(f"{subtotal_0:.2f}", style_table_cell_right)],
+            [Paragraph("SUBTOTAL No objeto de IVA", style_small), Paragraph(f"{subtotal_no_objeto:.2f}", style_table_cell_right)],
+            [Paragraph("SUBTOTAL Exento de IVA", style_small), Paragraph(f"{subtotal_exento:.2f}", style_table_cell_right)],
+            [Paragraph("SUBTOTAL SIN IMPUESTOS", style_small), Paragraph(f"{subtotal_0 + subtotal_no_objeto + subtotal_exento:.2f}", style_table_cell_right)],
             [Paragraph("DESCUENTO", style_small), Paragraph(f"{total_descuento:.2f}", style_table_cell_right)],
             [Paragraph("ICE", style_small), Paragraph("0.00", style_table_cell_right)],
-            [Paragraph("IVA 5%", style_small), Paragraph("0.00", style_table_cell_right)],
-            [Paragraph("IVA 15%", style_small), Paragraph(f"{total_iva:.2f}", style_table_cell_right)],
+            [Paragraph("IVA 5%", style_small), Paragraph(f"{iva_5:.2f}", style_table_cell_right)],
+            [Paragraph("IVA 15%", style_small), Paragraph(f"{iva_15:.2f}", style_table_cell_right)],
             [Paragraph("PROPINA", style_small), Paragraph(f"{propina:.2f}", style_table_cell_right)],
             [Paragraph("<b>VALOR TOTAL</b>", style_normal), Paragraph(f"<b>{importe_total:.2f}</b>", style_table_cell_right)],
         ]

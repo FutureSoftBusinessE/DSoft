@@ -374,7 +374,16 @@ def emisionFactura():
             query_result_ride = connection.execute(
                 text(
                     """
-                SELECT sripdf, sriclave FROM siacdocelectronicos WHERE ciacodigo = :ciacodigo AND facnumfac = :facnumfac AND loccodigo = :loccodigo
+                SELECT
+                    s.sripdf,
+                    s.sriclave,
+                    c.ciadescri
+                FROM siacdocelectronicos s
+                INNER JOIN SIACCIA c
+                    ON s.ciacodigo = c.ciacodigo
+                WHERE s.ciacodigo = :ciacodigo
+                AND s.facnumfac = :facnumfac
+                AND s.loccodigo = :loccodigo
             """
                 ),
                 {"ciacodigo": ciacodigo, "facnumfac": facnumfac, "loccodigo": loccodigo},
@@ -383,7 +392,18 @@ def emisionFactura():
             if not query_result_ride:
                 raise APIError(f"La factura {facnumfac} no tiene un ride asociado")
 
-            return {"msg": "RIDE generado", "ridePDF": base64.b64encode(query_result_ride[0]).decode("utf-8"), "claveAcceso": query_result_ride[1]}
+            clave = query_result_ride[1]
+            estab = clave[24:27]
+            pto_emi = clave[27:30]
+            secuencial = clave[30:39]
+            nombreEmpresa = query_result_ride[2].strip()
+
+            return {
+                "msg": "RIDE generado",
+                "ridePDF": base64.b64encode(query_result_ride[0]).decode("utf-8"),
+                "claveAcceso": clave,
+                "nombreArchivoDescargado": f"{estab}-{pto_emi}-{secuencial}{nombreEmpresa}.pdf",
+            }
 
 
 def get_certificate_credentials():

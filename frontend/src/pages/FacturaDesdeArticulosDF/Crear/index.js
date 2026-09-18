@@ -191,17 +191,35 @@ const ComboArticuloRow = ({ index, row, productosAgregados, setProductosAgregado
   const [options, setOptions] = useState(row.artcodigo ? [row] : [])
   const [loading, setLoading] = useState(false)
 
+  // Función reutilizable para buscar (con o sin filtro)
+  const fetchProductos = async (filtro = "a") => {
+    setLoading(true)
+    try {
+      const response = await fetchwrapper(
+        `/FacturaDesdeArticulosDF/getSpecificArticulo/${encodeURIComponent(filtro)}`,
+        { method: "GET", headers: { "Content-Type": "application/json" } },
+      )
+      const res = await response.json()
+      setOptions(res?.data ?? [])
+    } catch (err) {
+      console.error(err)
+      setOptions([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     let active = true
     if (!inputValue || inputValue.trim() === "") {
+      setLoading(false)
       setOptions(row.artcodigo ? [row] : [])
       return undefined
     }
 
-    const fetchProductos = async () => {
+    const fetchProductosDebounce = async () => {
       setLoading(true)
       try {
-        // Petición GET simple sin payload adicional
         const response = await fetchwrapper(`/FacturaDesdeArticulosDF/getSpecificArticulo/${inputValue}`, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
@@ -221,7 +239,7 @@ const ComboArticuloRow = ({ index, row, productosAgregados, setProductosAgregado
       }
     }
 
-    const timer = setTimeout(() => fetchProductos(), 600)
+    const timer = setTimeout(() => fetchProductosDebounce(), 600)
     return () => {
       active = false
       clearTimeout(timer)
@@ -235,6 +253,9 @@ const ComboArticuloRow = ({ index, row, productosAgregados, setProductosAgregado
       getOptionLabel={(opt) => `${opt.artcodigo || ""} - ${opt.artdescri || ""}`}
       filterOptions={(x) => x}
       loading={loading}
+      onOpen={() => {
+        if (options.length === 0 && !loading) fetchProductos("a")
+      }}
       onInputChange={(e, val) => setInputValue(val)}
       onChange={(e, val) => {
         const newArr = [...productosAgregados]

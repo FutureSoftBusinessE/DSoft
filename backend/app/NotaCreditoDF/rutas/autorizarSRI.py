@@ -8,6 +8,10 @@ from app.db import get_session
 from datetime import datetime
 import time
 import json
+from dotenv import load_dotenv
+from decouple import config as config_env
+
+load_dotenv()
 
 # =========================================================================
 # REUTILIZAMOS SU MOTOR DE FACTURACIÓN ELECTRÓNICA
@@ -115,7 +119,7 @@ def autorizar_sri_nota_credito():
 
         # Limpieza y preparación de datos
         # PRUEBAS
-        ambiente = "1"
+        ambiente = config_env("INTEGRACION_FACTURACION_ELECTRONICA_AMBIENTE")
         tipo_emision = "1"
         fecha_emision_str = doc["fechaEmision"].strftime("%d/%m/%Y")
 

@@ -125,7 +125,7 @@ def autorizar_sri_guia():
         # =================================================================
         # LIMPIEZA Y PREPARACIÓN DE DATOS
         # =================================================================
-        ambiente = "1"
+        ambiente = (config_env("INTEGRACION_FACTURACION_ELECTRONICA_AMBIENTE"),)
         tipo_emision = "1"
 
         dt_ini = doc["guifecha"]

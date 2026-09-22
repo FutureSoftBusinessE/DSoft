@@ -90,7 +90,7 @@ def autorizar_sri_retencion():
         # ==========================================
         # 2. PREPARACIÓN DE VARIABLES SRI
         # ==========================================
-        ambiente = "1"
+        ambiente = config_env("INTEGRACION_FACTURACION_ELECTRONICA_AMBIENTE")
         tipo_emision = "1"
         fecha_emision_str = doc["retfecemi"].strftime("%d/%m/%Y")
         periodo_fiscal = doc["retfecemi"].strftime("%m/%Y")

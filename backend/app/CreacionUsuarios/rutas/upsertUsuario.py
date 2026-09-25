@@ -671,6 +671,7 @@ def upsertUsuario():
 
                     connection.execute(update_query, data_siaccusr_update)
 
+                # Crear o actulizar el usuario en la base intermedia DSOFT
                 query_initial = text(
                     """
                     SELECT cliciagrupo, cliciaidenti

@@ -161,15 +161,19 @@ def generate_ride_pdf_retencion(retencion_data: dict, auth_data: dict, clave_acc
 
         correo = "S/N"
         direccion = "S/N"
+        ruc_proveedor = "S/N"
         for item in info_adicional:
             if str(item.get("nombre", "")).upper() == "EMAIL":
                 correo = item.get("valor", "S/N")
             if str(item.get("nombre", "")).upper() == "DIRECCION":
                 direccion = item.get("valor", "S/N")
+            if str(item.get("nombre", "")).upper() == "RUC PROVEEDOR":
+                ruc_proveedor = item.get("valor", "S/N")
 
         prov_data = [
             [Paragraph("<b>Información Proveedor</b>", ParagraphStyle('C', alignment=1, bold=True, fontSize=8)), ""],
             [Paragraph(f"<b>Cédula/Ruc:</b> {identificacion}", style_normal), Paragraph(f"<b>Fecha Emisión:</b> {fecha_emision}", style_normal)],
+            [Paragraph(f"<b>RUC Proveedor:</b> {ruc_proveedor}", style_normal), ""],
             [Paragraph(f"<b>Nombre:</b> {nombre}", style_normal), ""],
             [Paragraph(f"<b>Teléfonos:</b> ", style_normal), ""],
             [Paragraph(f"<b>Dirección:</b> {direccion}", style_normal), ""],
@@ -184,6 +188,7 @@ def generate_ride_pdf_retencion(retencion_data: dict, auth_data: dict, clave_acc
             ('SPAN', (0, 3), (1, 3)),
             ('SPAN', (0, 4), (1, 4)),
             ('SPAN', (0, 5), (1, 5)),
+            ('SPAN', (0, 6), (1, 6)),
             ('BOX', (0, 0), (-1, -1), 0.5, border_color),
             ('TOPPADDING', (0, 0), (-1, -1), 2),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 2),

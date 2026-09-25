@@ -47,6 +47,8 @@ def autorizar_sri_retencion():
         db.session = get_session(clicianonBD)
         engine = db.session.bind
 
+        rucProveedor = "0993370538001"
+
         # ==========================================
         # 1. EXTRACCIÓN DE DATOS DE BD
         # ==========================================
@@ -162,6 +164,7 @@ def autorizar_sri_retencion():
     <infoAdicional>
         <campoAdicional nombre="Direccion">{escape_xml(doc["retdirec"] or "S/N")}</campoAdicional>
         <campoAdicional nombre="Email">{escape_xml(doc["proemail"] or "S/N")}</campoAdicional>
+        <campoAdicional nombre="RUC Proveedor">{rucProveedor}</campoAdicional>
     </infoAdicional>
 </comprobanteRetencion>"""
 
@@ -261,21 +264,60 @@ def autorizar_sri_retencion():
                     {"nombre": "Email", "valor": doc["proemail"] or "S/N"},
                     # --- AGREGADO PARA QUE EL PDF LO LEA EN LA INFO DEL PROVEEDOR ---
                     {"nombre": "Direccion", "valor": doc["retdirec"] or "S/N"},
+                    {"nombre": "RUC Proveedor", "valor": rucProveedor},
                 ],
                 "tipo_emision": tipo_emision,
             }
 
-            try:
-                if config_env("DOC_ELECTRONICOS_RIDES_RETENCION_PDF_ENABLED") == "true":
-                    ahora = datetime.now()
-                    ride_dir = Path(config_env("DOC_ELECTRONICOS_RIDES_RETENCION_PDF_PATH")) / "Retenciones" / str(ahora.year) / f"{ahora.month:02d}" / f"{ahora.day:02d}"
-                    ruta_ride, _, _ = generate_ride_pdf_retencion(retencion_data, auth_data, clave_acceso, ride_dir)
+            # ==========================================
+            # GENERAR RIDE (PDF)
+            # ==========================================
+            guardar_en_disco = config_env("DOC_ELECTRONICOS_RIDES_RETENCION_PDF_ENABLED") == "true"
+            ruta_ride = None
 
-                    if ruta_ride:
+            if guardar_en_disco:
+                ahora = datetime.now()
+                ride_dir = Path(config_env("DOC_ELECTRONICOS_RIDES_RETENCION_PDF_PATH")) / str(ahora.year) / f"{ahora.month:02d}" / f"{ahora.day:02d}"
+                ride_dir.mkdir(parents=True, exist_ok=True)
+
+                ruta_ride, ride_error, ride_details = generate_ride_pdf_retencion(retencion_data, auth_data, clave_acceso, ride_dir)
+
+                if ruta_ride is None:
+                    raise Exception(f"{ride_error} | {ride_details}")
+
+                try:
+                    with open(ruta_ride, "rb") as f:
+                        pdf_content = f.read()
+                except Exception as e:
+                    pdf_content = None
+                    raise Exception(f"Error leyendo PDF del RIDE: {str(e)}")
+            else:
+                import tempfile
+                import os
+
+                ride_dir = Path(tempfile.gettempdir()) / "rides_retenciones_temporales"
+                ride_dir.mkdir(parents=True, exist_ok=True)
+
+                try:
+                    ruta_ride, ride_error, ride_details = generate_ride_pdf_retencion(retencion_data, auth_data, clave_acceso, ride_dir)
+
+                    if ruta_ride is None:
+                        raise Exception(f"{ride_error} | {ride_details}")
+
+                    try:
                         with open(ruta_ride, "rb") as f:
                             pdf_content = f.read()
-            except Exception as e:
-                print(f"Advertencia RIDE: No se pudo generar PDF: {e}")
+                    except Exception as e:
+                        pdf_content = None
+                        raise Exception(f"Error leyendo PDF del RIDE: {str(e)}")
+
+                finally:
+                    if ruta_ride is not None and os.path.exists(ruta_ride):
+                        try:
+                            os.remove(ruta_ride)
+                            ruta_ride = None
+                        except Exception:
+                            pass
 
         _guardar_estado_sri_bd(engine, ciacodigo, retid, loccodigo, clave_acceso, xml_ret, xml_firmado, xml_autorizado_final, pdf_content, is_auth_num, mensaje_bd, status_bd, usrcodigo, ipUser, doc)
 

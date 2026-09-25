@@ -56,6 +56,8 @@ def autorizar_sri_guia():
         db.session = get_session(clicianonBD)
         engine = db.session.bind
 
+        rucProveedor = "0993370538001"
+
         # 1. EXTRAER CABECERA (IncGuia)
         sql_cabecera = text(
             """
@@ -255,10 +257,13 @@ def autorizar_sri_guia():
                     <cantidad>{float(det["guicantdoc"] or 0):.2f}</cantidad>
                 </detalle>"""
 
-        xml_gr += """
+        xml_gr += f"""
             </detalles>
         </destinatario>
     </destinatarios>
+     <infoAdicional>
+            <campoAdicional nombre="RUC Proveedor">{rucProveedor}</campoAdicional>
+    </infoAdicional>
 </guiaRemision>"""
 
         # 4. OBTENER CERTIFICADO Y FIRMAR
@@ -350,6 +355,7 @@ def autorizar_sri_guia():
                 "info_adicional": [
                     {"nombre": "Telefono", "valor": telefono_cliente or "S/N"},  # Telefono cliente
                     {"nombre": "Email", "valor": doc.get("cliemail", "")},
+                    {"nombre": "RUC Proveedor", "valor": rucProveedor},
                 ],
                 "tipo_emision": tipo_emision,
             }
@@ -357,17 +363,55 @@ def autorizar_sri_guia():
             if num_sustento:
                 guia_data["info_adicional"].append({"nombre": "Documento Sustento", "valor": num_sustento})
 
-            try:
-                if config_env("DOC_ELECTRONICOS_RIDES_REMISION_PDF_ENABLED") == "true":
-                    ahora = datetime.now()
-                    ride_dir = Path(config_env("DOC_ELECTRONICOS_RIDES_REMISION_PDF_PATH")) / "GuiasRemision" / str(ahora.year) / f"{ahora.month:02d}" / f"{ahora.day:02d}"
-                    ruta_ride, _, _ = generate_ride_pdf_remision(guia_data, auth_data, clave_acceso, ride_dir)
+            # ==========================================
+            # GENERAR RIDE (PDF)
+            # ==========================================
+            guardar_en_disco = config_env("DOC_ELECTRONICOS_RIDES_REMISION_PDF_ENABLED") == "true"
+            ruta_ride = None
 
-                    if ruta_ride:
+            if guardar_en_disco:
+                ahora = datetime.now()
+                ride_dir = Path(config_env("DOC_ELECTRONICOS_RIDES_REMISION_PDF_PATH")) / str(ahora.year) / f"{ahora.month:02d}" / f"{ahora.day:02d}"
+                ride_dir.mkdir(parents=True, exist_ok=True)
+
+                ruta_ride, ride_error, ride_details = generate_ride_pdf_remision(guia_data, auth_data, clave_acceso, ride_dir)
+
+                if ruta_ride is None:
+                    raise Exception(f"{ride_error} | {ride_details}")
+
+                try:
+                    with open(ruta_ride, "rb") as f:
+                        pdf_content = f.read()
+                except Exception as e:
+                    pdf_content = None
+                    raise Exception(f"Error leyendo PDF del RIDE: {str(e)}")
+            else:
+                import tempfile
+                import os
+
+                ride_dir = Path(tempfile.gettempdir()) / "rides_guias_remision_temporales"
+                ride_dir.mkdir(parents=True, exist_ok=True)
+
+                try:
+                    ruta_ride, ride_error, ride_details = generate_ride_pdf_remision(guia_data, auth_data, clave_acceso, ride_dir)
+
+                    if ruta_ride is None:
+                        raise Exception(f"{ride_error} | {ride_details}")
+
+                    try:
                         with open(ruta_ride, "rb") as f:
                             pdf_content = f.read()
-            except Exception as e:
-                print(f"Advertencia RIDE: No se pudo generar PDF automáticamente: {e}")
+                    except Exception as e:
+                        pdf_content = None
+                        raise Exception(f"Error leyendo PDF del RIDE: {str(e)}")
+
+                finally:
+                    if ruta_ride is not None and os.path.exists(ruta_ride):
+                        try:
+                            os.remove(ruta_ride)
+                            ruta_ride = None
+                        except Exception:
+                            pass
 
         # 7. ACTUALIZAR BASE DE DATOS
         _guardar_estado_sri_bd(engine, ciacodigo, guinumero, loccodigo, clave_acceso, xml_gr, xml_firmado, xml_autorizado_final, pdf_content, is_auth_num, mensaje_bd, status_bd, usrcodigo, ipUser, doc)

@@ -8,8 +8,10 @@ from app.db import get_session
 from datetime import datetime
 import time
 import json
+from pathlib import Path
 from dotenv import load_dotenv
 from decouple import config as config_env
+
 
 load_dotenv()
 
@@ -64,6 +66,7 @@ def autorizar_sri_nota_credito():
 
         db.session = get_session(clicianonBD)
         engine = db.session.bind
+        rucProveedor = "0993370538001"
 
         # =========================================================================
         # 1. EXTRAER CABECERA (cxccnc)
@@ -244,6 +247,7 @@ def autorizar_sri_nota_credito():
         <campoAdicional nombre="Teléfono">{escape_xml(doc["clitelef1"] or '999999999')}</campoAdicional>
         <campoAdicional nombre="Email">{escape_xml(doc["cliemail"] or 'noreply@designsoft.com')}</campoAdicional>
         <campoAdicional nombre="Observación">{escape_xml(doc["motivo"])}</campoAdicional>
+        <campoAdicional nombre="RUC Proveedor">{rucProveedor}</campoAdicional>
     </infoAdicional>
 </notaCredito>"""
 
@@ -346,18 +350,62 @@ def autorizar_sri_nota_credito():
                 ],
                 "totales_impuestos": [{"valor": float(doc["nctotiva"])}],
                 "pagos": [{"forma_pago": "01", "total": float(doc["valorModificacion"]), "plazo": "", "unidad_tiempo": ""}],
-                "info_adicional": [{"nombre": "Documento Modificado", "valor": f"Factura {doc_sustento}"}],
+                "info_adicional": [
+                    {"nombre": "Documento Modificado", "valor": f"Factura {doc_sustento}"},
+                    {"nombre": "RUC Proveedor", "valor": rucProveedor},
+                ],
                 "tipo_emision": tipo_emision,
             }
 
-            try:
-                dir_base = pathlib.Path(__file__).resolve().parent.parent.parent / "IntegracionFacturacionElectronica" / "facturas_rides"
-                ruta_ride, _, _ = generate_ride_pdf(nota_data, auth_data, clave_acceso, dir_base)
-                if ruta_ride:
+            # ==========================================
+            # GENERAR RIDE (PDF)
+            # ==========================================
+            guardar_en_disco = config_env("DOC_ELECTRONICOS_RIDES_NOTACREDITO_PDF_ENABLED") == "true"
+            ruta_ride = None
+
+            if guardar_en_disco:
+                ahora = datetime.now()
+                ride_dir = Path(config_env("DOC_ELECTRONICOS_RIDES_NOTACREDITO_PDF_PATH")) / str(ahora.year) / f"{ahora.month:02d}" / f"{ahora.day:02d}"
+                ride_dir.mkdir(parents=True, exist_ok=True)
+
+                ruta_ride, ride_error, ride_details = generate_ride_pdf(nota_data, auth_data, clave_acceso, ride_dir)
+
+                if ruta_ride is None:
+                    raise Exception(f"{ride_error} | {ride_details}")
+
+                try:
                     with open(ruta_ride, "rb") as f:
                         pdf_content = f.read()
-            except Exception as e:
-                print(f"Advertencia RIDE: No se pudo generar PDF: {e}")
+                except Exception as e:
+                    pdf_content = None
+                    raise Exception(f"Error leyendo PDF del RIDE: {str(e)}")
+            else:
+                import tempfile
+                import os
+
+                ride_dir = Path(tempfile.gettempdir()) / "rides_notas_credito_temporales"
+                ride_dir.mkdir(parents=True, exist_ok=True)
+
+                try:
+                    ruta_ride, ride_error, ride_details = generate_ride_pdf(nota_data, auth_data, clave_acceso, ride_dir)
+
+                    if ruta_ride is None:
+                        raise Exception(f"{ride_error} | {ride_details}")
+
+                    try:
+                        with open(ruta_ride, "rb") as f:
+                            pdf_content = f.read()
+                    except Exception as e:
+                        pdf_content = None
+                        raise Exception(f"Error leyendo PDF del RIDE: {str(e)}")
+
+                finally:
+                    if ruta_ride is not None and os.path.exists(ruta_ride):
+                        try:
+                            os.remove(ruta_ride)
+                            ruta_ride = None
+                        except Exception:
+                            pass
 
         _guardar_estado_sri_bd(engine, ciacodigo, nccodigo, loccodigo, clave_acceso, xml_nc, xml_firmado, xml_autorizado_final, pdf_content, is_auth_num, mensaje_bd, status_bd, usrcodigo, ipUser, doc)
         # ========== CONSTRUIR DATOS CORREO ==========

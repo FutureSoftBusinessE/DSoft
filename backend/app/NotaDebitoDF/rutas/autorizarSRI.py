@@ -412,7 +412,7 @@ def autorizar_sri_nota_debito():
                         WHERE ciacodigo = :cia AND facnumfac = :fac AND loccodigo = :loc
                     """
                     ),
-                    {"aut": num_aut, "fecaut": fec_aut, "cia": ciacodigo, "fac": facnumfac, "loc": loccodigo},
+                    {"aut": num_aut, "fecaut": fec_aut, "cia": ciacodigo, "fac": facnumfac, "loc": loccodigo, "usr": usrcodigo},
                 )
 
                 # ========== ENCOLAR ENVÍO DE CORREO ==========

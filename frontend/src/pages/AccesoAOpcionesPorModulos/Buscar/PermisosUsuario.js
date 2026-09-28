@@ -47,6 +47,7 @@ const usePermisosManager = (initialData = null) => {
     opciones: new Map(),
     permisosMap: new Map(),
     hijos: new Map(),
+    padres: new Map(),
     relaciones: {},
     raiz: "root",
   })
@@ -58,6 +59,7 @@ const usePermisosManager = (initialData = null) => {
       const opcionesMap = new Map()
       const permisosMap = new Map()
       const hijosMap = new Map()
+      const padresMap = new Map()
 
       initialData.opciones.forEach((opcion) => {
         if (opcion && opcion.opctag) {
@@ -75,6 +77,9 @@ const usePermisosManager = (initialData = null) => {
         Object.entries(initialData.relaciones).forEach(([padre, hijos]) => {
           if (Array.isArray(hijos)) {
             hijosMap.set(padre, hijos)
+            hijos.forEach((hijo) => {
+              padresMap.set(hijo, padre)
+            })
           }
         })
       }
@@ -91,10 +96,17 @@ const usePermisosManager = (initialData = null) => {
       const nuevosRootHijos = [...new Set([...rootHijosActuales, ...opcionesNivel0])]
       hijosMap.set("root", nuevosRootHijos.sort())
 
+      opcionesNivel0.forEach((opctag) => {
+        if (!padresMap.has(opctag)) {
+          padresMap.set(opctag, "root")
+        }
+      })
+
       setPermisos({
         opciones: opcionesMap,
         permisosMap,
         hijos: hijosMap,
+        padres: padresMap,
         relaciones: initialData.relaciones || {},
         raiz: initialData.raiz || "root",
       })
@@ -104,21 +116,55 @@ const usePermisosManager = (initialData = null) => {
   const toggleOpcion = useCallback((opctag, nuevoEstado) => {
     setPermisos((prev) => {
       const nuevosPermisos = new Map(prev.permisosMap)
-      const opcionesAActualizar = new Set([opctag])
 
-      const obtenerHijosRecursivo = (padre) => {
+      const propagarHaciaAbajo = (padre, estado) => {
         const hijos = prev.hijos.get(padre) || []
         hijos.forEach((hijo) => {
-          opcionesAActualizar.add(hijo)
-          obtenerHijosRecursivo(hijo)
+          nuevosPermisos.set(hijo, estado)
+          propagarHaciaAbajo(hijo, estado)
         })
       }
 
-      obtenerHijosRecursivo(opctag)
+      nuevosPermisos.set(opctag, nuevoEstado)
+      propagarHaciaAbajo(opctag, nuevoEstado)
 
-      opcionesAActualizar.forEach((opc) => {
-        nuevosPermisos.set(opc, nuevoEstado)
-      })
+      const recalcularPadre = (hijoTag) => {
+        const padreTag = prev.padres.get(hijoTag)
+        if (!padreTag || padreTag === "root") return
+
+        const hijosDelPadre = prev.hijos.get(padreTag) || []
+        if (hijosDelPadre.length === 0) return
+
+        const evaluarEstado = (tag) => {
+          const hs = prev.hijos.get(tag) || []
+          if (hs.length === 0) {
+            return nuevosPermisos.get(tag) === true
+          }
+          let todos = true
+          let alguno = false
+          for (const h of hs) {
+            const est = evaluarEstado(h)
+            if (est !== true) todos = false
+            if (est === true) alguno = true
+          }
+          if (todos) return true
+          if (alguno) return "indeterminate"
+          return false
+        }
+
+        const estadosHijos = hijosDelPadre.map((h) => evaluarEstado(h))
+        const todosPermitidos = estadosHijos.every((e) => e === true)
+
+        if (todosPermitidos) {
+          nuevosPermisos.set(padreTag, true)
+        } else {
+          nuevosPermisos.set(padreTag, false)
+        }
+
+        recalcularPadre(padreTag)
+      }
+
+      recalcularPadre(opctag)
 
       return {
         ...prev,
@@ -136,13 +182,30 @@ const usePermisosManager = (initialData = null) => {
           return permisos.permisosMap.get(opctag) || false
         }
 
+        const evaluar = (tag) => {
+          const hs = permisos.hijos.get(tag) || []
+          if (hs.length === 0) {
+            return permisos.permisosMap.get(tag) || false
+          }
+          let todos = true
+          let alguno = false
+          for (const h of hs) {
+            const est = evaluar(h)
+            if (est !== true) todos = false
+            if (est === true || est === "indeterminate") alguno = true
+          }
+          if (todos) return true
+          if (alguno) return "indeterminate"
+          return false
+        }
+
         let todosPermitidos = true
         let algunPermitido = false
 
         for (const hijo of hijos) {
-          const permisoHijo = permisos.permisosMap.get(hijo)
-          if (!permisoHijo) todosPermitidos = false
-          if (permisoHijo) algunPermitido = true
+          const est = evaluar(hijo)
+          if (est !== true) todosPermitidos = false
+          if (est === true || est === "indeterminate") algunPermitido = true
         }
 
         if (todosPermitidos) return true

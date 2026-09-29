@@ -386,6 +386,8 @@ def insertarLocalidadIMP():
                         payload[column] = hora_sys
                     elif column == "locusumsys":
                         payload[column] = sUsuario
+                    elif column == "tipcodigo":
+                        payload[column] = "FIN"
                     else:
                         value = fila.get(column)
                         payload[column] = apply_no_null_default(column, value)

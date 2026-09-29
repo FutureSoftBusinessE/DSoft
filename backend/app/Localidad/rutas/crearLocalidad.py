@@ -664,6 +664,8 @@ def crearLocalidad():
                     value = hora_sys
                 elif column == "locusumsys":
                     value = sUsuario
+                elif column == "tipcodigo":
+                    value = "FIN"
                 else:
                     value = data.get(column)
 

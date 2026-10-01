@@ -28,9 +28,11 @@ import { useMutation, useQuery, api, showWarning, showSuccess, showError } from 
 import CustomBackdrop from "../../../components/CustomBackdrop"
 import { format } from "date-fns"
 import { useQueryClient } from "@tanstack/react-query"
+import { useNavigate } from "react-router-dom"
 
 export default function HistorialRegimenTributario({ ciacodigo, companiaData, readOnly = false }) {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [openModal, setOpenModal] = useState(false)
   const [registroSeleccionado, setRegistroSeleccionado] = useState(null)
 
@@ -80,40 +82,72 @@ export default function HistorialRegimenTributario({ ciacodigo, companiaData, re
 
   const [formRegistro, setFormRegistro] = useState({
     ciacodigo,
-    regruc: "",
-    regcedula: "",
-    reglicencia: "",
-    regresolucion: "",
-    regfecinicio: "",
-    regfecfin: "",
-    regagentretencion: 0,
-    regllevarcontabilidad: 0,
-    regrepresentantelegal: 0,
-    regpresidente: 0,
-    regcontador: 0,
+    // Régimen
     regregimenemprendedores: 0,
     regregimenpopular: 0,
     regregimengeneral: 0,
+    // Bandera: Contribuyente Especial
+    regcontribuyenteespecial: 0,
+    regcontribuyenteespecialnumres: "",
+    regcontribuyenteespecialfecres: "",
+    // Bandera: Agente de Retención
+    regagentretencion: 0,
+    regagentretencionnumres: "",
+    regagentretencionfecres: "",
+    // Bandera: Llevar Contabilidad
+    regllevarcontabilidad: 0,
+    regllevarcontabilidadnumres: "",
+    regllevarcontabilidadfecres: "",
+    // Representante Legal
+    regrepresentantelegalnombre: "",
+    regrepresentantelegalcedula: "",
+    // Presidente
+    regpresidentenombre: "",
+    regpresidentecedula: "",
+    // Contador
+    regcontadornombre: "",
+    regcontadorcedula: "",
+    regcontadorlicencia: "",
+    // Datos generales del registro
+    regruc: "",
+    regfecinicio: "",
+    regfecfin: "",
   })
 
   // Precargar datos desde siaccia al abrir modal
   const handleOpenModal = () => {
     setFormRegistro({
       ciacodigo,
-      regruc: companiaData?.ciaruc || "",
-      regcedula: companiaData?.ciacedgerente || "",
-      reglicencia: "",
-      regresolucion: companiaData?.cianumresolucion || "",
-      regfecinicio: "",
-      regfecfin: "",
-      regagentretencion: companiaData?.sriagenteretencion === "S" ? -1 : 0,
-      regllevarcontabilidad: companiaData?.ciacontabilidad ? -1 : 0,
-      regrepresentantelegal: companiaData?.ciasrirazon ? -1 : 0,
-      regpresidente: companiaData?.ciapresidente ? -1 : 0,
-      regcontador: companiaData?.ciacontador ? -1 : 0,
+      // Régimen
       regregimenemprendedores: companiaData?.ciaregimenemprendedores || 0,
       regregimenpopular: companiaData?.ciaregimenpopular || 0,
       regregimengeneral: companiaData?.ciaregimengeneral || 0,
+      // Bandera: Contribuyente Especial (cualquier != 0 es true -> -1)
+      regcontribuyenteespecial: companiaData?.ciaescontesp ? -1 : 0,
+      regcontribuyenteespecialnumres: companiaData?.cianumresolucion || "",
+      regcontribuyenteespecialfecres: companiaData?.ciafecresolucion || "",
+      // Bandera: Agente de Retención (varchar 'S'/'N')
+      regagentretencion: companiaData?.sriagenteretencion === "S" ? -1 : 0,
+      regagentretencionnumres: companiaData?.sriagenteretencionnumres || "",
+      regagentretencionfecres: companiaData?.sriagenteretencionfecres || "",
+      // Bandera: Llevar Contabilidad (bit 1/0)
+      regllevarcontabilidad: companiaData?.ciacontabilidad ? -1 : 0,
+      regllevarcontabilidadnumres: companiaData?.ciacontabilidadnumres || "",
+      regllevarcontabilidadfecres: companiaData?.ciacontabilidadfecres || "",
+      // Representante Legal
+      regrepresentantelegalnombre: companiaData?.ciagerente || "",
+      regrepresentantelegalcedula: companiaData?.ciacedgerente || "",
+      // Presidente
+      regpresidentenombre: companiaData?.ciapresidente || "",
+      regpresidentecedula: companiaData?.ciacedpresidente || "",
+      // Contador
+      regcontadornombre: companiaData?.ciacontador || "",
+      regcontadorcedula: companiaData?.ciasriruccontador || "",
+      regcontadorlicencia: companiaData?.ciaregcont || "",
+      // Datos generales del registro
+      regruc: companiaData?.ciaruc || "",
+      regfecinicio: "",
+      regfecfin: "",
     })
     setOpenModal(true)
   }
@@ -145,11 +179,6 @@ export default function HistorialRegimenTributario({ ciacodigo, companiaData, re
 
   const handleSubmit = async () => {
     // Validaciones
-    if (!formRegistro.regresolucion) {
-      showWarning("El número de resolución es requerido")
-      return
-    }
-
     const regimenSeleccionado = [
       formRegistro.regregimenemprendedores,
       formRegistro.regregimenpopular,
@@ -163,6 +192,7 @@ export default function HistorialRegimenTributario({ ciacodigo, companiaData, re
 
     try {
       await crearRegistro(formRegistro)
+      navigate(0)
     } catch (error) {
       showError(error)
     }
@@ -191,7 +221,9 @@ export default function HistorialRegimenTributario({ ciacodigo, companiaData, re
   const formatDate = (date) => {
     if (!date) return "N/A"
     try {
-      return format(new Date(date), "dd/MM/yyyy")
+      const d = new Date(date)
+      if (d.getFullYear() === 1900) return "N/A"
+      return format(d, "dd/MM/yyyy")
     } catch {
       return date
     }
@@ -225,11 +257,9 @@ export default function HistorialRegimenTributario({ ciacodigo, companiaData, re
               {!readOnly && <TableCell>Acciones</TableCell>}
               <TableCell>Sec.</TableCell>
               <TableCell>RUC</TableCell>
-              <TableCell>Cédula</TableCell>
-              <TableCell>Licencia</TableCell>
-              <TableCell>Resolución</TableCell>
               <TableCell>Inicio</TableCell>
               <TableCell>Fin</TableCell>
+              <TableCell>Contrib. Esp.</TableCell>
               <TableCell>Agente Ret.</TableCell>
               <TableCell>Contab.</TableCell>
               <TableCell>Rep. Legal</TableCell>
@@ -252,22 +282,20 @@ export default function HistorialRegimenTributario({ ciacodigo, companiaData, re
                 )}
                 <TableCell>{registro.regsecuencia}</TableCell>
                 <TableCell>{registro.regruc}</TableCell>
-                <TableCell>{registro.regcedula}</TableCell>
-                <TableCell>{registro.reglicencia}</TableCell>
-                <TableCell>{registro.regresolucion}</TableCell>
                 <TableCell>{formatDate(registro.regfecinicio)}</TableCell>
                 <TableCell>{formatDate(registro.regfecfin)}</TableCell>
+                <TableCell>{registro.regcontribuyenteespecial === -1 ? "Sí" : "No"}</TableCell>
                 <TableCell>{registro.regagentretencion === -1 ? "Sí" : "No"}</TableCell>
                 <TableCell>{registro.regllevarcontabilidad === -1 ? "Sí" : "No"}</TableCell>
-                <TableCell>{registro.regrepresentantelegal === -1 ? "Sí" : "No"}</TableCell>
-                <TableCell>{registro.regpresidente === -1 ? "Sí" : "No"}</TableCell>
-                <TableCell>{registro.regcontador === -1 ? "Sí" : "No"}</TableCell>
+                <TableCell>{registro.regrepresentantelegalnombre || "—"}</TableCell>
+                <TableCell>{registro.regpresidentenombre || "—"}</TableCell>
+                <TableCell>{registro.regcontadornombre || "—"}</TableCell>
                 <TableCell>{getRegimenLabel(registro)}</TableCell>
               </TableRow>
             ))}
             {!historial?.length && (
               <TableRow>
-                <TableCell colSpan={readOnly ? 13 : 14} align="center">
+                <TableCell colSpan={readOnly ? 11 : 12} align="center">
                   No hay registros
                 </TableCell>
               </TableRow>
@@ -282,10 +310,11 @@ export default function HistorialRegimenTributario({ ciacodigo, companiaData, re
           <DialogTitle>Nuevo Registro Tributario</DialogTitle>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} sm={2}>
+              {/* ── CABECERA: datos generales del régimen ── */}
+              <Grid item xs={12} sm={3}>
                 <TextField label="Código" value={formRegistro.ciacodigo} disabled fullWidth size="small" />
               </Grid>
-              <Grid item xs={12} sm={5}>
+              <Grid item xs={12} sm={3}>
                 <TextField
                   label="RUC"
                   value={formRegistro.regruc}
@@ -294,37 +323,9 @@ export default function HistorialRegimenTributario({ ciacodigo, companiaData, re
                   size="small"
                 />
               </Grid>
-              <Grid item xs={12} sm={5}>
+              <Grid item xs={12} sm={3}>
                 <TextField
-                  label="Cédula Representante"
-                  value={formRegistro.regcedula}
-                  onChange={(e) => handleInputChange("regcedula", e.target.value)}
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Licencia"
-                  value={formRegistro.reglicencia}
-                  onChange={(e) => handleInputChange("reglicencia", e.target.value)}
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="No. Resolución *"
-                  value={formRegistro.regresolucion}
-                  onChange={(e) => handleInputChange("regresolucion", e.target.value)}
-                  fullWidth
-                  size="small"
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Fecha Inicio"
+                  label="Fecha Inicio Vigencia"
                   type="date"
                   value={formRegistro.regfecinicio}
                   onChange={(e) => handleInputChange("regfecinicio", e.target.value)}
@@ -333,9 +334,9 @@ export default function HistorialRegimenTributario({ ciacodigo, companiaData, re
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={3}>
                 <TextField
-                  label="Fecha Fin"
+                  label="Fecha Fin Vigencia"
                   type="date"
                   value={formRegistro.regfecfin}
                   onChange={(e) => handleInputChange("regfecfin", e.target.value)}
@@ -345,13 +346,52 @@ export default function HistorialRegimenTributario({ ciacodigo, companiaData, re
                 />
               </Grid>
 
+              {/* ── BANDERA: Contribuyente Especial ── */}
               <Grid item xs={12}>
                 <Divider sx={{ my: 1 }} />
                 <Typography variant="subtitle2" color="primary">
-                  Banderas
+                  Contribuyente Especial
                 </Typography>
               </Grid>
+              <Grid item xs={12} sm={4}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formRegistro.regcontribuyenteespecial === -1}
+                      onChange={(e) => handleInputChange("regcontribuyenteespecial", e.target.checked ? -1 : 0)}
+                    />
+                  }
+                  label="Es Contribuyente Especial"
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="No. Resolución"
+                  value={formRegistro.regcontribuyenteespecialnumres}
+                  onChange={(e) => handleInputChange("regcontribuyenteespecialnumres", e.target.value)}
+                  fullWidth
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Fecha Resolución"
+                  type="date"
+                  value={formRegistro.regcontribuyenteespecialfecres}
+                  onChange={(e) => handleInputChange("regcontribuyenteespecialfecres", e.target.value)}
+                  fullWidth
+                  size="small"
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
 
+              {/* ── BANDERA: Agente de Retención ── */}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="subtitle2" color="primary">
+                  Agente de Retención
+                </Typography>
+              </Grid>
               <Grid item xs={12} sm={4}>
                 <FormControlLabel
                   control={
@@ -360,8 +400,36 @@ export default function HistorialRegimenTributario({ ciacodigo, companiaData, re
                       onChange={(e) => handleInputChange("regagentretencion", e.target.checked ? -1 : 0)}
                     />
                   }
-                  label="Agente de Retención"
+                  label="Es Agente de Retención"
                 />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="No. Resolución"
+                  value={formRegistro.regagentretencionnumres}
+                  onChange={(e) => handleInputChange("regagentretencionnumres", e.target.value)}
+                  fullWidth
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Fecha Resolución"
+                  type="date"
+                  value={formRegistro.regagentretencionfecres}
+                  onChange={(e) => handleInputChange("regagentretencionfecres", e.target.value)}
+                  fullWidth
+                  size="small"
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+
+              {/* ── BANDERA: Llevar Contabilidad ── */}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="subtitle2" color="primary">
+                  Llevar Contabilidad
+                </Typography>
               </Grid>
               <Grid item xs={12} sm={4}>
                 <FormControlLabel
@@ -375,39 +443,114 @@ export default function HistorialRegimenTributario({ ciacodigo, companiaData, re
                 />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formRegistro.regrepresentantelegal === -1}
-                      onChange={(e) => handleInputChange("regrepresentantelegal", e.target.checked ? -1 : 0)}
-                    />
-                  }
-                  label="Representante Legal"
+                <TextField
+                  label="No. Resolución"
+                  value={formRegistro.regllevarcontabilidadnumres}
+                  onChange={(e) => handleInputChange("regllevarcontabilidadnumres", e.target.value)}
+                  fullWidth
+                  size="small"
                 />
               </Grid>
               <Grid item xs={12} sm={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formRegistro.regpresidente === -1}
-                      onChange={(e) => handleInputChange("regpresidente", e.target.checked ? -1 : 0)}
-                    />
-                  }
-                  label="Presidente"
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={formRegistro.regcontador === -1}
-                      onChange={(e) => handleInputChange("regcontador", e.target.checked ? -1 : 0)}
-                    />
-                  }
-                  label="Contador"
+                <TextField
+                  label="Fecha Resolución"
+                  type="date"
+                  value={formRegistro.regllevarcontabilidadfecres}
+                  onChange={(e) => handleInputChange("regllevarcontabilidadfecres", e.target.value)}
+                  fullWidth
+                  size="small"
+                  InputLabelProps={{ shrink: true }}
                 />
               </Grid>
 
+              {/* ── REPRESENTANTE LEGAL ── */}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="subtitle2" color="primary">
+                  Representante Legal
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Nombre Representante Legal"
+                  value={formRegistro.regrepresentantelegalnombre}
+                  onChange={(e) => handleInputChange("regrepresentantelegalnombre", e.target.value)}
+                  fullWidth
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Cédula Representante Legal"
+                  value={formRegistro.regrepresentantelegalcedula}
+                  onChange={(e) => handleInputChange("regrepresentantelegalcedula", e.target.value)}
+                  fullWidth
+                  size="small"
+                />
+              </Grid>
+
+              {/* ── PRESIDENTE ── */}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="subtitle2" color="primary">
+                  Presidente
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Nombre Presidente"
+                  value={formRegistro.regpresidentenombre}
+                  onChange={(e) => handleInputChange("regpresidentenombre", e.target.value)}
+                  fullWidth
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Cédula Presidente"
+                  value={formRegistro.regpresidentecedula}
+                  onChange={(e) => handleInputChange("regpresidentecedula", e.target.value)}
+                  fullWidth
+                  size="small"
+                />
+              </Grid>
+
+              {/* ── CONTADOR ── */}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="subtitle2" color="primary">
+                  Contador
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Nombre Contador"
+                  value={formRegistro.regcontadornombre}
+                  onChange={(e) => handleInputChange("regcontadornombre", e.target.value)}
+                  fullWidth
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Cédula/RUC Contador"
+                  value={formRegistro.regcontadorcedula}
+                  onChange={(e) => handleInputChange("regcontadorcedula", e.target.value)}
+                  fullWidth
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Licencia Contador"
+                  value={formRegistro.regcontadorlicencia}
+                  onChange={(e) => handleInputChange("regcontadorlicencia", e.target.value)}
+                  fullWidth
+                  size="small"
+                />
+              </Grid>
+
+              {/* ── RÉGIMEN TRIBUTARIO ── */}
               <Grid item xs={12}>
                 <Divider sx={{ my: 1 }} />
                 <Typography variant="subtitle2" color="primary">

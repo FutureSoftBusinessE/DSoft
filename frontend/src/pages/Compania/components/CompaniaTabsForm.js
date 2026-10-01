@@ -51,7 +51,7 @@ export const COMPANIA_DEFAULT_VALUES = {
   ciavigilancia: "",
   ciaciudad: "",
   ciapais: "",
-  ciaescontesp: "",
+  ciaescontesp: 0,
   ciaemail: "",
   ciaweb: "",
   ciaanioinicon: "",
@@ -149,7 +149,7 @@ export const COMPANIA_DEFAULT_VALUES = {
   ciadiasretencion: 0,
   ciadiasemitirretencion: 30,
   ciapropina: 0,
-  ciacontabilidad: 1,
+  ciacontabilidad: 0,
   ciaetiquetaadiret: "",
   ciavaloradiret: "",
   ciasolautclcxp: 0,
@@ -162,6 +162,11 @@ export const COMPANIA_DEFAULT_VALUES = {
   ciavalidaemp: 0,
   ciabasepuntos: 0,
   ciatipocompania: "",
+  // Campos espejo del último régimen tributario (viven en siacciaregtributario)
+  sriagenteretencionfecres: "",
+  ciacontabilidadnumres: "",
+  ciacontabilidadfecres: "",
+  ciacedpresidente: "",
 }
 
 const statusOptions = [

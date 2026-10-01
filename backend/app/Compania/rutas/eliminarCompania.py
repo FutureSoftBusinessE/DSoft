@@ -29,15 +29,17 @@ def eliminarCompania():
     engine = db.session.bind
     with engine.connect() as connection:
         with connection.begin():
-            # Borro el Registro
-            data_siaccia_delete = {
-                "ciacodigo": ciacodigo,
-            }
+            # ── 1. Borrar registros hijos del historial de régimen tributario ──
+            # Si la FK está definida sin ON DELETE CASCADE, hay que borrar
+            # primero los registros hijos antes del padre.
+            delete_historial_query = text("DELETE FROM siacciaregtributario WHERE ciacodigo = :ciacodigo")
+            connection.execute(delete_historial_query, {"ciacodigo": ciacodigo})
 
+            # ── 2. Borrar la compañía ──
             delete_query = text("DELETE FROM siaccia WHERE ciacodigo = :ciacodigo")
 
             try:
-                connection.execute(delete_query, data_siaccia_delete)
+                connection.execute(delete_query, {"ciacodigo": ciacodigo})
             except IntegrityError:
                 raise ValidationError("No se puede eliminar la compañía porque existen registros relacionados")
 

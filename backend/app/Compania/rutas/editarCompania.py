@@ -5,7 +5,7 @@ from app.extensions import db
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from sqlalchemy import text
-from datetime import datetime
+from datetime import datetime, date
 from error_handling import api_endpoint, ValidationError
 import base64
 
@@ -458,6 +458,78 @@ def validate_field_length(field_name, field_value):
         raise ValidationError(f"El campo '{field_name}' no puede exceder {max_length} caracteres. " f"Largo proporcionado: {len(value_str)}")
 
 
+def parse_date_safe(value):
+    """Convierte un valor a datetime o None.
+    Acepta None, '', 'YYYY-MM-DD', 'YYYY-MM-DDTHH:MM:SS',
+    'Mon, 01 Jan 1900 00:00:00 GMT', 'Wed, 30 Sep 2026 00:00:00 GMT'.
+    Descarta fechas basura (1899-12-31, 1900-01-01).
+    """
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        if value.year in (1899, 1900):
+            return None
+        return value
+    if isinstance(value, date):
+        if value.year in (1899, 1900):
+            return None
+        return datetime(value.year, value.month, value.day)
+    if isinstance(value, str):
+        v = value.strip()
+        if not v:
+            return None
+        # Formatos soportados sin dateutil
+        formatos = (
+            "%Y-%m-%d",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%d %H:%M:%S",
+            "%a, %d %b %Y %H:%M:%S %Z",
+            "%a, %d %b %Y %H:%M:%S GMT",
+            "%a, %d %b %Y %H:%M:%S",
+            "%d/%m/%Y",
+            "%m/%d/%Y",
+        )
+        for fmt in formatos:
+            try:
+                dt = datetime.strptime(v, fmt)
+                if dt.year in (1899, 1900):
+                    return None
+                return dt
+            except ValueError:
+                continue
+        # Último intento: parseo manual del formato "Wed, 30 Sep 2026 00:00:00 GMT"
+        try:
+            partes = v.split()
+            if len(partes) >= 5:
+                # partes = ["Wed,", "30", "Sep", "2026", "00:00:00", "GMT"]
+                # limpiar coma del día de la semana
+                dia = int(partes[1])
+                mes_str = partes[2].lower()[:3]
+                anio = int(partes[3])
+                hora = partes[4].split(":")
+                meses = {
+                    "jan": 1,
+                    "feb": 2,
+                    "mar": 3,
+                    "apr": 4,
+                    "may": 5,
+                    "jun": 6,
+                    "jul": 7,
+                    "aug": 8,
+                    "sep": 9,
+                    "oct": 10,
+                    "nov": 11,
+                    "dec": 12,
+                }
+                mes = meses.get(mes_str)
+                if mes and anio not in (1899, 1900):
+                    return datetime(anio, mes, dia, int(hora[0]), int(hora[1]), int(hora[2]))
+        except Exception:
+            pass
+        return None
+    return None
+
+
 @bp.route("/editarCompania", methods=["POST"])
 @jwt_required()
 @api_endpoint
@@ -504,9 +576,95 @@ def editarCompania():
 
         update_values[field_name] = value
 
+    # ── Normalizar banderas para siaccia ──
+    # Regla: -1 = true, 0 = false (cualquier != 0 es true).
+    # En siaccia se convierte al tipo correcto de cada campo:
+    #   - ciaescontesp (int)              -> -1 / 0
+    #   - ciacontabilidad (bit)           -> 1 / 0
+    #   - sriagenteretencion (varchar)    -> 'S' / 'N'
+    if "ciaescontesp" in data:
+        v = data.get("ciaescontesp")
+        update_values["ciaescontesp"] = -1 if (v is True or v == 1 or v == "1" or v == -1 or v == "-1") else 0
+
+    if "ciacontabilidad" in data:
+        v = data.get("ciacontabilidad")
+        update_values["ciacontabilidad"] = 1 if (v is True or v == 1 or v == "1" or v == -1 or v == "-1") else 0
+
+    if "sriagenteretencion" in data:
+        v = str(data.get("sriagenteretencion") or "").strip().upper()
+        update_values["sriagenteretencion"] = "S" if v in ("S", "1", "-1", "TRUE") else "N"
+
     update_values["ciafecmsys"] = fecha_actual
     update_values["ciahormsys"] = hora_sys
     update_values["ciausumsys"] = sUsuario
+
+    # ── Mapeo de campos espejo hacia siacciaregtributario ──
+    # Los campos que vienen del frontend con nombres de siaccia se traducen
+    # a los nombres del historial. Se actualiza SOLO el último registro
+    # (mayor regsecuencia) para que siga reflejando lo actual.
+    MAPEO_ESPEJO = {
+        "ciaruc": "regruc",
+        "ciagerente": "regrepresentantelegalnombre",
+        "ciacedgerente": "regrepresentantelegalcedula",
+        "ciapresidente": "regpresidentenombre",
+        "ciacontador": "regcontadornombre",
+        "ciasriruccontador": "regcontadorcedula",
+        "ciaregcont": "regcontadorlicencia",
+        "ciaescontesp": "regcontribuyenteespecial",
+        "cianumresolucion": "regcontribuyenteespecialnumres",
+        "ciafecresolucion": "regcontribuyenteespecialfecres",
+        "sriagenteretencion": "regagentretencion",
+        "sriagenteretencionnumres": "regagentretencionnumres",
+        "ciacontabilidad": "regllevarcontabilidad",
+        "ciaregimenemprendedores": "regregimenemprendedores",
+        "ciaregimenpopular": "regregimenpopular",
+        "ciaregimengeneral": "regregimengeneral",
+        # Campos que SOLO viven en el historial (no están en siaccia):
+        # el frontend los envía con estos nombres.
+        "ciacedpresidente": "regpresidentecedula",
+        "sriagenteretencionfecres": "regagentretencionfecres",
+        "ciacontabilidadnumres": "regllevarcontabilidadnumres",
+        "ciacontabilidadfecres": "regllevarcontabilidadfecres",
+    }
+
+    # Construir el UPDATE al historial con los campos que vinieron en el payload
+    historial_values = {}
+    for field_name, value in data.items():
+        if field_name not in MAPEO_ESPEJO:
+            continue
+        target_field = MAPEO_ESPEJO[field_name]
+
+        # Conversión de tipos según el tipo del historial
+        if target_field in ("regcontribuyenteespecial", "regagentretencion", "regllevarcontabilidad", "regregimenemprendedores", "regregimenpopular", "regregimengeneral"):
+            value = convert_field_type(target_field, value)
+            if value is None:
+                value = 0
+        elif target_field in ("regcontribuyenteespecialfecres", "regagentretencionfecres", "regllevarcontabilidadfecres"):
+            value = parse_date_safe(value)
+        else:
+            value = value if value is not None else ""
+
+        historial_values[target_field] = value
+
+    # Normalizar sriagenteretencion de 'S'/'N' a -1/0 para el historial
+    if "sriagenteretencion" in data:
+        historial_values["regagentretencion"] = -1 if str(data.get("sriagenteretencion")).strip().upper() == "S" else 0
+
+    # Normalizar ciacontabilidad (bit) a -1/0 para el historial
+    if "ciacontabilidad" in data:
+        v = data.get("ciacontabilidad")
+        if v is True or v == 1 or v == "1" or v == -1 or v == "-1":
+            historial_values["regllevarcontabilidad"] = -1
+        else:
+            historial_values["regllevarcontabilidad"] = 0
+
+    # Normalizar ciaescontesp (int) a -1/0 para el historial
+    if "ciaescontesp" in data:
+        v = data.get("ciaescontesp")
+        if v is True or v == 1 or v == "1" or v == -1 or v == "-1":
+            historial_values["regcontribuyenteespecial"] = -1
+        else:
+            historial_values["regcontribuyenteespecial"] = 0
 
     db.session = get_session(clicianonBD)
     engine = db.session.bind
@@ -517,10 +675,31 @@ def editarCompania():
             if not existing:
                 raise ValidationError(f"No existe ninguna compañía con ciacodigo '{ciacodigo}'.")
 
+            # ── 1. UPDATE a siaccia ──
             set_clause = ", ".join([f"{field_name} = :{field_name}" for field_name in update_values])
             update_query = text(f"UPDATE siaccia SET {set_clause} WHERE ciacodigo = :ciacodigo")
             update_values["ciacodigo"] = ciacodigo
             connection.execute(update_query, update_values)
+
+            # ── 2. UPDATE al último registro de siacciaregtributario ──
+            # Solo si hay algo que actualizar y si existe al menos un registro.
+            if historial_values:
+                # Verificar que exista al menos un registro en el historial
+                check_hist = text("SELECT MAX(regsecuencia) AS max_sec FROM siacciaregtributario WHERE ciacodigo = :ciacodigo")
+                hist_row = connection.execute(check_hist, {"ciacodigo": ciacodigo}).mappings().fetchone()
+                max_sec = hist_row["max_sec"] if hist_row else None
+
+                if max_sec is not None:
+                    historial_values["regfecmsys"] = fecha_actual
+                    historial_values["reghormsys"] = hora_sys
+                    historial_values["regusumsys"] = sUsuario
+                    historial_values["ciacodigo"] = ciacodigo
+                    historial_values["regsecuencia"] = max_sec
+
+                    set_hist = ", ".join([f"{field_name} = :{field_name}" for field_name in historial_values if field_name not in ("ciacodigo", "regsecuencia")])
+                    update_hist_query = text(f"UPDATE siacciaregtributario SET {set_hist} " f"WHERE ciacodigo = :ciacodigo AND regsecuencia = :regsecuencia")
+                    connection.execute(update_hist_query, historial_values)
+
             trans.commit()
 
     return {"data": "Compañía actualizada correctamente"}

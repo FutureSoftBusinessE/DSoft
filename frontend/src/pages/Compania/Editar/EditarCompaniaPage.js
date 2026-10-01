@@ -164,12 +164,29 @@ const EditarCompania = () => {
       return
     }
 
+    // ── Construir payload final ──
+    // Combinamos formData (que trae TODOS los campos del formulario, incluidos
+    // los campos espejo del historial de régimen tributario) con normalized
+    // (que trae los campos ya validados/convertidos por validateFormData).
+    // Esto garantiza que el backend reciba los campos que solo viven en
+    // siacciaregtributario (sriagenteretencionfecres, ciacontabilidadnumres,
+    // ciacontabilidadfecres, ciacedpresidente) aunque validateFormData no los conozca.
+    const payload = {
+      ...formData,
+      ...normalized,
+      // Asegurar explícitamente que los campos espejo del historial se envíen
+      sriagenteretencionfecres: formData.sriagenteretencionfecres || "",
+      ciacontabilidadnumres: formData.ciacontabilidadnumres || "",
+      ciacontabilidadfecres: formData.ciacontabilidadfecres || "",
+      ciacedpresidente: formData.ciacedpresidente || "",
+    }
+
     // Si pasó todas las validaciones, enviar al backend
     try {
       console.log("All validations passed, sending to API")
-      console.log("Payload:", normalized)
+      console.log("Payload:", payload)
 
-      await SaveEdicionCompania(normalized)
+      await SaveEdicionCompania(payload)
     } catch (error) {
       console.log("=== API ERROR ===")
       console.log("Error type:", error?.constructor?.name)

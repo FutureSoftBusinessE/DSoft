@@ -92,7 +92,9 @@ export default function GeneralesSection({ data, change, readOnly, errors, Field
         </Typography>
         <Divider sx={{ mt: 0.4 }} />
       </Grid>
-      <Grid item xs={12} sm={4}>
+
+      {/* ── BANDERA: Es Contribuyente Especial ── */}
+      <Grid item xs={12} sm={3}>
         <Field
           label="Es Contribuyente Especial?"
           name="ciaescontesp"
@@ -100,20 +102,22 @@ export default function GeneralesSection({ data, change, readOnly, errors, Field
           onChange={change}
           readOnly={readOnly}
           type="checkbox"
+          checkedValue={-1}
+          uncheckedValue={0}
         />
       </Grid>
-      <Grid item xs={12} sm={4}>
+      <Grid item xs={12} sm={3}>
         <Field
-          label="No. Resolución"
+          label="No. Resolución Contribuyente Especial"
           name="cianumresolucion"
           value={data.cianumresolucion}
           onChange={change}
           readOnly={readOnly}
         />
       </Grid>
-      <Grid item xs={12} sm={4}>
+      <Grid item xs={12} sm={3}>
         <Field
-          label="Fecha Resolución"
+          label="Fecha Resolución Contribuyente Especial"
           name="ciafecresolucion"
           value={data.ciafecresolucion}
           onChange={change}
@@ -121,7 +125,9 @@ export default function GeneralesSection({ data, change, readOnly, errors, Field
           type="date"
         />
       </Grid>
-      <Grid item xs={12} sm={4}>
+
+      {/* ── BANDERA: Es Agente de Retención ── */}
+      <Grid item xs={12} sm={3}>
         <Field
           label="Es Agente de Retención?"
           name="sriagenteretencion"
@@ -133,17 +139,147 @@ export default function GeneralesSection({ data, change, readOnly, errors, Field
           uncheckedValue="N"
         />
       </Grid>
-      <Grid item xs={12} sm={4}>
+      <Grid item xs={12} sm={3}>
         <Field
-          label="No. Resolución Agente"
+          label="No. Resolución Agente de Retención"
           name="sriagenteretencionnumres"
           value={data.sriagenteretencionnumres}
           onChange={change}
           readOnly={readOnly}
         />
       </Grid>
+      <Grid item xs={12} sm={3}>
+        <Field
+          label="Fecha Resolución Agente de Retención"
+          name="sriagenteretencionfecres"
+          value={data.sriagenteretencionfecres}
+          onChange={change}
+          readOnly={readOnly}
+          type="date"
+        />
+      </Grid>
 
-      {/* NUEVOS CAMPOS DE RÉGIMEN TRIBUTARIO */}
+      {/* ── BANDERA: Llevar Contabilidad ── */}
+      <Grid item xs={12} sm={3}>
+        <Field
+          label="Llevar Contabilidad?"
+          name="ciacontabilidad"
+          value={data.ciacontabilidad}
+          onChange={change}
+          readOnly={readOnly}
+          type="checkbox"
+          checkedValue={-1}
+          uncheckedValue={0}
+        />
+      </Grid>
+      <Grid item xs={12} sm={3}>
+        <Field
+          label="No. Resolución Llevar Contabilidad"
+          name="ciacontabilidadnumres"
+          value={data.ciacontabilidadnumres}
+          onChange={change}
+          readOnly={readOnly}
+        />
+      </Grid>
+      <Grid item xs={12} sm={3}>
+        <Field
+          label="Fecha Resolución Llevar Contabilidad"
+          name="ciacontabilidadfecres"
+          value={data.ciacontabilidadfecres}
+          onChange={change}
+          readOnly={readOnly}
+          type="date"
+        />
+      </Grid>
+
+      {/* ── REPRESENTANTE LEGAL (no es bandera) ── */}
+      <Grid item xs={12} sx={{ mt: 1 }}>
+        <Typography variant="subtitle2" color="primary">
+          Representante Legal
+        </Typography>
+        <Divider sx={{ mt: 0.4 }} />
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Field
+          label="Nombre Representante Legal"
+          name="ciagerente"
+          value={data.ciagerente}
+          onChange={change}
+          readOnly={readOnly}
+        />
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Field
+          label="Cédula Representante Legal"
+          name="ciacedgerente"
+          value={data.ciacedgerente}
+          onChange={change}
+          readOnly={readOnly}
+        />
+      </Grid>
+
+      {/* ── PRESIDENTE (no es bandera) ── */}
+      <Grid item xs={12} sx={{ mt: 1 }}>
+        <Typography variant="subtitle2" color="primary">
+          Presidente
+        </Typography>
+        <Divider sx={{ mt: 0.4 }} />
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Field
+          label="Nombre Presidente"
+          name="ciapresidente"
+          value={data.ciapresidente}
+          onChange={change}
+          readOnly={readOnly}
+        />
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Field
+          label="Cédula Presidente"
+          name="ciacedpresidente"
+          value={data.ciacedpresidente}
+          onChange={change}
+          readOnly={readOnly}
+        />
+      </Grid>
+
+      {/* ── CONTADOR (no es bandera, 3 campos) ── */}
+      <Grid item xs={12} sx={{ mt: 1 }}>
+        <Typography variant="subtitle2" color="primary">
+          Contador
+        </Typography>
+        <Divider sx={{ mt: 0.4 }} />
+      </Grid>
+      <Grid item xs={12} sm={4}>
+        <Field
+          label="Nombre Contador"
+          name="ciacontador"
+          value={data.ciacontador}
+          onChange={change}
+          readOnly={readOnly}
+        />
+      </Grid>
+      <Grid item xs={12} sm={4}>
+        <Field
+          label="Cédula/RUC Contador"
+          name="ciasriruccontador"
+          value={data.ciasriruccontador}
+          onChange={change}
+          readOnly={readOnly}
+        />
+      </Grid>
+      <Grid item xs={12} sm={4}>
+        <Field
+          label="Licencia Contador"
+          name="ciaregcont"
+          value={data.ciaregcont}
+          onChange={change}
+          readOnly={readOnly}
+        />
+      </Grid>
+
+      {/* ── RÉGIMEN TRIBUTARIO ── */}
       <Grid item xs={12} sx={{ mt: 1 }}>
         <Typography variant="subtitle2" color="primary">
           Régimen Tributario

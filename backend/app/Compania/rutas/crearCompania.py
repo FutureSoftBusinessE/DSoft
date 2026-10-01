@@ -6,7 +6,7 @@ from app.extensions import db
 from flask_jwt_extended import get_jwt, jwt_required
 from app.db import get_session
 from sqlalchemy import text
-from datetime import datetime
+from datetime import datetime, date
 from error_handling import api_endpoint, ValidationError, APIError
 import re
 import base64
@@ -16,6 +16,78 @@ from decouple import config as config_env
 
 # Cargar variables de entorno desde el archivo .env
 load_dotenv()
+
+
+def parse_date_safe(value):
+    """Convierte un valor a datetime o None.
+    Acepta None, '', 'YYYY-MM-DD', 'YYYY-MM-DDTHH:MM:SS',
+    'Mon, 01 Jan 1900 00:00:00 GMT', 'Wed, 30 Sep 2026 00:00:00 GMT'.
+    Descarta fechas basura (1899-12-31, 1900-01-01).
+    """
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        if value.year in (1899, 1900):
+            return None
+        return value
+    if isinstance(value, date):
+        if value.year in (1899, 1900):
+            return None
+        return datetime(value.year, value.month, value.day)
+    if isinstance(value, str):
+        v = value.strip()
+        if not v:
+            return None
+        # Formatos soportados sin dateutil
+        formatos = (
+            "%Y-%m-%d",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%d %H:%M:%S",
+            "%a, %d %b %Y %H:%M:%S %Z",
+            "%a, %d %b %Y %H:%M:%S GMT",
+            "%a, %d %b %Y %H:%M:%S",
+            "%d/%m/%Y",
+            "%m/%d/%Y",
+        )
+        for fmt in formatos:
+            try:
+                dt = datetime.strptime(v, fmt)
+                if dt.year in (1899, 1900):
+                    return None
+                return dt
+            except ValueError:
+                continue
+        # Último intento: parseo manual del formato "Wed, 30 Sep 2026 00:00:00 GMT"
+        try:
+            partes = v.split()
+            if len(partes) >= 5:
+                # partes = ["Wed,", "30", "Sep", "2026", "00:00:00", "GMT"]
+                # limpiar coma del día de la semana
+                dia = int(partes[1])
+                mes_str = partes[2].lower()[:3]
+                anio = int(partes[3])
+                hora = partes[4].split(":")
+                meses = {
+                    "jan": 1,
+                    "feb": 2,
+                    "mar": 3,
+                    "apr": 4,
+                    "may": 5,
+                    "jun": 6,
+                    "jul": 7,
+                    "aug": 8,
+                    "sep": 9,
+                    "oct": 10,
+                    "nov": 11,
+                    "dec": 12,
+                }
+                mes = meses.get(mes_str)
+                if mes and anio not in (1899, 1900):
+                    return datetime(anio, mes, dia, int(hora[0]), int(hora[1]), int(hora[2]))
+        except Exception:
+            pass
+        return None
+    return None
 
 
 def decode_base64_safe(base64_str):
@@ -391,7 +463,7 @@ def crearCompania():
     ciadiasretencion = convert_field_type("ciadiasretencion", data.get("ciadiasretencion")) or 0
     ciadiasemitirretencion = convert_field_type("ciadiasemitirretencion", data.get("ciadiasemitirretencion")) or 30
     ciapropina = convert_field_type("ciapropina", data.get("ciapropina")) or 0
-    ciacontabilidad = convert_field_type("ciacontabilidad", data.get("ciacontabilidad")) or 1
+    ciacontabilidad = convert_field_type("ciacontabilidad", data.get("ciacontabilidad")) or 0
     ciasolautclcxp = convert_field_type("ciasolautclcxp", data.get("ciasolautclcxp")) or 0
     ciaaproautclcxp = convert_field_type("ciaaproautclcxp", data.get("ciaaproautclcxp")) or 0
     ciaivaporproducto = convert_field_type("ciaivaporproducto", data.get("ciaivaporproducto")) or 0
@@ -410,7 +482,7 @@ def crearCompania():
     ciaalias = data.get("ciaalias") or ""
     ciaruc = data.get("ciaruc") or ""
     ciafax = data.get("ciafax") or ""
-    ciafecminacc = data.get("ciafecminacc") or ""
+    ciafecminacc = parse_date_safe(data.get("ciafecminacc"))
     ciaforcencos = data.get("ciaforcencos") or ""
     ciaforlin = data.get("ciaforlin") or ""
     ciagerente = data.get("ciagerente") or ""
@@ -437,7 +509,7 @@ def crearCompania():
     ciacantfor = data.get("ciacantfor") or ""
     ciacostfor = data.get("ciacostfor") or ""
     ciavehele = convert_field_type("ciavehele", data.get("ciavehele"))
-    ciafecinipre = data.get("ciafecinipre") or ""
+    ciafecinipre = parse_date_safe(data.get("ciafecinipre"))
     ciaforcta = data.get("ciaforcta") or ""
     ciasrifono = data.get("ciasrifono") or ""
     ciasrifax = data.get("ciasrifax") or ""
@@ -454,13 +526,13 @@ def crearCompania():
     coscodigo = data.get("coscodigo") or ""
     ciasecuentarjeta = data.get("ciasecuentarjeta") or ""
     cianumresolucion = data.get("cianumresolucion") or ""
-    ciafecresolucion = data.get("ciafecresolucion") or ""
+    ciafecresolucion = parse_date_safe(data.get("ciafecresolucion"))
     CiaNivelOrg = convert_field_type("CiaNivelOrg", data.get("CiaNivelOrg"))
     ciafororg = data.get("ciafororg") or ""
     cianumvend = convert_field_type("cianumvend", data.get("cianumvend"))
     sriagenteretencionnumres = data.get("sriagenteretencionnumres") or ""
-    srioffini = data.get("srioffini") or ""
-    sriofffin = data.get("sriofffin") or ""
+    srioffini = parse_date_safe(data.get("srioffini"))
+    sriofffin = parse_date_safe(data.get("sriofffin"))
     ciaetiquetaadiret = data.get("ciaetiquetaadiret") or ""
     ciavaloradiret = data.get("ciavaloradiret") or ""
 
@@ -478,9 +550,9 @@ def crearCompania():
 
     ciaivaporproducto = convert_field_type("ciaivaporproducto", data.get("ciaivaporproducto"))
     ciafacelectronica = data.get("ciafacelectronica") or ""
-    versionfac = data.get("versionfac") or ""
+    versionfac = parse_date_safe(data.get("versionfac"))
     ciapdfelectronica = data.get("ciapdfelectronica") or ""
-    versionpdf = data.get("versionpdf") or ""
+    versionpdf = parse_date_safe(data.get("versionpdf"))
     ciactapagolote = data.get("ciactapagolote") or ""
     ciatipoocfaclote = data.get("ciatipoocfaclote") or ""
     ciaivaservicio = data.get("ciaivaservicio") or ""
@@ -526,6 +598,8 @@ def crearCompania():
             #   - siactusr (módulos) + siactusrweb (opciones menú) +
             #     siactusrwebbar (acciones) - Copia permisos usuario 1 desde
             #     compañía origen y asigna mismos permisos al usuario 2
+            #   - siacciaregtributario (primer registro del historial con
+            #     regsecuencia = 1, con los datos del régimen actual)
             # DSOFT: fsbsmclicia + fsbsmcliusu (2 usuarios)
             # Si algo falla → ROLLBACK en ambas
             # ══════════════════════════════════════════════════════════════════
@@ -1024,6 +1098,84 @@ def crearCompania():
                     """
                 )
                 conn_company.execute(insert_query, insert_params)
+
+                # ══════════════════════════════════════════════════════════════════
+                # Crear primer registro en siacciaregtributario (regsecuencia = 1)
+                # Regla: en frontend -1 = true, 0 = false (cualquier != 0 es true).
+                # En siaccia los campos tienen tipos distintos:
+                #   - ciaescontesp (int)          -> -1 / 0
+                #   - sriagenteretencion (varchar)-> 'S' / 'N'
+                #   - ciacontabilidad (bit)       -> 1 / 0
+                # Aquí normalizamos a la convención del historial (-1 / 0).
+                # ══════════════════════════════════════════════════════════════════
+                reg_contribuyenteespecial = -1 if (ciaescontesp not in (None, "", 0, "0", False)) else 0
+                reg_agentretencion = -1 if (str(sriagenteretencion).strip().upper() == "S") else 0
+                reg_llevarcontabilidad = -1 if (ciacontabilidad not in (None, "", 0, "0", False)) else 0
+
+                insert_reg_query = text(
+                    """
+                    INSERT INTO siacciaregtributario (
+                        ciacodigo, regsecuencia, regruc,
+                        regfecinicio, regfecfin,
+                        regcontribuyenteespecial, regcontribuyenteespecialnumres, regcontribuyenteespecialfecres,
+                        regagentretencion, regagentretencionnumres, regagentretencionfecres,
+                        regllevarcontabilidad, regllevarcontabilidadnumres, regllevarcontabilidadfecres,
+                        regrepresentantelegalnombre, regrepresentantelegalcedula,
+                        regpresidentenombre, regpresidentecedula,
+                        regcontadornombre, regcontadorcedula, regcontadorlicencia,
+                        regregimenemprendedores, regregimenpopular, regregimengeneral,
+                        regfecisys, reghorisys, regusuisys, regestisys,
+                        regfecmsys, reghormsys, regusumsys, regestmsys
+                    ) VALUES (
+                        :ciacodigo, 1, :regruc,
+                        NULL, NULL,
+                        :regcontribuyenteespecial, :regcontribuyenteespecialnumres, :regcontribuyenteespecialfecres,
+                        :regagentretencion, :regagentretencionnumres, :regagentretencionfecres,
+                        :regllevarcontabilidad, :regllevarcontabilidadnumres, :regllevarcontabilidadfecres,
+                        :regrepresentantelegalnombre, :regrepresentantelegalcedula,
+                        :regpresidentenombre, :regpresidentecedula,
+                        :regcontadornombre, :regcontadorcedula, :regcontadorlicencia,
+                        :regregimenemprendedores, :regregimenpopular, :regregimengeneral,
+                        :regfecisys, :reghorisys, :regusuisys, :regestisys,
+                        :regfecmsys, :reghormsys, :regusumsys, :regestmsys
+                    )
+                    """
+                )
+
+                conn_company.execute(
+                    insert_reg_query,
+                    {
+                        "ciacodigo": ciacodigo,
+                        "regruc": ciaruc,
+                        "regcontribuyenteespecial": reg_contribuyenteespecial,
+                        "regcontribuyenteespecialnumres": cianumresolucion or "",
+                        "regcontribuyenteespecialfecres": parse_date_safe(data.get("ciafecresolucion")),
+                        "regagentretencion": reg_agentretencion,
+                        "regagentretencionnumres": sriagenteretencionnumres or "",
+                        "regagentretencionfecres": parse_date_safe(data.get("sriagenteretencionfecres")),
+                        "regllevarcontabilidad": reg_llevarcontabilidad,
+                        "regllevarcontabilidadnumres": data.get("ciacontabilidadnumres") or "",
+                        "regllevarcontabilidadfecres": parse_date_safe(data.get("ciacontabilidadfecres")),
+                        "regrepresentantelegalnombre": ciagerente,
+                        "regrepresentantelegalcedula": ciacedgerente,
+                        "regpresidentenombre": ciapresidente,
+                        "regpresidentecedula": data.get("ciacedpresidente") or "",
+                        "regcontadornombre": ciacontador,
+                        "regcontadorcedula": ciasriruccontador,
+                        "regcontadorlicencia": ciaregcont,
+                        "regregimenemprendedores": ciaregimenemprendedores,
+                        "regregimenpopular": ciaregimenpopular,
+                        "regregimengeneral": ciaregimengeneral,
+                        "regfecisys": fecha_actual,
+                        "reghorisys": hora_sys,
+                        "regusuisys": sUsuario,
+                        "regestisys": ipUser,
+                        "regfecmsys": fecha_actual,
+                        "reghormsys": hora_sys,
+                        "regusumsys": sUsuario,
+                        "regestmsys": ipUser,
+                    },
+                )
 
                 insert_siaccusr_query = text(
                     """
@@ -1964,18 +2116,32 @@ def crearRegimenTributario():
 
             # Obtener valores del request
             regruc = data.get("regruc") or ""
-            regcedula = data.get("regcedula") or ""
-            reglicencia = data.get("reglicencia") or ""
-            regresolucion = data.get("regresolucion") or ""
-            regfecinicio = data.get("regfecinicio") or None
-            regfecfin = data.get("regfecfin") or None
+            regfecinicio = parse_date_safe(data.get("regfecinicio"))
+            regfecfin = parse_date_safe(data.get("regfecfin"))
 
-            # Flags (0 o -1)
+            # ── Banderas (regla: -1 = true, 0 = false; cualquier != 0 es true) ──
+            regcontribuyenteespecial = convert_field_type("regcontribuyenteespecial", data.get("regcontribuyenteespecial")) or 0
+            regcontribuyenteespecialnumres = data.get("regcontribuyenteespecialnumres") or ""
+            regcontribuyenteespecialfecres = parse_date_safe(data.get("regcontribuyenteespecialfecres"))
+
             regagentretencion = convert_field_type("regagentretencion", data.get("regagentretencion")) or 0
+            regagentretencionnumres = data.get("regagentretencionnumres") or ""
+            regagentretencionfecres = parse_date_safe(data.get("regagentretencionfecres"))
+
             regllevarcontabilidad = convert_field_type("regllevarcontabilidad", data.get("regllevarcontabilidad")) or 0
-            regrepresentantelegal = convert_field_type("regrepresentantelegal", data.get("regrepresentantelegal")) or 0
-            regpresidente = convert_field_type("regpresidente", data.get("regpresidente")) or 0
-            regcontador = convert_field_type("regcontador", data.get("regcontador")) or 0
+            regllevarcontabilidadnumres = data.get("regllevarcontabilidadnumres") or ""
+            regllevarcontabilidadfecres = parse_date_safe(data.get("regllevarcontabilidadfecres"))
+
+            # ── Personas ──
+            regrepresentantelegalnombre = data.get("regrepresentantelegalnombre") or ""
+            regrepresentantelegalcedula = data.get("regrepresentantelegalcedula") or ""
+            regpresidentenombre = data.get("regpresidentenombre") or ""
+            regpresidentecedula = data.get("regpresidentecedula") or ""
+            regcontadornombre = data.get("regcontadornombre") or ""
+            regcontadorcedula = data.get("regcontadorcedula") or ""
+            regcontadorlicencia = data.get("regcontadorlicencia") or ""
+
+            # ── Régimen ──
             regregimenemprendedores = convert_field_type("regregimenemprendedores", data.get("regregimenemprendedores")) or 0
             regregimenpopular = convert_field_type("regregimenpopular", data.get("regregimenpopular")) or 0
             regregimengeneral = convert_field_type("regregimengeneral", data.get("regregimengeneral")) or 0
@@ -1984,19 +2150,27 @@ def crearRegimenTributario():
             insert_query = text(
                 """
                 INSERT INTO siacciaregtributario (
-                    ciacodigo, regsecuencia, regruc, regcedula, reglicencia,
-                    regresolucion, regfecinicio, regfecfin,
-                    regagentretencion, regllevarcontabilidad, regrepresentantelegal,
-                    regpresidente, regcontador, regregimenemprendedores,
-                    regregimenpopular, regregimengeneral,
+                    ciacodigo, regsecuencia, regruc,
+                    regfecinicio, regfecfin,
+                    regcontribuyenteespecial, regcontribuyenteespecialnumres, regcontribuyenteespecialfecres,
+                    regagentretencion, regagentretencionnumres, regagentretencionfecres,
+                    regllevarcontabilidad, regllevarcontabilidadnumres, regllevarcontabilidadfecres,
+                    regrepresentantelegalnombre, regrepresentantelegalcedula,
+                    regpresidentenombre, regpresidentecedula,
+                    regcontadornombre, regcontadorcedula, regcontadorlicencia,
+                    regregimenemprendedores, regregimenpopular, regregimengeneral,
                     regfecisys, reghorisys, regusuisys, regestisys,
                     regfecmsys, reghormsys, regusumsys, regestmsys
                 ) VALUES (
-                    :ciacodigo, :regsecuencia, :regruc, :regcedula, :reglicencia,
-                    :regresolucion, :regfecinicio, :regfecfin,
-                    :regagentretencion, :regllevarcontabilidad, :regrepresentantelegal,
-                    :regpresidente, :regcontador, :regregimenemprendedores,
-                    :regregimenpopular, :regregimengeneral,
+                    :ciacodigo, :regsecuencia, :regruc,
+                    :regfecinicio, :regfecfin,
+                    :regcontribuyenteespecial, :regcontribuyenteespecialnumres, :regcontribuyenteespecialfecres,
+                    :regagentretencion, :regagentretencionnumres, :regagentretencionfecres,
+                    :regllevarcontabilidad, :regllevarcontabilidadnumres, :regllevarcontabilidadfecres,
+                    :regrepresentantelegalnombre, :regrepresentantelegalcedula,
+                    :regpresidentenombre, :regpresidentecedula,
+                    :regcontadornombre, :regcontadorcedula, :regcontadorlicencia,
+                    :regregimenemprendedores, :regregimenpopular, :regregimengeneral,
                     :regfecisys, :reghorisys, :regusuisys, :regestisys,
                     :regfecmsys, :reghormsys, :regusumsys, :regestmsys
                 )
@@ -2009,16 +2183,24 @@ def crearRegimenTributario():
                     "ciacodigo": ciacodigo,
                     "regsecuencia": regsecuencia,
                     "regruc": regruc,
-                    "regcedula": regcedula,
-                    "reglicencia": reglicencia,
-                    "regresolucion": regresolucion,
                     "regfecinicio": regfecinicio,
                     "regfecfin": regfecfin,
+                    "regcontribuyenteespecial": regcontribuyenteespecial,
+                    "regcontribuyenteespecialnumres": regcontribuyenteespecialnumres,
+                    "regcontribuyenteespecialfecres": regcontribuyenteespecialfecres,
                     "regagentretencion": regagentretencion,
+                    "regagentretencionnumres": regagentretencionnumres,
+                    "regagentretencionfecres": regagentretencionfecres,
                     "regllevarcontabilidad": regllevarcontabilidad,
-                    "regrepresentantelegal": regrepresentantelegal,
-                    "regpresidente": regpresidente,
-                    "regcontador": regcontador,
+                    "regllevarcontabilidadnumres": regllevarcontabilidadnumres,
+                    "regllevarcontabilidadfecres": regllevarcontabilidadfecres,
+                    "regrepresentantelegalnombre": regrepresentantelegalnombre,
+                    "regrepresentantelegalcedula": regrepresentantelegalcedula,
+                    "regpresidentenombre": regpresidentenombre,
+                    "regpresidentecedula": regpresidentecedula,
+                    "regcontadornombre": regcontadornombre,
+                    "regcontadorcedula": regcontadorcedula,
+                    "regcontadorlicencia": regcontadorlicencia,
                     "regregimenemprendedores": regregimenemprendedores,
                     "regregimenpopular": regregimenpopular,
                     "regregimengeneral": regregimengeneral,
@@ -2033,15 +2215,29 @@ def crearRegimenTributario():
                 },
             )
 
-            # Actualizar siaccia con los valores del nuevo registro
+            # ── Actualizar siaccia con los valores del nuevo registro ──
+            # Regla: en frontend 0 = false, -1 = true (cualquier != 0 es true).
+            # En siaccia se convierte al tipo correcto de cada campo:
+            #   - ciaescontesp (int)          -> se guarda -1 o 0 tal cual
+            #   - sriagenteretencion (varchar 'S'/'N') -> 'S' si != 0, 'N' si 0
+            #   - ciacontabilidad (bit)       -> 1 si != 0, 0 si 0
+            # Se usa COALESCE/NULLIF para no borrar datos con valores vacíos.
             update_siaccia_query = text(
                 """
                 UPDATE siaccia SET
-                    ciaruc = :regruc,
-                    sriagenteretencion = :regagentretencion,
-                    ciacontabilidad = :regllevarcontabilidad,
-                    ciapresidente = :regpresidente,
-                    ciacontador = :regcontador,
+                    ciaruc = COALESCE(NULLIF(:regruc, ''), ciaruc),
+                    ciagerente = COALESCE(NULLIF(:regrepresentantelegalnombre, ''), ciagerente),
+                    ciacedgerente = COALESCE(NULLIF(:regrepresentantelegalcedula, ''), ciacedgerente),
+                    ciapresidente = COALESCE(NULLIF(:regpresidentenombre, ''), ciapresidente),
+                    ciacontador = COALESCE(NULLIF(:regcontadornombre, ''), ciacontador),
+                    ciasriruccontador = COALESCE(NULLIF(:regcontadorcedula, ''), ciasriruccontador),
+                    ciaregcont = COALESCE(NULLIF(:regcontadorlicencia, ''), ciaregcont),
+                    cianumresolucion = COALESCE(NULLIF(:regcontribuyenteespecialnumres, ''), cianumresolucion),
+                    ciafecresolucion = COALESCE(:regcontribuyenteespecialfecres, ciafecresolucion),
+                    ciaescontesp = CASE WHEN :regcontribuyenteespecial != 0 THEN -1 ELSE 0 END,
+                    sriagenteretencion = CASE WHEN :regagentretencion != 0 THEN 'S' ELSE 'N' END,
+                    sriagenteretencionnumres = COALESCE(NULLIF(:regagentretencionnumres, ''), sriagenteretencionnumres),
+                    ciacontabilidad = CASE WHEN :regllevarcontabilidad != 0 THEN 1 ELSE 0 END,
                     ciaregimenemprendedores = :regregimenemprendedores,
                     ciaregimenpopular = :regregimenpopular,
                     ciaregimengeneral = :regregimengeneral,
@@ -2056,10 +2252,18 @@ def crearRegimenTributario():
                 update_siaccia_query,
                 {
                     "regruc": regruc,
+                    "regrepresentantelegalnombre": regrepresentantelegalnombre,
+                    "regrepresentantelegalcedula": regrepresentantelegalcedula,
+                    "regpresidentenombre": regpresidentenombre,
+                    "regcontadornombre": regcontadornombre,
+                    "regcontadorcedula": regcontadorcedula,
+                    "regcontadorlicencia": regcontadorlicencia,
+                    "regcontribuyenteespecialnumres": regcontribuyenteespecialnumres,
+                    "regcontribuyenteespecialfecres": regcontribuyenteespecialfecres,
+                    "regcontribuyenteespecial": regcontribuyenteespecial,
                     "regagentretencion": regagentretencion,
+                    "regagentretencionnumres": regagentretencionnumres,
                     "regllevarcontabilidad": regllevarcontabilidad,
-                    "regpresidente": regpresidente,
-                    "regcontador": regcontador,
                     "regregimenemprendedores": regregimenemprendedores,
                     "regregimenpopular": regregimenpopular,
                     "regregimengeneral": regregimengeneral,
@@ -2170,12 +2374,22 @@ def getHistorialRegimenTributario():
         query = text(
             """
             SELECT
-                ciacodigo, regsecuencia, regruc, regcedula, reglicencia,
-                regresolucion,
+                ciacodigo, regsecuencia, regruc,
                 CONVERT(varchar, regfecinicio, 23) as regfecinicio,
                 CONVERT(varchar, regfecfin, 23) as regfecfin,
-                regagentretencion, regllevarcontabilidad, regrepresentantelegal,
-                regpresidente, regcontador, regregimenemprendedores,
+                regcontribuyenteespecial,
+                regcontribuyenteespecialnumres,
+                CONVERT(varchar, regcontribuyenteespecialfecres, 23) as regcontribuyenteespecialfecres,
+                regagentretencion,
+                regagentretencionnumres,
+                CONVERT(varchar, regagentretencionfecres, 23) as regagentretencionfecres,
+                regllevarcontabilidad,
+                regllevarcontabilidadnumres,
+                CONVERT(varchar, regllevarcontabilidadfecres, 23) as regllevarcontabilidadfecres,
+                regrepresentantelegalnombre, regrepresentantelegalcedula,
+                regpresidentenombre, regpresidentecedula,
+                regcontadornombre, regcontadorcedula, regcontadorlicencia,
+                regregimenemprendedores,
                 regregimenpopular, regregimengeneral,
                 CONVERT(varchar, regfecisys, 23) as regfecisys,
                 regusuisys,

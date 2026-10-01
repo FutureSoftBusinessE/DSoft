@@ -366,6 +366,7 @@ def generate_usuario_extra(ciaalias):
 def crearCompania():
     claims = get_jwt()
     clicianonBD = claims["seleccion"]["clicianonBD"]
+    ciacodigo_origen = claims["seleccion"]["cliciaciacodigo"]
     sUsuario = claims["user"]
 
     data = request.get_json()
@@ -373,6 +374,10 @@ def crearCompania():
     fecha_actual = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     hora_sys = datetime.now().replace(year=1900, month=1, day=1, microsecond=0)
     ipUser = request.headers.get("X-Forwarded-For", request.remote_addr)
+
+    # Perfil cuyos permisos se copiarán al usuario 2 (usuario extra)
+    PERFIL_PLAN_NIVEL_BASICO_1 = "PLAN1"
+    usrcodigo_perfil = encriptar(PERFIL_PLAN_NIVEL_BASICO_1)
 
     # ════════════════════════════════════════════════════════════════════════
     # Código de compañía - auto-generar si no se proporciona
@@ -575,7 +580,7 @@ def crearCompania():
     ciausumsys = sUsuario
 
     # Obtener sesiones para AMBAS bases de datos
-    session_company = get_session(clicianonBD)  # Compania actual donde se hizo login
+    session_company = get_session(clicianonBD)  # Comania actual donde se hizo login
     session_fsbs = get_session("DSOFT")  # DSOFT
 
     engine_company = session_company.bind
@@ -1242,7 +1247,7 @@ def crearCompania():
                         "usrflagoficre": 0,
                         "usrhelpart": "B",
                         "usrhelpcli": "B",
-                        "usrcodper": "",
+                        "usrcodper": usrcodigo_perfil,
                         "usrflagperfil": 0,
                         "usrhelppro": "B",
                         "usremail": ciaemail or "",
@@ -1948,20 +1953,35 @@ def crearCompania():
                     )
 
                 # ============================================================
-                # COPIAR PERMISOS DEL USUARIO 1 AL USUARIO 2 (MISMA COMPAÑÍA NUEVA)
+                # COPIAR PERMISOS DEL PERFIL "PLAN NIVEL BASICO 1" AL USUARIO 2
+                # (MISMA COMPAÑÍA NUEVA, DESDE LA COMPAÑÍA ORIGEN)
                 # ============================================================
 
-                # 4. Copiar módulos del usuario 1 al usuario 2 en la NUEVA compañía
+                # Validar que el perfil exista en la compañía origen
+                perfil_existe = conn_company.execute(
+                    text(
+                        """
+                        SELECT 1 FROM siaccusr
+                        WHERE usrcodigo = :usrcodigo_perfil
+                    """
+                    ),
+                    {"usrcodigo_perfil": usrcodigo_perfil},
+                ).fetchone()
+
+                if not perfil_existe:
+                    raise ValidationError(f"No existe el perfil '{PERFIL_PLAN_NIVEL_BASICO_1}' en la compañía origen")
+
+                # 4. Copiar módulos del PERFIL al usuario 2 en la NUEVA compañía
                 siactusr_para_usuario2 = (
                     conn_company.execute(
                         text(
                             """
                         SELECT modcodigo, usracceso, usraccion
                         FROM siactusr
-                        WHERE usrcodigo = :usrcodigo AND ciacodigo = :ciacodigo
+                        WHERE usrcodigo = :usrcodigo_perfil AND ciacodigo = :ciacodigo_origen
                     """
                         ),
-                        {"usrcodigo": encriptar(sUsuario), "ciacodigo": ciacodigo},
+                        {"usrcodigo_perfil": usrcodigo_perfil, "ciacodigo_origen": ciacodigo_origen},
                     )
                     .mappings()
                     .fetchall()
@@ -1989,17 +2009,17 @@ def crearCompania():
                         },
                     )
 
-                # 5. Copiar opciones de menú del usuario 1 al usuario 2 en la NUEVA compañía
+                # 5. Copiar opciones de menú del PERFIL al usuario 2 en la NUEVA compañía
                 siactusrweb_para_usuario2 = (
                     conn_company.execute(
                         text(
                             """
                         SELECT modcodigo, opctag, id_item
                         FROM siactusrweb
-                        WHERE usrcodigo = :usrcodigo AND ciacodigo = :ciacodigo
+                        WHERE usrcodigo = :usrcodigo_perfil AND ciacodigo = :ciacodigo_origen
                     """
                         ),
-                        {"usrcodigo": encriptar(sUsuario), "ciacodigo": ciacodigo},
+                        {"usrcodigo_perfil": usrcodigo_perfil, "ciacodigo_origen": ciacodigo_origen},
                     )
                     .mappings()
                     .fetchall()
@@ -2026,17 +2046,17 @@ def crearCompania():
                         },
                     )
 
-                # 6. Copiar acciones del usuario 1 al usuario 2 en la NUEVA compañía
+                # 6. Copiar acciones del PERFIL al usuario 2 en la NUEVA compañía
                 siactusrwebbar_para_usuario2 = (
                     conn_company.execute(
                         text(
                             """
                         SELECT modcodigo, opctag, opccontroller, acccaption, id_item
                         FROM siactusrwebbar
-                        WHERE usrcodigo = :usrcodigo AND ciacodigo = :ciacodigo
+                        WHERE usrcodigo = :usrcodigo_perfil AND ciacodigo = :ciacodigo_origen
                     """
                         ),
-                        {"usrcodigo": encriptar(sUsuario), "ciacodigo": ciacodigo},
+                        {"usrcodigo_perfil": usrcodigo_perfil, "ciacodigo_origen": ciacodigo_origen},
                     )
                     .mappings()
                     .fetchall()

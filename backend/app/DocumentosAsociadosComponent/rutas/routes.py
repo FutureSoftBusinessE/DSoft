@@ -432,7 +432,10 @@ def ejecutar_importacion_documento():
 
         with db.session.bind.connect() as conn:
             with conn.begin():
-                orig = conn.execute(text("SELECT docextension, docnombre, docfecemi, docfecven, docindex1, docindex2, docindex3, docindex4, docindex5, docindex6, insticodigo, clacodigo FROM gdocmdocumentos WHERE documentouuid = :u"), {"u": orig_uuid}).first()
+                orig = conn.execute(
+                    text("SELECT docextension, docnombre, docfecemi, docfecven, docindex1, docindex2, docindex3, docindex4, docindex5, docindex6, insticodigo, clacodigo FROM gdocmdocumentos WHERE ciacodigo = :ciacodigo AND documentouuid = :u"),
+                    {"u": orig_uuid, "ciacodigo": claims["seleccion"]["cliciaciacodigo"]},
+                ).first()
                 if not orig:
                     return jsonify({"success": False, "message": "Documento original no existe"}), 404
 

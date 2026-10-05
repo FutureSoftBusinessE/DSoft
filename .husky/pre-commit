@@ -2,3 +2,9 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 npx lint-staged --concurrent false
+# --- SINCRONIZACIÓN AUTOMÁTICA DE DEPENDENCIAS BACKEND ---
+echo "Sincronizando dependencias de Python..."
+cd backend || exit
+./.venv/Scripts/pip freeze > requirements.txt
+cd ..
+git add backend/requirements.txt

@@ -550,7 +550,7 @@ def crearCompania():
                         """
                         SELECT clicodigo
                         FROM cxcmcli
-                        WHERE ciacodigo = '01' AND cliruc = :cliruc
+                        WHERE ciacodigo = '01' AND left(cliruc,10) = :cliruc
                         """
                     )
 

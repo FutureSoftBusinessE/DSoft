@@ -78,7 +78,7 @@ tzlocal==5.3.1
 uritools==6.1.0
 urllib3==2.6.3
 virtualenv==21.3.1
+waitress==3.0.2
 Werkzeug==2.2.3
 xmlschema==3.4.3
 zeep==4.3.1
-waitress==3.0.2

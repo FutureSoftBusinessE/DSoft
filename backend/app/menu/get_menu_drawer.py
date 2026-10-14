@@ -97,8 +97,6 @@ def get_menu_all():
         .all()
     )
 
-    print(results)
-
     local_schema = SiacopcSchema(many=True)
     output = local_schema.dump(results)
 

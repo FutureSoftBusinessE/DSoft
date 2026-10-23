@@ -47,6 +47,8 @@ function fetchwrapper(url, options) {
             confirmButtonText: "Aceptar",
             allowOutsideClick: false,
             allowEscapeKey: false,
+            timer: 6000,
+            timerProgressBar: true,
           }).then(() => {
             clearSession()
           })

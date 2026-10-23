@@ -110,6 +110,8 @@ apiClient.interceptors.response.use(
           confirmButtonText: "Aceptar",
           allowOutsideClick: false,
           allowEscapeKey: false,
+          timer: 6000,
+          timerProgressBar: true,
         }).then(() => {
           // Limpia almacenamiento y redirige a /login
           clearSession()

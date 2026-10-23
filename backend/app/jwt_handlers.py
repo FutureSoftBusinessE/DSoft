@@ -8,6 +8,16 @@ from app.extensions import jwt
 from app.extensions import db
 
 
+# ----------------------------------------------------------------
+# Whitelist de jti: tokens que NO se comprueban contra medauditoria
+# (integraciones). Se saltan el single-session. Quemados aquí a
+# propósito: son tokens fijos que se generan una vez y se usan siempre.
+# Para revocar uno: quítalo de esta lista (al no estar en medauditoria,
+# el loader devolverá True y el token quedará rechazado).
+# ----------------------------------------------------------------
+JTI_WHITELIST = {}
+
+
 def _error_response(code, message, status_code):
     """
     Construye una respuesta de error con el mismo formato que @api_endpoint.
@@ -49,6 +59,13 @@ def register_jwt_handlers(app):
         if not jti or not usrcodigo:
             return True
 
+        # --------------------------------------------------------
+        # Whitelist: si el jti está aquí, no se consulta medauditoria
+        # (token de integración, exento de single-session).
+        # --------------------------------------------------------
+        if jti in JTI_WHITELIST:
+            return False
+
         try:
             # BD del cliente que viene dentro del propio token
             clicianonBD = jwt_payload["seleccion"]["clicianonBD"]
@@ -67,7 +84,7 @@ def register_jwt_handlers(app):
                     """
                 )
                 row = connection.execute(sql, {"usrcodigo": usrcodigo}).mappings().first()
-                app.logger.info(f"[LOADER] usrcodigo={usrcodigo} jtiToken={jti} jtiBD={row['jti'] if row else None}")
+                # app.logger.info(f"[LOADER] usrcodigo={usrcodigo} jtiToken={jti} jtiBD={row['jti'] if row else None}")
 
             if row is None:
                 return True

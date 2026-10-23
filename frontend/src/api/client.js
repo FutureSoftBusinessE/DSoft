@@ -1,5 +1,7 @@
 import axios from "axios"
 import { errorHandler } from "./errorHandler"
+import Swal from "sweetalert2"
+import { clearSession } from "../services/session/clearSession"
 
 // Si está vacío (solo pasa en desarrollo), usa el hostname. Esto lo hago para que se pueda probar en celular en desarrollo
 const API_URL = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:5000`
@@ -74,7 +76,7 @@ apiClient.interceptors.response.use(
       },
     }
   },
-  (error) => {
+  async (error) => {
     // Log en desarrollo
     if (process.env.NODE_ENV === "development") {
       console.error("❌ API Error:", {
@@ -91,6 +93,31 @@ apiClient.interceptors.response.use(
     // Limpiar token si es error de autenticación
     if (normalizedError.code === "AUTHENTICATION_ERROR") {
       localStorage.removeItem("accessToken")
+    }
+
+    // Si el código de estado es 401 (sesión inválida/expirada/reemplazada)
+    if (normalizedError.status === 401) {
+      const mensaje = normalizedError.message || "Tu sesión ya no es válida. Vuelve a iniciar sesión."
+
+      // Evita mostrar la alerta múltiples veces si varias peticiones fallan a la vez
+      if (!window.__sessionAlertShown) {
+        window.__sessionAlertShown = true
+
+        Swal.fire({
+          icon: "warning",
+          title: "Sesión cerrada",
+          text: mensaje,
+          confirmButtonText: "Aceptar",
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+        }).then(() => {
+          // Limpia almacenamiento y redirige a /login
+          clearSession()
+        })
+      }
+
+      // Marca el error como ya manejado para que notificationService no lo duplique
+      normalizedError.__sessionHandled = true
     }
 
     return Promise.reject(normalizedError)

@@ -1,3 +1,6 @@
+import Swal from "sweetalert2"
+import { clearSession } from "../session/clearSession"
+
 function fetchwrapper(url, options) {
   // Si está vacío (solo pasa en desarrollo), usa el hostname. Esto lo hago para que se pueda probar en celular en desarrollo
   const API_URL = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:5000`
@@ -28,6 +31,28 @@ function fetchwrapper(url, options) {
       } catch (error) {
         console.log(`Error interno de fetchwrapper: ${error}`)
       }
+
+      // Si el código de estado es 401 (sesión inválida/expirada/reemplazada)
+      if (response.status === 401) {
+        const mensaje = finalErrorReturned?.details?.message || "Tu sesión ya no es válida. Vuelve a iniciar sesión."
+
+        // Evita mostrar la alerta múltiples veces si varias peticiones fallan a la vez
+        if (!window.__sessionAlertShown) {
+          window.__sessionAlertShown = true
+
+          Swal.fire({
+            icon: "warning",
+            title: "Sesión cerrada",
+            text: mensaje,
+            confirmButtonText: "Aceptar",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+          }).then(() => {
+            clearSession()
+          })
+        }
+      }
+
       throw finalErrorReturned
     }
     return response

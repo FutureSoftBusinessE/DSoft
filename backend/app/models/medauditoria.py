@@ -12,6 +12,8 @@ class medauditoria(db.Model):
     hostip = db.Column(db.String(100), nullable=False)
     fecisys = db.Column(db.DateTime, primary_key=True, nullable=False)
     modcodigo = db.Column(db.String(3), primary_key=True, nullable=False)
+    jti = db.Column(db.String(36), nullable=True)
+    cliciaidenti = db.Column(db.Numeric(18, 0), nullable=True)
 
 
 class medauditoriaSchema(ma.SQLAlchemyAutoSchema):

@@ -27,6 +27,7 @@ import { useNavigate } from "react-router-dom"
 import CustomError from "../errors/customError"
 import fetchwrapper from "../../services/interceptors/fetchwrapper"
 import { FcDownLeft } from "react-icons/fc"
+import { api, useMutation } from "../../api"
 
 const options = [
   { value: "option1", label: "Opción 1" },
@@ -112,6 +113,18 @@ const LoginInner = () => {
 
   const [companySelected, setCompanySelected] = useState({})
   const [locationSelected, setLocationSelected] = useState({})
+
+  const generateTokenMutation = useMutation({
+    fn: (payload) => api.post("/login/generate_token", payload),
+    showSuccess: "none",
+    showError: "modal",
+  })
+
+  const inicioSesionMutation = useMutation({
+    fn: (payload) => api.post("/login/inicio_sesion", payload),
+    showSuccess: "none",
+    showError: "modal",
+  })
 
   useEffect(() => {
     // Verify first login exists before fetch companies
@@ -268,81 +281,72 @@ const LoginInner = () => {
 
     console.log(userExists.usuario.cliciausu, password)
     // implentation of jwt
+
+    // ===== 1) generate_token =====
+    // Si falla, el hook (showError: "auto") ya muestra el modal con el mensaje
+    // real del server (ej. "error propio"). El catch solo detiene el flujo.
+    let tokenResult
     try {
-      const options = {
-        method: "POST",
-        body: JSON.stringify({
-          user: userExists.usuario.cliciausu,
-          password,
-          seleccion: {},
-          clicianonBD: companySelected.clicianonBD,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-      }
+      tokenResult = await generateTokenMutation.mutateAsync({
+        user: localStorage.getItem("cliciausu"),
+        password,
+        seleccion: companySelected,
+        localidad: locationSelected,
+      })
+    } catch {
+      return ""
+    }
 
-      let response = await fetchwrapper("/login/inicio_sesion", options)
-      response = await response.json()
+    const tokenPayload = tokenResult?.data
+    console.log(tokenPayload)
 
-      console.log(response)
+    if (tokenPayload?.status !== "ok") {
+      return
+    }
 
-      if (response.status === "ok") {
-        console.log(response.status)
+    console.log(tokenPayload.status)
 
-        try {
-          const options = {
-            method: "POST",
-            body: JSON.stringify({
-              user: localStorage.getItem("cliciausu"),
-              password,
-              seleccion: companySelected,
-              localidad: locationSelected,
-            }),
-            headers: {
-              "Content-Type": "application/json",
-              "Access-Control-Allow-Origin": "*",
-            },
-          }
+    // ===== 2) inicio_sesion =====
+    let inicioResult
+    try {
+      inicioResult = await inicioSesionMutation.mutateAsync({
+        user: userExists.usuario.cliciausu,
+        password,
+        seleccion: companySelected,
+        clicianonBD: companySelected.clicianonBD,
+        token: tokenPayload.token,
+      })
+    } catch {
+      return
+    }
 
-          let response = await fetchwrapper("/login/generate_token", options)
-          response = await response.json()
+    const inicioPayload = inicioResult?.data
 
-          if (response.status === "ok") {
-            localStorage.setItem("jwt", JSON.stringify(response.data))
-            localStorage.setItem("accessToken", JSON.stringify(response.token))
-            console.log(localStorage.getItem("accessToken"))
-          } else {
-            throw new Error("No token")
-          }
+    if (inicioPayload?.status !== "ok") {
+      return
+    }
 
-          let responseOpcionesAcciones = await fetchwrapper("/menu/get_menu_opciones_acciones")
-          responseOpcionesAcciones = await responseOpcionesAcciones.json()
-          if (responseOpcionesAcciones.status === "ok") {
-            localStorage.setItem("menuAcciones", JSON.stringify(responseOpcionesAcciones.data))
-          } else {
-            throw new Error("No se pudo obtener los permisos del menu")
-          }
-          navigate("/home", {
-            state: { loginInfoFrontend: { user: localStorage.getItem("cliciausu"), password } },
-          })
-        } catch (err) {
-          console.error(err)
-        }
-      }
+    // ===== 3) guardar sesión y menu =====
+    localStorage.setItem("jwt", JSON.stringify(tokenPayload.data))
+    localStorage.setItem("accessToken", JSON.stringify(tokenPayload.token))
+    console.log(localStorage.getItem("accessToken"))
 
-      if (response.status == "error") {
-        throw new Error("error")
-      }
-    } catch (err) {
+    let responseOpcionesAcciones = await fetchwrapper("/menu/get_menu_opciones_acciones")
+    responseOpcionesAcciones = await responseOpcionesAcciones.json()
+    if (responseOpcionesAcciones.status === "ok") {
+      localStorage.setItem("menuAcciones", JSON.stringify(responseOpcionesAcciones.data))
+    } else {
       Swal.fire({
         icon: "error",
         title: "Oops...",
-        text: "Contraseña inválida",
+        text: "No se pudo obtener los permisos del menu",
       })
-      console.log(err)
+      return
     }
+
+    navigate("/home", {
+      state: { loginInfoFrontend: { user: localStorage.getItem("cliciausu"), password } },
+    })
   }
 
   return (

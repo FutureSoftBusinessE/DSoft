@@ -90,9 +90,16 @@ def create_app(config_class=Config):
         resources={r"/*": {"origins": allowed_origins, "headers": ["Content-Type", "Authorization"]}},
     )
 
+    # ************************************************************
+    #  HANDLERS JWT (single-session por usuario y por empresa)
+    # ************************************************************
     from app.extensions import jwt
 
     jwt.init_app(app)
+    from app.jwt_handlers import register_jwt_handlers
+
+    register_jwt_handlers(app)
+
     # CONFIGURAR SISTEMA DE ERRORES POR API
     setup_error_handling(app)
 

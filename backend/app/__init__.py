@@ -415,25 +415,43 @@ def create_app(config_class=Config):
     #  RUTAS BASE Y HERRAMIENTAS DE DESARROLLO (SOLO LOCAL)
     # ************************************************************
 
-    if current_env == "development":
+    from pathlib import Path
+
+    def _read_version_file():
+        """
+        Lee version.txt de la raíz del proyecto (donde lo deja el script de build).
+        Formato: líneas clave=valor (commit=..., branch=..., build=..., environment=...).
+        Si no existe o está vacío, devuelve {}.
+        """
+        version_file = Path(app.root_path).parent / "version.txt"
+        if not version_file.exists():
+            return {}
+        data = {}
+        for line in version_file.read_text(encoding="utf-8").splitlines():
+            if "=" in line:
+                k, v = line.split("=", 1)
+                data[k.strip()] = v.strip()
+        return data
+
+    if current_env == "development" or current_env == "staging":
         # Imprimir en consola local todos los endpoints del backend
         print("---------------ENDPOINTS------------------")
         for rule in app.url_map.iter_rules():
             print(str(rule))
         print("---------------/ENDPOINTS------------------")
 
-        # Exponer endpoints en la ruta '/' solo para localhost de 'development'
+        # Exponer endpoints + versión en la ruta '/' (dev/staging)
         @app.route("/")
         def index():
             endpoints = []
             for rule in app.url_map.iter_rules():
                 endpoints.append(str(rule))
-            return jsonify(endpoints=endpoints)
+            return jsonify(endpoints=endpoints, version=_read_version_file())
 
     else:
-        # En PRODUCCIÓN, la ruta raíz solo devuelve un status genérico
+        # En PRODUCCIÓN, la ruta raíz devuelve status + versión
         @app.route("/")
         def index():
-            return jsonify({"status": "API Online"})
+            return jsonify({"status": "API Online siac.fsbsec.com", "version": _read_version_file()})
 
     return app

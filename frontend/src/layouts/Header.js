@@ -7,6 +7,7 @@ import ProductNotifications from "../components/ProductNotifications"
 import fetchwrapper from "../services/interceptors/fetchwrapper"
 import Swal from "sweetalert2"
 import { useQueryClient } from "@tanstack/react-query"
+import VersionBadge from "../components/VersionBadge"
 
 export default function Header({ onSkin }) {
   const queryClient = useQueryClient()
@@ -333,6 +334,8 @@ export default function Header({ onSkin }) {
                   <i className="ri-logout-box-r-line"></i> Log Out
                 </Button>
               </nav>
+              <hr />
+              <VersionBadge />
             </div>
           </Dropdown.Menu>
         </Dropdown>

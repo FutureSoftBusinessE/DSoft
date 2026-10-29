@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from "react"
+import React, { useContext, useMemo } from "react"
 import Header from "../../layouts/Header"
 import { styled, createTheme, ThemeProvider } from "@mui/material/styles"
 import { Box } from "@mui/material"
@@ -13,8 +13,7 @@ import EditIcon from "@mui/icons-material/Edit"
 import AddIcon from "@mui/icons-material/Add"
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf"
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward"
-
-import CustomConditionalActionsTableServer from "../../components/CustomConditionalActionsTableServerSide"
+import CustomReadableTable from "../../components/CustomReadableTable"
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye"
 import EliminarIcon from "../../assets/iconos/Eliminar.ico"
 import normalFormatDate from "../utils/date/DDMMYYYFormatDate"
@@ -30,6 +29,8 @@ import fetchwrapper from "../../services/interceptors/fetchwrapper"
 import Swal from "sweetalert2"
 
 import getIconComponent from "../utils/getIconComponent"
+
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 
 const StyledRoot = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -47,8 +48,6 @@ const StyledIcons = styled(NavLink)(({ theme }) => ({
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
-  // backgroundColor: theme.palette.background.default,
-  // border: "1px solid #ddd",
   color: theme.palette.text.primary,
   cursor: "pointer",
 
@@ -73,14 +72,77 @@ const theme = createTheme({
       main: "#196C87",
     },
     secondary: {
-      main: "#196C87", // Cambia el color secundario a verde azulado
+      main: "#196C87",
     },
   },
 })
 
+function useGetAllUsersModulos() {
+  return useQuery({
+    queryKey: ["getAllUsersModulosAccesoAOpcionesPorModulos"],
+    queryFn: async () => {
+      const response = await fetchwrapper("/AccesoAOpcionesPorModulos/getAllUsersModulos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      })
+      const result = await response.json()
+      return result.data || []
+    },
+    retry: 1,
+  })
+}
+
 const AccesoAOpcionesPorModulos = () => {
   const navigate = useNavigate()
   const { selectedMenuInfo } = useContext(GlobalContext)
+  const { data: usuariosModulos = [], isLoading, isError, refetch } = useGetAllUsersModulos()
+  const columnsTable = useMemo(
+    () => [
+      {
+        accessorKey: "ciacodigo",
+        header: "Cia",
+        size: 150,
+        Cell: ({ cell }) => <span>{cell.getValue()}</span>,
+      },
+      {
+        accessorKey: "usrcodigo",
+        header: "Usuario",
+        size: 150,
+        Cell: ({ cell }) => <span>{cell.getValue()}</span>,
+      },
+      {
+        accessorKey: "usrnombre",
+        header: "Nombre",
+        size: 200,
+        Cell: ({ cell }) => <span>{cell.getValue()}</span>,
+      },
+      {
+        accessorKey: "modcodigo",
+        header: "Módulo",
+        size: 150,
+        Cell: ({ cell }) => <span>{cell.getValue()}</span>,
+      },
+      {
+        accessorKey: "usrfeccad",
+        header: "Fecha de Caducidad",
+        size: 200,
+        Cell: ({ cell }) => {
+          const cellValue = cell.getValue()
+          return normalFormatDate(cellValue)
+        },
+      },
+      {
+        accessorKey: "usrstatus",
+        header: "Estado",
+        size: 120,
+        Cell: ({ cell }) => <span>{cell.getValue().toString() === "A" ? "Activo" : "No Activo"}</span>,
+      },
+    ],
+    [],
+  )
 
   return (
     <ThemeProvider theme={theme}>
@@ -100,16 +162,20 @@ const AccesoAOpcionesPorModulos = () => {
         </div>
 
         <Box className={StyledRoot}>
-          <CustomConditionalActionsTableServer
-            // key={`UsuariosCreacion-${refreshCustomMultiRowSelectionRefKey}-${forceDataRefresh}`}
-            // key={`UsuariosCreacion`}
-            endpoint="/AccesoAOpcionesPorModulos/getAllUsersModulos"
+          <CustomReadableTable
+            data={usuariosModulos}
+            isLoading={isLoading}
+            isError={isError}
             errorMsgFilterSearch="Error en cargar datos"
-            queryKeyModal="getAllUsersModulosAccesoAOpcionesPorModulos"
-            perPage={10}
+            refetch={refetch}
+            initialPerPage={10}
             rowActionsWidthTable={80}
+            getRowId={(row, index) => {
+              const composite = `${row?.ciacodigo ?? ""}-${row?.usrcodigo ?? ""}-${row?.modcodigo ?? ""}`
+              return composite === "--" ? `row-${index}` : composite
+            }}
+            syncURL={true}
             rowActions={(row) => {
-              // Buscar todas las acciones necesarias
               const buscarAction = selectedMenuInfo?.data?.barraAcciones?.find(
                 (action) => action?.acccaption === "BUSCAR",
               )
@@ -172,48 +238,7 @@ const AccesoAOpcionesPorModulos = () => {
               ]
               return toolbarActions
             }}
-            columnsTable={[
-              {
-                accessorKey: "ciacodigo",
-                header: "Cia",
-                size: 150,
-                Cell: ({ cell }) => <span>{cell.getValue()}</span>,
-              },
-              {
-                accessorKey: "usrcodigo",
-                header: "Usuario",
-                size: 150,
-                Cell: ({ cell }) => <span>{cell.getValue()}</span>,
-              },
-              {
-                accessorKey: "usrnombre",
-                header: "Nombre",
-                size: 200,
-                Cell: ({ cell }) => <span>{cell.getValue()}</span>,
-              },
-              {
-                accessorKey: "modcodigo",
-                header: "Módulo",
-                size: 150,
-                Cell: ({ cell }) => <span>{cell.getValue()}</span>,
-              },
-
-              {
-                accessorKey: "usrfeccad",
-                header: "Fecha de Caducidad",
-                size: 200,
-                Cell: ({ cell }) => {
-                  const cellValue = cell.getValue()
-                  return normalFormatDate(cellValue)
-                },
-              },
-              {
-                accessorKey: "usrstatus",
-                header: "Estado",
-                size: 120,
-                Cell: ({ cell }) => <span>{cell.getValue().toString() === "A" ? "Activo" : "No Activo"}</span>,
-              },
-            ]}
+            columnsTable={columnsTable}
           />
         </Box>
       </div>

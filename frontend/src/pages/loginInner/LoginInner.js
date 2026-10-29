@@ -28,6 +28,7 @@ import CustomError from "../errors/customError"
 import fetchwrapper from "../../services/interceptors/fetchwrapper"
 import { FcDownLeft } from "react-icons/fc"
 import { api, useMutation } from "../../api"
+import SocialMediaLinks from "../../components/SocialMediaLinks"
 
 const options = [
   { value: "option1", label: "Opción 1" },
@@ -488,6 +489,7 @@ const LoginInner = () => {
                   Retroceder
                 </Button> */}
               </StyledForm>
+              <SocialMediaLinks iconSize={38} />
             </StyledPaper>
           </Paper>
         </Grid>

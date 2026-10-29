@@ -10,6 +10,7 @@ import loginImages from "../helpers/login/getImgs"
 import { useNavigate } from "react-router-dom"
 import CustomError from "../errors/customError"
 import fetchwrapper from "../../services/interceptors/fetchwrapper"
+import SocialMediaLinks from "../../components/SocialMediaLinks"
 
 // STYLES
 const StyledPaper = styled("div")(({ theme }) => ({
@@ -168,6 +169,7 @@ const Login = () => {
                     "Siguiente"
                   )}
                 </StyledSubmitButton>
+                <SocialMediaLinks iconSize={38} />
               </StyledForm>
             </StyledPaper>
           </Paper>
